@@ -1,0 +1,20 @@
+{
+  "name": "powerpagestoolkit",
+  "version": "1.0.0",
+  "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.8",
+    "@babel/preset-env": "^7.25.8",
+    "babel-loader": "^9.2.1",
+    "eslint": "^8.57.1",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "author": "KeatonBrewster",
+  "license": "SSPL-1.0",
+  "type": "module"
+}
