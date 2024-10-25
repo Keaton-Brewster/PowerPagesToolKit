@@ -1,8 +1,9 @@
 {
   "name": "powerpagestoolkit",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -20,5 +21,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Keaton-Brewster/PowerPagesToolKit"
-  }
+  },
+  "files": ["index.js", "index.d.ts"]
 }
