@@ -1,7 +1,4 @@
-import API from "./package/API.js";
-import createDOMNodeReference from "./package/DOMNodeReferences.js";
+import API from "./lib/API.js";
+import createDOMNodeReference from "./lib/DOMNodeReferences.js";
 
-export default {
-  API,
-  createDOMNodeReference,
-};
+export { API, createDOMNodeReference };
