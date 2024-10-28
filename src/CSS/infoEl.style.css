@@ -1,0 +1,33 @@
+.info-icon {
+  position: relative;
+  display: inline-block;
+}
+
+.info-icon .fa-info-circle {
+  cursor: pointer; /* Ensures the icon is recognized as interactive */
+}
+
+.info-icon .flyout-content {
+  max-width: calc(100vw - 20px); /* 20px margin on both sides */
+  display: none; /* Initially hidden */
+  position: absolute;
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Adjust positioning */
+  background-color: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #ddd;
+  z-index: 1;
+  min-width: 200px; /* Minimum width for better readability */
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px; /* Rounded corners */
+}
+
+@media (max-width: 600px) {
+  .info-icon .flyout-content {
+    max-width: 95vw;
+    padding: 12px;
+    font-size: 0.9em;
+    display: block;
+    right: auto;
+  }
+}

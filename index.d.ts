@@ -14,10 +14,10 @@ declare module "powerpagestoolkit" {
 
     /**
      * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
-     * @returns {Promise<Proxy>} A promise that resolves to a Proxy of the DOMNodeReference instance.
+     * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the DOMNodeReference instance.
      * @throws {Error} Throws an error if the element cannot be found using the provided query selector.
      */
-    init(): Promise<this>;
+    private init(): Promise<this>;
 
     /**
      * Hides the element by setting its display style to "none".

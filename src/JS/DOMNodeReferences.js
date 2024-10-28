@@ -1,6 +1,7 @@
 import { waitFor } from "./common_functions.js";
 import FieldValidation from "./FieldValidation.class.js";
 import createInfoEl from "./createInfoElement.js";
+import { convertToObject } from "typescript";
 
 /**
  * Class representing a reference to a DOM node.
@@ -19,8 +20,6 @@ class DOMNodeReference {
 
   /**
    * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
-   * @returns {Promise<Proxy>} A promise that resolves to a Proxy of the DOMNodeReference instance.
-   * @throws {Error} Throws an error if the element cannot be found using the provided query selector.
    */
   async init() {
     const element = await waitFor(this.querySelector);
@@ -31,29 +30,19 @@ class DOMNodeReference {
     }
 
     this.element = element;
+    this.value = element.value;
     this.parentElement = element.parentElement;
     this.container = element.parentElement.parentElement.parentElement;
     this.isLoaded = true;
 
     if (this.element.classList.contains("boolean-radio")) {
-      this.yesRadio = new DOMNodeReference(`#${this.element.id}_1`);
-      this.noRadio = new DOMNodeReference(`#${this.element.id}_0`);
+      this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
+      this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
     }
 
     this.defaultDisplay = this.element.style.display || "block";
     this.defaultParentDisplay = this.parentElement.style.display || "block";
     this.defaultContainerDisplay = this.container.style.display || "block";
-
-    return new Proxy(this, {
-      get: (target, prop) => {
-        const value = target[prop];
-        if (typeof value === "function" && prop !== "onceLoaded") {
-          return (...args) =>
-            target.onceLoaded(() => value.apply(target, args));
-        }
-        return value;
-      },
-    });
   }
 
   /**
@@ -113,15 +102,6 @@ class DOMNodeReference {
    */
   setValue(value) {
     this.element.value = value;
-  }
-
-  /**
-   * Gets the value of the HTML element.
-   * @method getValue
-   * @returns {string} The current value of the HTML element.
-   */
-  getValue() {
-    return this.element.value;
   }
 
   /**
@@ -220,6 +200,10 @@ class DOMNodeReference {
     this.appendToLabel(createInfoEl(text));
   }
 
+  addToolTip(text) {
+    this.append(createInfoEl(text));
+  }
+
   /**
    * Sets the inner HTML content of the HTML element.
    * @method setTextContent
@@ -237,7 +221,6 @@ class DOMNodeReference {
    * @param {Function} callback - A callback function to execute once the element is loaded.
    */
   onceLoaded(callback) {
-    console.log("loading element");
     if (this.isLoaded) {
       callback(this);
     } else {
@@ -266,5 +249,21 @@ class DOMNodeReference {
  */
 export default async function createDOMNodeReference(querySelector) {
   const instance = new DOMNodeReference(querySelector);
-  return await instance.init();
+  await instance.init();
+
+  return new Proxy(instance, {
+    get: (target, prop) => {
+      // do not proxy the initialization method
+      // init() is only needed in this factory function
+      if (prop == "init") return undefined;
+
+      // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
+      // element is always available before executing method
+      const value = target[prop];
+      if (typeof value === "function" && prop !== "onceLoaded") {
+        return (...args) => target.onceLoaded(() => value.apply(target, args));
+      }
+      return value;
+    },
+  });
 }

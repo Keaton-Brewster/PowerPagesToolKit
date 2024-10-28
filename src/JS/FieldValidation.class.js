@@ -10,7 +10,7 @@ export default class FieldValidation {
   createValidator = function () {
     if (typeof Page_Validators == "undefined") return;
     // Create new validator
-    var newValidator = document.createElement("span");
+    let newValidator = document.createElement("span");
     newValidator.style.display = "none";
     newValidator.id = `${this.fieldLogicalName}Validator`;
     newValidator.controltovalidate = `${this.fieldLogicalName}`;

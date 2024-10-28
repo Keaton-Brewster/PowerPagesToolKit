@@ -1,5 +1,5 @@
 export default function safeAjax(ajaxOptions) {
-  var deferredAjax = $.Deferred();
+  const deferredAjax = $.Deferred();
 
   // shell is only available via runtime in a PowerPages portal
   //eslint-disable-next-line
