@@ -126,6 +126,20 @@ declare module "powerpagestoolkit" {
     setTextContent(text: string): void;
 
     /**
+     * 
+     * @param {Function} conditions A Function that return a boolean value to set the
+     *  visibility of the targeted element. if condition() returns true, element is shown.
+     *  If false, element is hidden
+     * @param {DOMNodeReference} triggerNode *Optional* The DOMNodeReference to which an
+     * event listener will be registered to change the visibility state of the calling
+     * DOMNodeReference
+     */
+    configureConditionalRendering(
+      condition: () => boolean,
+      triggerNode: DOMNodeReference
+    ): void;
+
+    /**
      * Executes a callback function once the element is fully loaded.
      * If the element is already loaded, the callback is called immediately.
      * Otherwise, a MutationObserver is used to detect when the element is added to the DOM.

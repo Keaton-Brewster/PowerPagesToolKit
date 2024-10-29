@@ -1,17 +1,16 @@
-import { waitFor } from "./common_functions.js";
+import waitFor from "./waitFor.js";
 import FieldValidation from "./FieldValidation.class.js";
 import createInfoEl from "./createInfoElement.js";
-import { convertToObject } from "typescript";
 
 /**
  * Class representing a reference to a DOM node.
  */
-class DOMNodeReference {
+/******/ /******/ /******/ class DOMNodeReference {
   /**
    * Creates an instance of DOMNodeReference.
    * @param {string} querySelector - The CSS selector to find the desired DOM element.
    */
-  constructor(querySelector) {
+  /******/ /******/ constructor(querySelector) {
     this.querySelector = querySelector;
     this.element = null;
     this.isLoaded = false;
@@ -21,35 +20,58 @@ class DOMNodeReference {
   /**
    * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
    */
-  async init() {
-    const element = await waitFor(this.querySelector);
-    if (!element) {
-      throw new Error(
-        `[SYNACT] No Element could be found with the provided query selector: ${this.querySelector}`
-      );
+  /******/ /******/ async init() {
+    try {
+      const element = await waitFor(this.querySelector);
+      if (!element) {
+        console.error(
+          `[SYNACT] No Element could be found with the provided query selector: ${this.querySelector}`
+        );
+        throw new Error(
+          `[SYNACT] No Element could be found with the provided query selector: ${this.querySelector}`
+        );
+      }
+      this.element = element;
+      this.value = element.value;
+      this.parentElement = element.parentElement;
+      this.container = element.parentElement.parentElement.parentElement;
+      this.isLoaded = true;
+
+      if (this.element.classList.contains("boolean-radio")) {
+        this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
+        this.yesRadio.element.addEventListener(
+          "click",
+          function (e) {
+            this.checked = e.target.checked;
+          }.bind(this.yesRadio)
+        );
+        this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
+        this.noRadio.element.addEventListener(
+          "click",
+          function (e) {
+            this.checked = e.target.checked;
+          }.bind(this.noRadio)
+        );
+      }
+
+      this.defaultDisplay = this.element.style.display || "block";
+      this.defaultParentDisplay = this.parentElement.style.display || "block";
+      this.defaultContainerDisplay = this.container.style.display || "block";
+
+      this.element.addEventListener("change", () => {
+        this.value = this.element.value;
+      });
+    } catch (e) {
+      console.error(`There was an error initializing a DOMNodeReference: ${e}`);
+      throw new Error(e);
     }
-
-    this.element = element;
-    this.value = element.value;
-    this.parentElement = element.parentElement;
-    this.container = element.parentElement.parentElement.parentElement;
-    this.isLoaded = true;
-
-    if (this.element.classList.contains("boolean-radio")) {
-      this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
-      this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
-    }
-
-    this.defaultDisplay = this.element.style.display || "block";
-    this.defaultParentDisplay = this.parentElement.style.display || "block";
-    this.defaultContainerDisplay = this.container.style.display || "block";
   }
 
   /**
    * Hides the element by setting its display style to "none".
    * @method hide
    */
-  hide() {
+  /******/ hide() {
     this.element.style.display = "none";
   }
 
@@ -57,7 +79,7 @@ class DOMNodeReference {
    * Shows the element by restoring its default display style.
    * @method show
    */
-  show() {
+  /******/ show() {
     this.element.style.display = this.defaultDisplay;
   }
 
@@ -65,7 +87,7 @@ class DOMNodeReference {
    * Hides the parent element by setting its display style to "none".
    * @method hideParent
    */
-  hideParent() {
+  /******/ hideParent() {
     this.parentElement.style.display = "none";
   }
 
@@ -73,7 +95,7 @@ class DOMNodeReference {
    * Shows the parent element by restoring its default display style.
    * @method showParent
    */
-  showParent() {
+  /******/ showParent() {
     this.parentElement.style.display = this.defaultParentDisplay;
   }
 
@@ -81,18 +103,22 @@ class DOMNodeReference {
    * Hides the container (grandparent of the element) by setting its display style to "none".
    * @method hideContainer
    */
-  hideContainer() {
-    this.element.parentElement.parentElement.parentElement.style.display =
-      "none";
+  /******/ hideContainer() {
+    if (this.querySelector.startsWith("#"))
+      this.element.parentElement.parentElement.parentElement.style.display =
+        "none";
+    else this.element.style.display = "none";
   }
 
   /**
    * Shows the container (grandparent of the element) by restoring its default display style.
    * @method showContainer
    */
-  showContainer() {
-    this.element.parentElement.parentElement.parentElement.style.display =
-      this.defaultContainerDisplay;
+  /******/ showContainer() {
+    if (this.querySelector.startsWith("#"))
+      this.element.parentElement.parentElement.parentElement.style.display =
+        this.defaultContainerDisplay;
+    else this.element.style.display = "none";
   }
 
   /**
@@ -100,7 +126,7 @@ class DOMNodeReference {
    * @method setValue
    * @param {string} value - The value to set for the HTML element.
    */
-  setValue(value) {
+  /******/ setValue(value) {
     this.element.value = value;
   }
 
@@ -109,7 +135,7 @@ class DOMNodeReference {
    * @method append
    * @param {...HTMLElement} elements - The elements to append to the HTML element.
    */
-  append(...elements) {
+  /******/ append(...elements) {
     this.element.append(...elements);
   }
 
@@ -118,7 +144,7 @@ class DOMNodeReference {
    * @method after
    * @param {...HTMLElement} elements - The elements to insert after the HTML element.
    */
-  after(...elements) {
+  /******/ after(...elements) {
     this.element.after(...elements);
   }
 
@@ -128,7 +154,7 @@ class DOMNodeReference {
    * @returns {HTMLElement} The label element associated with this element.
    * @throws {Error} Throws an error if the label cannot be found.
    */
-  getLabel() {
+  /******/ getLabel() {
     return document.querySelector(`#${this.element.id}_label`);
   }
 
@@ -137,8 +163,8 @@ class DOMNodeReference {
    * @method appendToLabel
    * @param {...HTMLElement} elements - The elements to append to the label.
    */
-  appendToLabel(...elements) {
-    let label = this.getLabel();
+  /******/ appendToLabel(...elements) {
+    const label = this.getLabel();
     label.append(" ", ...elements);
   }
 
@@ -147,7 +173,7 @@ class DOMNodeReference {
    * @method addClickListener
    * @param {Function} eventHandler - The function to execute when the element is clicked.
    */
-  addClickListener(eventHandler) {
+  /******/ addClickListener(eventHandler) {
     this.element.addEventListener("click", (e) => {
       e.preventDefault();
       eventHandler();
@@ -159,7 +185,7 @@ class DOMNodeReference {
    * @method addChangeListener
    * @param {Function} eventHandler - The function to execute when the element's value changes.
    */
-  addChangeListener(eventHandler) {
+  /******/ addChangeListener(eventHandler) {
     this.element.addEventListener("change", (e) => {
       e.preventDefault();
       eventHandler();
@@ -170,7 +196,7 @@ class DOMNodeReference {
    * Unchecks both the yes and no radio buttons if they exist.
    * @method uncheckRadios
    */
-  uncheckRadios() {
+  /******/ uncheckRadios() {
     if (this.yesRadio && this.noRadio) {
       this.yesRadio.element.checked = false;
       this.noRadio.element.checked = false;
@@ -187,7 +213,7 @@ class DOMNodeReference {
    * @param {Function} evaluationFunction - The function used to evaluate the field.
    * @param {string} fieldDisplayName - The field name to display in error if validation fails.
    */
-  createValidation(evaluationFunction, fieldDisplayName) {
+  /******/ createValidation(evaluationFunction, fieldDisplayName) {
     new FieldValidation(this.id, `'${fieldDisplayName}'`, evaluationFunction);
   }
 
@@ -196,11 +222,11 @@ class DOMNodeReference {
    * @method addLabelTooltip
    * @param {string} text - The text to display in the tooltip.
    */
-  addLabelTooltip(text) {
+  /******/ addLabelTooltip(text) {
     this.appendToLabel(createInfoEl(text));
   }
 
-  addToolTip(text) {
+  /******/ addToolTip(text) {
     this.append(createInfoEl(text));
   }
 
@@ -209,8 +235,30 @@ class DOMNodeReference {
    * @method setTextContent
    * @param {string} text - The text to set as the inner HTML of the element.
    */
-  setTextContent(text) {
+  /******/ setTextContent(text) {
     this.element.innerHTML = text;
+  }
+
+  /**
+   *
+   * @param {Function} conditions A Function that return a boolean value to set the
+   *  visibility of the targeted element. if condition() returns true, element is shown.
+   *  If false, element is hidden
+   * @param {DOMNodeReference} triggerNode *Optional* The DOMNodeReference to which an
+   * event listener will be registered to change the visibility state of the calling
+   * DOMNodeReference
+   */
+  /******/ configureConditionalRendering(condition, triggerNode) {
+    this.hideContainer();
+    if (triggerNode) {
+      triggerNode.addChangeListener(() => {
+        if (condition()) this.showContainer();
+        else this.hideContainer();
+      });
+    } else {
+      if (condition()) this.showContainer();
+      else this.hideContainer();
+    }
   }
 
   /**
@@ -220,7 +268,7 @@ class DOMNodeReference {
    * @method onceLoaded
    * @param {Function} callback - A callback function to execute once the element is loaded.
    */
-  onceLoaded(callback) {
+  /******/ onceLoaded(callback) {
     if (this.isLoaded) {
       callback(this);
     } else {
@@ -248,22 +296,28 @@ class DOMNodeReference {
  * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(querySelector) {
-  const instance = new DOMNodeReference(querySelector);
-  await instance.init();
+  try {
+    const instance = new DOMNodeReference(querySelector);
+    await instance.init();
 
-  return new Proxy(instance, {
-    get: (target, prop) => {
-      // do not proxy the initialization method
-      // init() is only needed in this factory function
-      if (prop == "init") return undefined;
+    return new Proxy(instance, {
+      get: (target, prop) => {
+        // do not proxy the initialization method
+        // init() is only needed in this factory function
+        if (prop == "init") return undefined;
 
-      // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
-      // element is always available before executing method
-      const value = target[prop];
-      if (typeof value === "function" && prop !== "onceLoaded") {
-        return (...args) => target.onceLoaded(() => value.apply(target, args));
-      }
-      return value;
-    },
-  });
+        // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
+        // element is always available before executing method
+        const value = target[prop];
+        if (typeof value === "function" && prop !== "onceLoaded") {
+          return (...args) =>
+            target.onceLoaded(() => value.apply(target, args));
+        }
+        return value;
+      },
+    });
+  } catch (e) {
+    console.error(`There was an error creating a DOMNodeReference: ${e}`);
+    throw new Error(e);
+  }
 }

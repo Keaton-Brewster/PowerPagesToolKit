@@ -4,7 +4,7 @@
  * @returns {Promise} the element targeted by ID *selector*
  */
 
-export function waitFor(selector) {
+export default function waitFor(selector) {
   return new Promise((resolve) => {
     if (document.querySelector(selector)) {
       return resolve(document.querySelector(selector));
@@ -19,6 +19,7 @@ export function waitFor(selector) {
 
     observer.observe(document.body, {
       subtree: true,
+      attributes: true,
     });
   });
 }
