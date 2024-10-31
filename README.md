@@ -20,11 +20,11 @@ import {
 
 # Modules
 
-## `DOMNodereference`
+### `DOMNodereference`
 
 The `DOMNodeReference` module simplifies DOM element management. It provides functionalities for creating and interacting with DOM elements:
 
-### Usage
+#### Usage
 
 - **`createDOMNodeReference(selector)`**: Creates a `DOMNodeReference` instance for a single DOM element specified by a CSS selector or HTMLElement. Returns a `DOMNodeReference` instance.
 
@@ -119,7 +119,7 @@ onceLoaded(callback: (instance: DOMNodeReference) => void)
 
 ```
 
-## `API`
+### `API`
 
 The `API` module provides functions for creating and retrieving records from a DataVerse. It includes the following methods:
 
@@ -128,7 +128,7 @@ The `API` module provides functions for creating and retrieving records from a D
 
 - **`getMultiple(tableSetName, queryParameters)`**: Retrieves multiple records from the DataVerse based on specified query parameters. Returns a Promise that resolves with the list of retrieved records or rejects with an error.
 
-### Usage
+#### Usage
 
 ###### 1. Creating a Record
 
