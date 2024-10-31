@@ -1,0 +1,15 @@
+{
+  "eslint.enable": true,
+  "eslint.run": "onType",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "cSpell.words": [
+    "iframes"
+  ],
+  "editor.folding": true,
+  "editor.showFoldingControls": "always"
+}

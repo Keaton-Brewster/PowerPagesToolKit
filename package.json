@@ -1,11 +1,12 @@
 {
   "name": "powerpagestoolkit",
-  "version": "1.2.202",
+  "version": "1.3.0",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
   "main": "./dist/index.bundle.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "webpack"
+    "build": "webpack",
+    "lint": "eslint ./src/JS/*"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
@@ -16,7 +17,7 @@
     "clean-webpack-plugin": "^4.0.0",
     "css-loader": "^7.1.2",
     "eslint": "^8.57.1",
-    "rimraf": "^6.0.1",
+    "eslint-plugin-import": "^2.31.0",
     "style-loader": "^4.0.0",
     "terser-webpack-plugin": "^5.3.4",
     "typescript": "^5.6.3",
@@ -33,8 +34,5 @@
   "files": [
     "dist",
     "index.d.ts"
-  ],
-  "exports": {
-    ".": "./dist/index.bundle.js"
-  }
+  ]
 }

@@ -8,13 +8,16 @@ import createInfoEl from "./createInfoElement.js";
 /******/ /******/ /******/ class DOMNodeReference {
   /**
    * Creates an instance of DOMNodeReference.
-   * @param {string} querySelector - The CSS selector to find the desired DOM element.
+   * @param {string} target - The CSS selector to find the desired DOM element.
    */
-  /******/ /******/ constructor(querySelector) {
-    this.querySelector = querySelector;
+  /******/ /******/ constructor(target) {
+    this.target = target;
     this.element = null;
     this.isLoaded = false;
-    // Deferred initialization
+    this.visibilityController = null;
+    this.defaultDisplay = "";
+    this.value = null;
+    // we defer the rest of initialization
   }
 
   /**
@@ -22,48 +25,50 @@ import createInfoEl from "./createInfoElement.js";
    */
   /******/ /******/ async init() {
     try {
-      const element = await waitFor(this.querySelector);
-      if (!element) {
-        console.error(
-          `[SYNACT] No Element could be found with the provided query selector: ${this.querySelector}`
-        );
+      const element = await waitFor(this.target);
+      this.element = element;
+
+      if (!this.element) {
         throw new Error(
-          `[SYNACT] No Element could be found with the provided query selector: ${this.querySelector}`
+          `[SYNACT] No Element could be found with the provided query selector: ${this.target}`
         );
       }
-      this.element = element;
-      this.value = element.value;
-      this.parentElement = element.parentElement;
-      this.container = element.parentElement.parentElement.parentElement;
-      this.isLoaded = true;
+
+      this.value = this.element.value;
 
       if (this.element.classList.contains("boolean-radio")) {
         this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
-        this.yesRadio.element.addEventListener(
-          "click",
-          function (e) {
-            this.checked = e.target.checked;
-          }.bind(this.yesRadio)
-        );
         this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
-        this.noRadio.element.addEventListener(
-          "click",
-          function (e) {
-            this.checked = e.target.checked;
-          }.bind(this.noRadio)
-        );
       }
-
-      this.defaultDisplay = this.element.style.display || "block";
-      this.defaultParentDisplay = this.parentElement.style.display || "block";
-      this.defaultContainerDisplay = this.container.style.display || "block";
 
       this.element.addEventListener("change", () => {
         this.value = this.element.value;
       });
+
+      // based on the type of element we have targeted in instantiation
+      // we now grab the parent element that will be responsible for
+      // 'showing' and 'hiding' the target element
+      // this is needed also in order to observe changes to visibility so that
+      // changes to target can cascade to dependent DOMNodeReferences
+      switch (this.element.tagName) {
+        case "SPAN":
+        case "INPUT":
+        case "TEXTAREA":
+        case "SELECT":
+          this.visibilityController = this.element.closest("td");
+          break;
+        case "FIELDSET":
+        default:
+          this.visibilityController = this.element;
+      }
+
+      this.defaultDisplay = this.visibilityController.style.display;
+
+      this.isLoaded = true;
     } catch (e) {
-      console.error(`There was an error initializing a DOMNodeReference: ${e}`);
-      throw new Error(e);
+      throw new Error(
+        `powerpagestoolkit: There was an error initializing a DOMNodeReference with the target: ${this.target} :: ${e}`
+      );
     }
   }
 
@@ -72,7 +77,7 @@ import createInfoEl from "./createInfoElement.js";
    * @method hide
    */
   /******/ hide() {
-    this.element.style.display = "none";
+    this.visibilityController.style.display = "none";
   }
 
   /**
@@ -80,45 +85,7 @@ import createInfoEl from "./createInfoElement.js";
    * @method show
    */
   /******/ show() {
-    this.element.style.display = this.defaultDisplay;
-  }
-
-  /**
-   * Hides the parent element by setting its display style to "none".
-   * @method hideParent
-   */
-  /******/ hideParent() {
-    this.parentElement.style.display = "none";
-  }
-
-  /**
-   * Shows the parent element by restoring its default display style.
-   * @method showParent
-   */
-  /******/ showParent() {
-    this.parentElement.style.display = this.defaultParentDisplay;
-  }
-
-  /**
-   * Hides the container (grandparent of the element) by setting its display style to "none".
-   * @method hideContainer
-   */
-  /******/ hideContainer() {
-    if (this.querySelector.startsWith("#"))
-      this.element.parentElement.parentElement.parentElement.style.display =
-        "none";
-    else this.element.style.display = "none";
-  }
-
-  /**
-   * Shows the container (grandparent of the element) by restoring its default display style.
-   * @method showContainer
-   */
-  /******/ showContainer() {
-    if (this.querySelector.startsWith("#"))
-      this.element.parentElement.parentElement.parentElement.style.display =
-        this.defaultContainerDisplay;
-    else this.element.style.display = "none";
+    this.visibilityController.style.display = this.defaultDisplay;
   }
 
   /**
@@ -155,7 +122,7 @@ import createInfoEl from "./createInfoElement.js";
    * @throws {Error} Throws an error if the label cannot be found.
    */
   /******/ getLabel() {
-    return document.querySelector(`#${this.element.id}_label`);
+    return document.querySelector(`#${this.element.id}_label`) || null;
   }
 
   /**
@@ -165,7 +132,9 @@ import createInfoEl from "./createInfoElement.js";
    */
   /******/ appendToLabel(...elements) {
     const label = this.getLabel();
-    label.append(" ", ...elements);
+    if (label) {
+      label.append(" ", ...elements);
+    }
   }
 
   /**
@@ -241,23 +210,40 @@ import createInfoEl from "./createInfoElement.js";
 
   /**
    *
-   * @param {Function} conditions A Function that return a boolean value to set the
+   * @param {boolean} shouldShow shows or hides the target
+   * if = true => show, if = false => hide
+   */
+  toggleVisibility(shouldShow) {
+    shouldShow ? this.show() : this.hide();
+  }
+
+  /**
+   *
+   * @param {Function} condition A Function that return a boolean value to set the
    *  visibility of the targeted element. if condition() returns true, element is shown.
    *  If false, element is hidden
-   * @param {DOMNodeReference} triggerNode *Optional* The DOMNodeReference to which an
+   * @param {DOMNodeReference} triggerNode The DOMNodeReference to which an
    * event listener will be registered to change the visibility state of the calling
    * DOMNodeReference
    */
   /******/ configureConditionalRendering(condition, triggerNode) {
-    this.hideContainer();
+    this.toggleVisibility(condition());
     if (triggerNode) {
       triggerNode.addChangeListener(() => {
-        if (condition()) this.showContainer();
-        else this.hideContainer();
+        this.toggleVisibility(condition());
       });
-    } else {
-      if (condition()) this.showContainer();
-      else this.hideContainer();
+
+      const observer = new MutationObserver(() => {
+        const display = window.getComputedStyle(
+          triggerNode.visibilityController
+        ).display;
+        this.toggleVisibility(display !== "none" && condition());
+      });
+
+      observer.observe(triggerNode.visibilityController, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
     }
   }
 
@@ -273,7 +259,7 @@ import createInfoEl from "./createInfoElement.js";
       callback(this);
     } else {
       const observer = new MutationObserver(() => {
-        if (document.querySelector(this.querySelector)) {
+        if (document.querySelector(this.target)) {
           observer.disconnect(); // Stop observing once loaded
           this.isLoaded = true;
           callback(this); // Call the provided callback
@@ -292,12 +278,12 @@ import createInfoEl from "./createInfoElement.js";
  * Creates and initializes a DOMNodeReference instance.
  * @async
  * @function createDOMNodeReference
- * @param {string} querySelector - The CSS selector for the desired DOM element.
+ * @param {string | HTMLElement} target - The CSS selector for the desired DOM element.
  * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
-export default async function createDOMNodeReference(querySelector) {
+export async function createDOMNodeReference(target) {
   try {
-    const instance = new DOMNodeReference(querySelector);
+    const instance = new DOMNodeReference(target);
     await instance.init();
 
     return new Proxy(instance, {
@@ -318,6 +304,32 @@ export default async function createDOMNodeReference(querySelector) {
     });
   } catch (e) {
     console.error(`There was an error creating a DOMNodeReference: ${e}`);
+    throw new Error(e);
+  }
+}
+
+/**
+ * Creates and initializes multiple DOMNodeReference instances.
+ * @async
+ * @function createMultipleDOMNodeReferences
+ * @param {string} querySelector - The CSS selector for the desired DOM elements.
+ * @returns {Promise<DOMNodeReference[]>} A promise that resolves to an array of Proxies of initialized DOMNodeReference instances.
+ */
+export async function createMultipleDOMNodeReferences(querySelector) {
+  try {
+    let elements = Array.from(document.querySelectorAll(querySelector));
+    elements = await Promise.all(
+      elements.map((element) => createDOMNodeReference(element))
+    );
+
+    elements.hideAll = () => elements.forEach((instance) => instance.hide());
+    elements.showAll = () => elements.forEach((instance) => instance.show());
+
+    return elements;
+  } catch (e) {
+    console.error(
+      `There was an error creating multiple DOMNodeReferences: ${e}`
+    );
     throw new Error(e);
   }
 }

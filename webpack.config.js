@@ -1,6 +1,7 @@
 import path from "path";
 import { fileURLToPath } from "url"; // Only if you need __dirname in ESM
 import { CleanWebpackPlugin } from "clean-webpack-plugin"; // Example plugin import
+import TerserPlugin from "terser-webpack-plugin";
 
 // Use this block if you need to recreate __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -14,10 +15,10 @@ export default {
     path: path.resolve(__dirname, "dist"), // Output directory
     libraryTarget: "module",
   },
+  mode: "production",
   optimization: {
-    minimize: false, // Ensure that the output is not minimized
+    minimize: false,
   },
-  mode: "production", // Set the build mode
   module: {
     rules: [
       {
