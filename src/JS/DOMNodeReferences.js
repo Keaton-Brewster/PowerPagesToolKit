@@ -25,10 +25,7 @@ import "../CSS/style.css";
     // we defer the rest of initialization
   }
 
-  /**
-   * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
-   */
-  /******/ /******/ async init() {
+  async _init() {
     try {
       const element = await waitFor(this.target);
       this.element = element;
@@ -37,7 +34,7 @@ import "../CSS/style.css";
         throw new DOMNodeNotFoundError(this);
       }
 
-      this._provideValue();
+      this._initValueSync();
       this._attachVisibilityController();
       this.defaultDisplay = this.visibilityController.style.display;
 
@@ -51,27 +48,117 @@ import "../CSS/style.css";
     }
   }
 
-  _provideValue() {
+  _initValueSync() {
+    // Function to update this.value based on element type
     const updateValue = () => {
-      this.value = ["checkbox", "radio"].includes(this.element.type)
-        ? this.element.checked
-        : this.element.value;
+      switch (this.element.type) {
+        case "checkbox":
+        case "radio":
+          this.value = this.element.checked;
+          break;
+        case "select-multiple":
+          this.value = Array.from(this.element.selectedOptions).map(
+            (option) => option.value
+          );
+          break;
+        case "file":
+          this.value =
+            this.element.files.length > 0
+              ? Array.from(this.element.files)
+              : null;
+          break;
+        case "number":
+          this.value =
+            this.element.value !== "" ? Number(this.element.value) : null;
+          break;
+        default:
+          this.value = this.element.value || null;
+          break;
+      }
     };
+
+    // Initial sync
     updateValue();
 
-    switch (this.element.type) {
-      case "radio":
-      case "checkbox":
-        this.on("click", updateValue);
-        break;
-      case "text":
-        this.on("focus", updateValue);
-        this.on("blur", updateValue);
-        break;
-      default:
-        this.on("input", updateValue);
+    // Event listeners for real-time changes based on element type
+    const elementType = this.element.type;
+    if (elementType === "checkbox" || elementType === "radio") {
+      this.element.addEventListener("click", updateValue);
+    } else if (
+      elementType === "select-one" ||
+      elementType === "select-multiple"
+    ) {
+      this.element.addEventListener("change", updateValue);
+    } else {
+      this.element.addEventListener("input", updateValue);
     }
+
+    // Sync periodically using requestAnimationFrame to catch programmatic updates
+    const syncPeriodically = () => {
+      updateValue();
+      requestAnimationFrame(syncPeriodically);
+    };
+
+    // Start periodic sync
+    requestAnimationFrame(syncPeriodically);
   }
+
+  // _initValueSync() {
+  //   const updateValue = () => {
+  //     switch (this.element.type) {
+  //       case "checkbox":
+  //       case "radio":
+  //         // For checkboxes and radio buttons, the `checked` property is what we need.
+  //         this.value = this.element.checked;
+  //         break;
+
+  //       case "select-multiple":
+  //         // For multi-select, gather all selected values into an array
+  //         this.value = Array.from(this.element.selectedOptions).map(
+  //           (option) => option.value
+  //         );
+  //         break;
+
+  //       case "select-one":
+  //         // For single-select, use the selected value directly
+  //         this.value = this.element.value;
+  //         break;
+
+  //       case "number":
+  //         // For number input, capture a number or `null` if unset
+  //         this.value =
+  //           this.element.value !== "" ? Number(this.element.value) : null;
+  //         break;
+
+  //       case "text":
+  //       case "textarea":
+  //       default:
+  //         // For text-like inputs, as well as other generic inputs (like email, url), capture the value directly
+  //         this.value = this.element.value;
+  //         break;
+  //     }
+  //   };
+
+  //   updateValue(); // Initial update
+
+  //   const observer = new MutationObserver(() => {
+  //     updateValue();
+  //   });
+
+  //   observer.observe(this.element, {
+  //     attributes: true,
+  //     attributeFilter: ["checked", "value"],
+  //   });
+
+  //   // Add event listeners for all other cases where attribute mutations are not sufficient
+  //   if (this.element.tagName === "select" || this.element.type === "text") {
+  //     this.element.addEventListener("change", updateValue);
+  //   } else if (["radio", "checkbox"].includes(this.element.type)) {
+  //     this.element.addEventListener("click", updateValue);
+  //   } else {
+  //     this.element.addEventListener("input", updateValue);
+  //   }
+  // }
 
   _attachVisibilityController() {
     const parent = this.element.closest("td");
@@ -85,7 +172,7 @@ import "../CSS/style.css";
       "TEXTAREA",
       "SELECT",
     ].includes(this.element.tagName)
-      ? parent || this.element
+      ? parent
       : this.element;
   }
 
@@ -197,6 +284,7 @@ import "../CSS/style.css";
       newValidator.controltovalidate = this.id;
       newValidator.errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
       newValidator.evaluationfunction = validationLogic.bind(this);
+      //eslint-disable-next-line
       Page_Validators.push(newValidator);
     } else {
       throw new Error(
@@ -221,15 +309,6 @@ import "../CSS/style.css";
     } else {
       this.getLabel().classList.remove("required-field");
     }
-  }
-
-  /**
-   *
-   * @param {boolean} shouldShow shows or hides the target
-   * if = true => show, if = false => hide
-   */
-  toggleVisibility(shouldShow) {
-    shouldShow ? this.show() : this.hide();
   }
 
   onceLoaded(callback) {
@@ -262,7 +341,7 @@ import "../CSS/style.css";
 export async function createDOMNodeReference(target) {
   try {
     const instance = new DOMNodeReference(target);
-    await instance.init();
+    await instance._init();
 
     return new Proxy(instance, {
       get: (target, prop) => {

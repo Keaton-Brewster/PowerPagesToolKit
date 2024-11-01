@@ -1,28 +1,35 @@
-/**
- * @description a function that will wait for a targeted element to appear in the DOM, and then resolve a promise to allow further action to be performed after the targeted elements appears
- * @param {String} target a query target expression to target a specific element that you want to appear in the DOM before taking further action
- * @returns {Promise} the element targeted by ID *target*
- */
-
 export default function waitFor(target) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`Element not found: ${target} within 5 seconds`));
+    }, 5000);
+
+    // Check if target is already in DOM
     if (target instanceof HTMLElement) {
+      clearTimeout(timeout);
       return resolve(target);
     }
-    if (document.querySelector(target)) {
-      return resolve(document.querySelector(target));
+    const element = document.querySelector(target);
+    if (element) {
+      clearTimeout(timeout);
+      return resolve(element);
     }
 
+    // Create observer to watch for target in DOM
     const observer = new MutationObserver(() => {
-      if (document.querySelector(target)) {
+      const observedElement = document.querySelector(target);
+      if (observedElement) {
+        clearTimeout(timeout);
         observer.disconnect();
-        resolve(document.querySelector(target));
+        resolve(observedElement);
       }
     });
 
     observer.observe(document.body, {
       subtree: true,
       attributes: true,
+      childList: true, // Detects added/removed child elements
     });
   });
 }
