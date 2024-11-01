@@ -9,11 +9,37 @@ class DOMNodeReference {
   constructor(target: string): DOMNodeReference;
 
   target: string;
+  /**
+   * The element targeted when instantiating DOMNodeReference.
+   * Made available in order to perform normal DOM traversal,
+   * or access properties not available through this class.
+   * @type {HTMLElement | null}
+   */
   element: HTMLElement | null;
   isLoaded: boolean;
   visibilityController: HTMLElement | null;
   defaultDisplay: string;
+  /**
+   * The value of the element that this node represents
+   * stays in syncs with the live DOM elements via event handler
+   * @type {string | null}
+   */
   value: string | null;
+  /**
+   * Represents the 'yes' option of a boolean radio field.
+   * This property is only available when the parent node
+   * is a main field for a boolean radio input.
+   * @type {DOMNodeReference | undefined}
+   */
+  yesRadio?: DOMNodeReference;
+
+  /**
+   * Represents the 'no' option of a boolean radio field.
+   * This property is only available when the parent node
+   * is a main field for a boolean radio input.
+   * @type {DOMNodeReference | undefined}
+   */
+  noRadio?: DOMNodeReference;
 
   /**
    * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
@@ -39,10 +65,22 @@ class DOMNodeReference {
   setValue(value: string): void;
 
   /**
+   * Prepends elements to the target
+   * @param {...HTMLElement} elements - The elements to prepend to the HTML element
+   */
+  prepend(...elements: HTMLElement[]): void;
+
+  /**
    * Appends child elements to the HTML element.
    * @param {...HTMLElement} elements - The elements to append to the HTML element.
    */
   append(...elements: HTMLElement[]): void;
+
+  /**
+   * Inserts elements before the HTML element.
+   * @param {...HTMLElement} elements - The elements to insert before the HTML element.
+   */
+  before(...elements: HTMLElement[]): void;
 
   /**
    * Inserts elements after the HTML element.
@@ -52,9 +90,10 @@ class DOMNodeReference {
 
   /**
    * Retrieves the label associated with the HTML element.
-   * @returns {HTMLElement} The label element associated with this element, or **null** if no label element is present
+   * @returns {HTMLElement} The label element associated with this element.
+   * @throws {Error} Throws an error if the label cannot be found.
    */
-  getLabel(): HTMLElement | null;
+  getLabel(): HTMLElement;
 
   /**
    * Appends child elements to the label associated with the HTML element.
@@ -63,32 +102,43 @@ class DOMNodeReference {
   appendToLabel(...elements: HTMLElement[]): void;
 
   /**
-   * Adds a click event listener to the HTML element.
-   * @param {Function} eventHandler - The function to execute when the element is clicked.
+   * Sets up an event listener based on the specified event type, executing the specified
+   * event handler
+   * @param {string} eventType - The DOM event to watch for
+   * @param {Function} eventHandler - The callback function that runs when the
+   * specified event occurs
    */
-  addClickListener(eventHandler: () => void): void;
-
-  /**
-   * Adds a change event listener to the HTML element.
-   * @param {Function} eventHandler - The function to execute when the element's value changes.
-   */
-  addChangeListener(eventHandler: () => void): void;
-
+  on(eventType: string, eventHandler: (event: Event) => void): void;
   /**
    * Unchecks both the yes and no radio buttons if they exist.
    */
   uncheckRadios(): void;
 
   /**
-   * Creates a validation instance for the field.
-   * @param {Function} evaluationFunction - The function used to evaluate the field.
-   * @param {string} fieldDisplayName - The field name to display in error if validation
-   * fails.
+   * Configures validation and requirement conditions for the field based on the provided logic functions and dependencies.
+   * Creates a validator and sets a required level dynamically based on dependency changes.
+   * @param {Object} config An object containing the requirement and validation logical functions
+   * @param {(this: DOMNodeReference) => boolean} config.requirementLogic - Function to determine if the field is required.
+   * @param {(this: DOMNodeReference) => boolean} config.validationLogic - Function to evaluate the field's validity.
+   * @param {string} fieldDisplayName - Display name used in error messages if validation fails.
+   * @param {Array<DOMNodeReference>} [dependencies] - Optional dependencies for setting requirement conditions dynamically.
    */
-  createValidation(
-    evaluationFunction: (value: any) => boolean,
-    fieldDisplayName: string
+  configureValidationAndRequirements(
+    config: {
+      requirementLogic: (this: this) => boolean;
+      validationLogic: (this: this) => boolean;
+    },
+    fieldDisplayName: string,
+    dependencies?: DOMNodeReference[]
   ): void;
+
+  /**
+   * Sets the required level for the field by adding or removing the "required-field" class on the label.
+   *
+   * @param {boolean} isRequired - Determines whether the field should be marked as required.
+   * If true, the "required-field" class is added to the label; if false, it is removed.
+   */
+  setRequiredLevel(isRequired: boolean): void;
 
   /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
@@ -110,17 +160,19 @@ class DOMNodeReference {
   toggleVisibility(shouldShow: boolean): void;
 
   /**
+   * Configures conditional rendering for the target element based on a condition
+   * and the visibility of one or more trigger elements.
    *
-   * @param {Function} condition A Function that return a boolean value to set the
-   *  visibility of the targeted element. if condition() returns true, element is shown.
-   *  If false, element is hidden
-   * @param {DOMNodeReference} triggerNode The DOMNodeReference to which an
-   * event listener will be registered to change the visibility state of the calling
-   * DOMNodeReference
+   * @param {Function} condition - A function that returns a boolean to determine
+   * the visibility of the target element. If `condition()` returns true, the element is shown;
+   * otherwise, it is hidden.
+   * @param {DOMNodeReference | DOMNodeReference[]} triggerNodes - A single `DOMNodeReference`
+   * or an array of `DOMNodeReference` instances. Event listeners are registered on each
+   * `triggerNode` to toggle the visibility of the target element based on the `condition`.
    */
   configureConditionalRendering(
     condition: () => boolean,
-    triggerNode: DOMNodeReference
+    triggerNodes: DOMNodeReference | DOMNodeReference[]
   ): void;
 
   /**

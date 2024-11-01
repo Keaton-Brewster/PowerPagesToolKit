@@ -1,6 +1,11 @@
 import waitFor from "./waitFor.js";
-import FieldValidation from "./FieldValidation.class.js";
 import createInfoEl from "./createInfoElement.js";
+import {
+  DOMNodeInitializationError,
+  DOMNodeNotFoundError,
+  ConditionalRenderingError,
+} from "./errors.js";
+import "../CSS/style.css";
 
 /**
  * Class representing a reference to a DOM node.
@@ -29,143 +34,120 @@ import createInfoEl from "./createInfoElement.js";
       this.element = element;
 
       if (!this.element) {
-        throw new Error(
-          `[SYNACT] No Element could be found with the provided query selector: ${this.target}`
-        );
+        throw new DOMNodeNotFoundError(this);
       }
 
-      this.value = this.element.value;
+      this._provideValue();
+      this._attachVisibilityController();
+      this.defaultDisplay = this.visibilityController.style.display;
 
       if (this.element.classList.contains("boolean-radio")) {
-        this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
-        this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
+        this._attachRadioButtons();
       }
-
-      this.element.addEventListener("change", () => {
-        this.value = this.element.value;
-      });
-
-      // based on the type of element we have targeted in instantiation
-      // we now grab the parent element that will be responsible for
-      // 'showing' and 'hiding' the target element
-      // this is needed also in order to observe changes to visibility so that
-      // changes to target can cascade to dependent DOMNodeReferences
-      switch (this.element.tagName) {
-        case "SPAN":
-        case "INPUT":
-        case "TEXTAREA":
-        case "SELECT":
-          this.visibilityController = this.element.closest("td");
-          break;
-        case "FIELDSET":
-        default:
-          this.visibilityController = this.element;
-      }
-
-      this.defaultDisplay = this.visibilityController.style.display;
 
       this.isLoaded = true;
     } catch (e) {
-      throw new Error(
-        `powerpagestoolkit: There was an error initializing a DOMNodeReference with the target: ${this.target} :: ${e}`
-      );
+      throw new DOMNodeInitializationError(this, e);
     }
   }
 
-  /**
-   * Hides the element by setting its display style to "none".
-   * @method hide
-   */
-  /******/ hide() {
+  _provideValue() {
+    const updateValue = () => {
+      this.value = ["checkbox", "radio"].includes(this.element.type)
+        ? this.element.checked
+        : this.element.value;
+    };
+    updateValue();
+
+    switch (this.element.type) {
+      case "radio":
+      case "checkbox":
+        this.on("click", updateValue);
+        break;
+      case "text":
+        this.on("focus", updateValue);
+        this.on("blur", updateValue);
+        break;
+      default:
+        this.on("input", updateValue);
+    }
+  }
+
+  _attachVisibilityController() {
+    const parent = this.element.closest("td");
+    if (!parent) {
+      this.visibilityController = this.element;
+      return;
+    }
+    this.visibilityController = [
+      "SPAN",
+      "INPUT",
+      "TEXTAREA",
+      "SELECT",
+    ].includes(this.element.tagName)
+      ? parent || this.element
+      : this.element;
+  }
+
+  async _attachRadioButtons() {
+    this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
+    this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
+  }
+
+  on(eventType, eventHandler) {
+    this.element.addEventListener(eventType, function (e) {
+      eventHandler(e);
+    });
+  }
+
+  hide() {
     this.visibilityController.style.display = "none";
   }
 
-  /**
-   * Shows the element by restoring its default display style.
-   * @method show
-   */
-  /******/ show() {
+  show() {
     this.visibilityController.style.display = this.defaultDisplay;
   }
 
-  /**
-   * Sets the value of the HTML element.
-   * @method setValue
-   * @param {string} value - The value to set for the HTML element.
-   */
-  /******/ setValue(value) {
+  toggleVisibility(shouldShow) {
+    shouldShow ? this.show() : this.hide();
+  }
+
+  setValue(value) {
     this.element.value = value;
   }
 
-  /**
-   * Appends child elements to the HTML element.
-   * @method append
-   * @param {...HTMLElement} elements - The elements to append to the HTML element.
-   */
-  /******/ append(...elements) {
+  append(...elements) {
     this.element.append(...elements);
   }
 
-  /**
-   * Inserts elements after the HTML element.
-   * @method after
-   * @param {...HTMLElement} elements - The elements to insert after the HTML element.
-   */
-  /******/ after(...elements) {
+  after(...elements) {
     this.element.after(...elements);
   }
 
-  /**
-   * Retrieves the label associated with the HTML element.
-   * @method getLabel
-   * @returns {HTMLElement} The label element associated with this element.
-   * @throws {Error} Throws an error if the label cannot be found.
-   */
-  /******/ getLabel() {
+  getLabel() {
     return document.querySelector(`#${this.element.id}_label`) || null;
   }
 
-  /**
-   * Appends child elements to the label associated with the HTML element.
-   * @method appendToLabel
-   * @param {...HTMLElement} elements - The elements to append to the label.
-   */
-  /******/ appendToLabel(...elements) {
+  appendToLabel(...elements) {
     const label = this.getLabel();
     if (label) {
       label.append(" ", ...elements);
     }
   }
 
-  /**
-   * Adds a click event listener to the HTML element.
-   * @method addClickListener
-   * @param {Function} eventHandler - The function to execute when the element is clicked.
-   */
-  /******/ addClickListener(eventHandler) {
-    this.element.addEventListener("click", (e) => {
-      e.preventDefault();
-      eventHandler();
-    });
+  addLabelTooltip(text) {
+    this.appendToLabel(createInfoEl(text));
   }
 
-  /**
-   * Adds a change event listener to the HTML element.
-   * @method addChangeListener
-   * @param {Function} eventHandler - The function to execute when the element's value changes.
-   */
-  /******/ addChangeListener(eventHandler) {
-    this.element.addEventListener("change", (e) => {
-      e.preventDefault();
-      eventHandler();
-    });
+  addToolTip(text) {
+    this.append(createInfoEl(text));
   }
 
-  /**
-   * Unchecks both the yes and no radio buttons if they exist.
-   * @method uncheckRadios
-   */
-  /******/ uncheckRadios() {
+  setTextContent(text) {
+    this.element.innerHTML = text;
+  }
+
+  uncheckRadios() {
     if (this.yesRadio && this.noRadio) {
       this.yesRadio.element.checked = false;
       this.noRadio.element.checked = false;
@@ -176,36 +158,69 @@ import createInfoEl from "./createInfoElement.js";
     }
   }
 
-  /**
-   * Creates a validation instance for the field.
-   * @method createValidation
-   * @param {Function} evaluationFunction - The function used to evaluate the field.
-   * @param {string} fieldDisplayName - The field name to display in error if validation fails.
-   */
-  /******/ createValidation(evaluationFunction, fieldDisplayName) {
-    new FieldValidation(this.id, `'${fieldDisplayName}'`, evaluationFunction);
+  configureConditionalRendering(condition, triggerNodes) {
+    try {
+      this.toggleVisibility(condition());
+      if (triggerNodes) {
+        const nodes = Array.isArray(triggerNodes)
+          ? triggerNodes
+          : [triggerNodes];
+        nodes.forEach((node) => {
+          node.on("change", () => this.toggleVisibility(condition()));
+
+          const observer = new MutationObserver(() => {
+            const display = window.getComputedStyle(
+              node.visibilityController
+            ).display;
+            this.toggleVisibility(display !== "none" && condition());
+          });
+          observer.observe(node.visibilityController, {
+            attributes: true,
+            attributeFilter: ["style"],
+          });
+        });
+      }
+    } catch (e) {
+      throw new ConditionalRenderingError(this, e);
+    }
   }
 
-  /**
-   * Adds a tooltip with specified text to the label associated with the HTML element.
-   * @method addLabelTooltip
-   * @param {string} text - The text to display in the tooltip.
-   */
-  /******/ addLabelTooltip(text) {
-    this.appendToLabel(createInfoEl(text));
+  configureValidationAndRequirements(
+    { requirementLogic, validationLogic },
+    fieldDisplayName,
+    dependencies = []
+  ) {
+    if (typeof Page_Validators !== "undefined") {
+      const newValidator = document.createElement("span");
+      newValidator.style.display = "none";
+      newValidator.id = `${this.id}Validator`;
+      newValidator.controltovalidate = this.id;
+      newValidator.errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
+      newValidator.evaluationfunction = validationLogic.bind(this);
+      Page_Validators.push(newValidator);
+    } else {
+      throw new Error(
+        "Attempted to add to Validator where Page_Validators do not exist"
+      );
+    }
+
+    this.setRequiredLevel(requirementLogic(this));
+
+    if (!dependencies) return;
+    dependencies = Array.isArray(dependencies) ? dependencies : [dependencies];
+    dependencies.forEach((dep) => {
+      dep.element.addEventListener("change", () =>
+        this.setRequiredLevel(requirementLogic(this))
+      );
+    });
   }
 
-  /******/ addToolTip(text) {
-    this.append(createInfoEl(text));
-  }
-
-  /**
-   * Sets the inner HTML content of the HTML element.
-   * @method setTextContent
-   * @param {string} text - The text to set as the inner HTML of the element.
-   */
-  /******/ setTextContent(text) {
-    this.element.innerHTML = text;
+  setRequiredLevel(isRequired) {
+    if (isRequired) {
+      this.getLabel().classList.add("required-field");
+    } else {
+      this.getLabel().classList.remove("required-field");
+    }
   }
 
   /**
@@ -217,44 +232,7 @@ import createInfoEl from "./createInfoElement.js";
     shouldShow ? this.show() : this.hide();
   }
 
-  /**
-   *
-   * @param {Function} condition A Function that return a boolean value to set the
-   *  visibility of the targeted element. if condition() returns true, element is shown.
-   *  If false, element is hidden
-   * @param {DOMNodeReference} triggerNode The DOMNodeReference to which an
-   * event listener will be registered to change the visibility state of the calling
-   * DOMNodeReference
-   */
-  /******/ configureConditionalRendering(condition, triggerNode) {
-    this.toggleVisibility(condition());
-    if (triggerNode) {
-      triggerNode.addChangeListener(() => {
-        this.toggleVisibility(condition());
-      });
-
-      const observer = new MutationObserver(() => {
-        const display = window.getComputedStyle(
-          triggerNode.visibilityController
-        ).display;
-        this.toggleVisibility(display !== "none" && condition());
-      });
-
-      observer.observe(triggerNode.visibilityController, {
-        attributes: true,
-        attributeFilter: ["style"],
-      });
-    }
-  }
-
-  /**
-   * Executes a callback function once the element is fully loaded.
-   * If the element is already loaded, the callback is called immediately.
-   * Otherwise, a MutationObserver is used to detect when the element is added to the DOM.
-   * @method onceLoaded
-   * @param {Function} callback - A callback function to execute once the element is loaded.
-   */
-  /******/ onceLoaded(callback) {
+  onceLoaded(callback) {
     if (this.isLoaded) {
       callback(this);
     } else {
@@ -290,7 +268,7 @@ export async function createDOMNodeReference(target) {
       get: (target, prop) => {
         // do not proxy the initialization method
         // init() is only needed in this factory function
-        if (prop == "init") return undefined;
+        if (prop.toString().startsWith("_")) return undefined;
 
         // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
         // element is always available before executing method

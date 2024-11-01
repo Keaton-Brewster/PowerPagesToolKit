@@ -1,5 +1,3 @@
-import "../CSS/infoEl.style.css"; // Import the CSS file
-
 export default function CreateInfoEl(titleString) {
   const span = document.createElement("span");
   span.classList.add("info-icon");
