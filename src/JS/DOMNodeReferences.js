@@ -65,15 +65,6 @@ import "../CSS/style.css";
     } else {
       this.element.addEventListener("input", this.updateValue.bind(this));
     }
-
-    // Sync periodically using requestAnimationFrame to catch programmatic updates
-    const syncPeriodically = () => {
-      this.updateValue();
-      requestAnimationFrame(syncPeriodically);
-    };
-
-    // Start periodic sync
-    requestAnimationFrame(syncPeriodically);
   }
 
   updateValue() {
