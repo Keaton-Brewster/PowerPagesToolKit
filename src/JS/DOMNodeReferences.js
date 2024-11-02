@@ -33,14 +33,13 @@ import "../CSS/style.css";
       if (!this.element) {
         throw new DOMNodeNotFoundError(this);
       }
+      if (this.element.classList.contains("boolean-radio")) {
+        await this._attachRadioButtons();
+      }
 
       this._initValueSync();
       this._attachVisibilityController();
       this.defaultDisplay = this.visibilityController.style.display;
-
-      if (this.element.classList.contains("boolean-radio")) {
-        this._attachRadioButtons();
-      }
 
       this.isLoaded = true;
     } catch (e) {
@@ -50,52 +49,26 @@ import "../CSS/style.css";
 
   _initValueSync() {
     // Function to update this.value based on element type
-    const updateValue = () => {
-      switch (this.element.type) {
-        case "checkbox":
-        case "radio":
-          this.value = this.element.checked;
-          break;
-        case "select-multiple":
-          this.value = Array.from(this.element.selectedOptions).map(
-            (option) => option.value
-          );
-          break;
-        case "file":
-          this.value =
-            this.element.files.length > 0
-              ? Array.from(this.element.files)
-              : null;
-          break;
-        case "number":
-          this.value =
-            this.element.value !== "" ? Number(this.element.value) : null;
-          break;
-        default:
-          this.value = this.element.value || null;
-          break;
-      }
-    };
 
     // Initial sync
-    updateValue();
+    this.updateValue();
 
     // Event listeners for real-time changes based on element type
     const elementType = this.element.type;
     if (elementType === "checkbox" || elementType === "radio") {
-      this.element.addEventListener("click", updateValue);
+      this.element.addEventListener("click", this.updateValue.bind(this));
     } else if (
       elementType === "select-one" ||
       elementType === "select-multiple"
     ) {
-      this.element.addEventListener("change", updateValue);
+      this.element.addEventListener("change", this.updateValue.bind(this));
     } else {
-      this.element.addEventListener("input", updateValue);
+      this.element.addEventListener("input", this.updateValue.bind(this));
     }
 
     // Sync periodically using requestAnimationFrame to catch programmatic updates
     const syncPeriodically = () => {
-      updateValue();
+      this.updateValue();
       requestAnimationFrame(syncPeriodically);
     };
 
@@ -103,20 +76,64 @@ import "../CSS/style.css";
     requestAnimationFrame(syncPeriodically);
   }
 
+  updateValue() {
+    switch (this.element.type) {
+      case "checkbox":
+      case "radio":
+        this.value = this.element.checked;
+        this.checked = this.element.checked;
+        break;
+      case "select-multiple":
+        this.value = Array.from(this.element.selectedOptions).map(
+          (option) => option.value
+        );
+        break;
+      case "file":
+        this.value =
+          this.element.files.length > 0 ? Array.from(this.element.files) : null;
+        break;
+      case "number":
+        this.value =
+          this.element.value !== "" ? Number(this.element.value) : null;
+        break;
+      default:
+        this.value = this.element.value || null;
+        break;
+    }
+
+    if (this.element.classList.contains("boolean-radio")) {
+      this.yesRadio.updateValue();
+      this.noRadio.updateValue();
+    }
+  }
+
   _attachVisibilityController() {
-    const parent = this.element.closest("td");
-    if (!parent) {
-      this.visibilityController = this.element;
+    // Set the default visibility controller to the element itself
+    this.visibilityController = this.element;
+
+    // If the element is a table, use its closest fieldset as the controller
+    if (this.element.tagName === "TABLE") {
+      const fieldset = this.element.closest("fieldset");
+      if (fieldset) {
+        this.visibilityController = fieldset;
+      }
       return;
     }
-    this.visibilityController = [
+
+    // For specific tag types, use the closest 'td' if available as the controller
+    const tagsRequiringTdParent = [
       "SPAN",
       "INPUT",
       "TEXTAREA",
       "SELECT",
-    ].includes(this.element.tagName)
-      ? parent
-      : this.element;
+      "TABLE",
+    ];
+    if (tagsRequiringTdParent.includes(this.element.tagName)) {
+      const tdParent = this.element.closest("td");
+      if (tdParent) {
+        this.visibilityController = tdParent;
+      }
+    }
   }
 
   async _attachRadioButtons() {
@@ -125,9 +142,7 @@ import "../CSS/style.css";
   }
 
   on(eventType, eventHandler) {
-    this.element.addEventListener(eventType, function (e) {
-      eventHandler(e);
-    });
+    this.element.addEventListener(eventType, eventHandler.bind(this));
   }
 
   hide() {
@@ -139,7 +154,11 @@ import "../CSS/style.css";
   }
 
   toggleVisibility(shouldShow) {
-    shouldShow ? this.show() : this.hide();
+    if (shouldShow instanceof Function) {
+      shouldShow() ? this.show() : this.hide();
+    } else {
+      shouldShow ? this.show() : this.hide();
+    }
   }
 
   setValue(value) {

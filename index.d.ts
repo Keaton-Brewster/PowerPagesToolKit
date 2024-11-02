@@ -67,6 +67,16 @@ class DOMNodeReference {
   setValue(value: string): void;
 
   /**
+   * Disables the element so that users cannot input any data
+   */
+  disable(): void;
+
+  /**
+   * Enables the element so that users can input data
+   */
+  enable(): void;
+
+  /**
    * Prepends elements to the target
    * @param {...HTMLElement} elements - The elements to prepend to the HTML element
    */
@@ -107,7 +117,7 @@ class DOMNodeReference {
    * Sets up an event listener based on the specified event type, executing the specified
    * event handler
    * @param {string} eventType - The DOM event to watch for
-   * @param {Function} eventHandler - The callback function that runs when the
+   * @param {(this: DOMNodeReference, e: Event) => void} eventHandler - The callback function that runs when the
    * specified event occurs
    */
   on(eventType: string, eventHandler: (event: Event) => void): void;
