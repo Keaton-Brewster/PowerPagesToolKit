@@ -103,63 +103,6 @@ import "../CSS/style.css";
     requestAnimationFrame(syncPeriodically);
   }
 
-  // _initValueSync() {
-  //   const updateValue = () => {
-  //     switch (this.element.type) {
-  //       case "checkbox":
-  //       case "radio":
-  //         // For checkboxes and radio buttons, the `checked` property is what we need.
-  //         this.value = this.element.checked;
-  //         break;
-
-  //       case "select-multiple":
-  //         // For multi-select, gather all selected values into an array
-  //         this.value = Array.from(this.element.selectedOptions).map(
-  //           (option) => option.value
-  //         );
-  //         break;
-
-  //       case "select-one":
-  //         // For single-select, use the selected value directly
-  //         this.value = this.element.value;
-  //         break;
-
-  //       case "number":
-  //         // For number input, capture a number or `null` if unset
-  //         this.value =
-  //           this.element.value !== "" ? Number(this.element.value) : null;
-  //         break;
-
-  //       case "text":
-  //       case "textarea":
-  //       default:
-  //         // For text-like inputs, as well as other generic inputs (like email, url), capture the value directly
-  //         this.value = this.element.value;
-  //         break;
-  //     }
-  //   };
-
-  //   updateValue(); // Initial update
-
-  //   const observer = new MutationObserver(() => {
-  //     updateValue();
-  //   });
-
-  //   observer.observe(this.element, {
-  //     attributes: true,
-  //     attributeFilter: ["checked", "value"],
-  //   });
-
-  //   // Add event listeners for all other cases where attribute mutations are not sufficient
-  //   if (this.element.tagName === "select" || this.element.type === "text") {
-  //     this.element.addEventListener("change", updateValue);
-  //   } else if (["radio", "checkbox"].includes(this.element.type)) {
-  //     this.element.addEventListener("click", updateValue);
-  //   } else {
-  //     this.element.addEventListener("input", updateValue);
-  //   }
-  // }
-
   _attachVisibilityController() {
     const parent = this.element.closest("td");
     if (!parent) {
@@ -200,7 +143,32 @@ import "../CSS/style.css";
   }
 
   setValue(value) {
-    this.element.value = value;
+    if (this.element.classList.contains("boolean-radio")) {
+      this.yesRadio.element.checked = value;
+      this.noRadio.element.checked = !value;
+    } else {
+      this.element.value = value;
+    }
+  }
+
+  disable() {
+    try {
+      this.element.disabled = true;
+    } catch (e) {
+      throw new Error(
+        `There was an error trying to disable the target: ${this.target}`
+      );
+    }
+  }
+
+  enable() {
+    try {
+      this.element.disabled = false;
+    } catch (e) {
+      throw new Error(
+        `There was an error trying to disable the target: ${this.target}`
+      );
+    }
   }
 
   append(...elements) {

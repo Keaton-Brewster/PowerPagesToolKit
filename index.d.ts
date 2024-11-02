@@ -60,7 +60,9 @@ class DOMNodeReference {
 
   /**
    * Sets the value of the HTML element.
-   * @param {string} value - The value to set for the HTML element.
+   * @param {() => any} value - The value to set for the HTML element.
+   * for parents of boolean radios, pass true or false as value, or
+   * an expression returning a boolean
    */
   setValue(value: string): void;
 
@@ -172,7 +174,7 @@ class DOMNodeReference {
    */
   configureConditionalRendering(
     condition: () => boolean,
-    triggerNodes: DOMNodeReference | DOMNodeReference[]
+    triggerNodes?: DOMNodeReference | DOMNodeReference[]
   ): void;
 
   /**
