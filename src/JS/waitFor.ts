@@ -1,8 +1,12 @@
-export default function waitFor(target) {
+export default function waitFor(
+  target: HTMLElement | string
+): Promise<HTMLElement> {
   return new Promise((resolve, reject) => {
     // Create observer to watch for target in DOM
     const observer = new MutationObserver(() => {
-      const observedElement = document.querySelector(target);
+      const observedElement = <HTMLElement>(
+        document.querySelector(<string>target)
+      );
       if (observedElement) {
         clearTimeout(timeout);
         observer.disconnect();
@@ -19,7 +23,7 @@ export default function waitFor(target) {
       clearTimeout(timeout);
       return resolve(target);
     }
-    const element = document.querySelector(target);
+    const element = <HTMLElement>document.querySelector(target);
     if (element) {
       clearTimeout(timeout);
       return resolve(element);

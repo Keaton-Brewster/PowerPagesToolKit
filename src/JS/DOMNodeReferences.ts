@@ -1,11 +1,13 @@
-import waitFor from "./waitFor.js";
-import createInfoEl from "./createInfoElement.js";
+import waitFor from "./waitFor.ts";
+import createInfoEl from "./createInfoElement.ts";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
 } from "./errors.js";
 import "../CSS/style.css";
+
+
 
 /**
  * Class representing a reference to a DOM node.
@@ -15,11 +17,9 @@ import "../CSS/style.css";
    * Creates an instance of DOMNodeReference.
    * @param {string} target - The CSS selector to find the desired DOM element.
    */
-  /******/ /******/ constructor(target) {
+  /******/ /******/ constructor(target: HTMLElement | string) {
     this.target = target;
-    this.element = null;
     this.isLoaded = false;
-    this.visibilityController = null;
     this.defaultDisplay = "";
     this.value = null;
     // we defer the rest of initialization
@@ -54,7 +54,7 @@ import "../CSS/style.css";
     this.updateValue();
 
     // Event listeners for real-time changes based on element type
-    const elementType = this.element.type;
+    const elementType = (this.element as HTMLInputElement).type;
     if (elementType === "checkbox" || elementType === "radio") {
       this.element.addEventListener("click", this.updateValue.bind(this));
     } else if (
@@ -67,38 +67,36 @@ import "../CSS/style.css";
     }
   }
 
-  updateValue() {
-    switch (this.element.type) {
+  updateValue(): void {
+    switch ((this.element as HTMLInputElement).type) {
       case "checkbox":
       case "radio":
-        this.value = this.element.checked;
-        this.checked = this.element.checked;
+        this.value = (this.element as HTMLInputElement).checked;
+        this.checked = (this.element as HTMLInputElement).checked;
         break;
       case "select-multiple":
-        this.value = Array.from(this.element.selectedOptions).map(
-          (option) => option.value
-        );
-        break;
-      case "file":
-        this.value =
-          this.element.files.length > 0 ? Array.from(this.element.files) : null;
+        this.value = Array.from(
+          (this.element as HTMLSelectElement).selectedOptions
+        ).map((option) => option.value);
         break;
       case "number":
         this.value =
-          this.element.value !== "" ? Number(this.element.value) : null;
+          (this.element as HTMLInputElement).value !== ""
+            ? Number((this.element as HTMLInputElement).value)
+            : null;
         break;
       default:
-        this.value = this.element.value || null;
+        this.value = null;
         break;
     }
 
     if (this.element.classList.contains("boolean-radio")) {
-      this.yesRadio.updateValue();
-      this.noRadio.updateValue();
+      (this.yesRadio as DOMNodeReference).updateValue();
+      (this.noRadio as DOMNodeReference).updateValue();
     }
   }
 
-  _attachVisibilityController() {
+  _attachVisibilityController(): void {
     // Set the default visibility controller to the element itself
     this.visibilityController = this.element;
 
@@ -127,12 +125,12 @@ import "../CSS/style.css";
     }
   }
 
-  async _attachRadioButtons() {
+  async _attachRadioButtons(): Promise<void> {
     this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
     this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
   }
 
-  on(eventType, eventHandler) {
+  on(eventType: string, eventHandler: (e: Event) => void) {
     this.element.addEventListener(eventType, eventHandler.bind(this));
   }
 
@@ -144,7 +142,7 @@ import "../CSS/style.css";
     this.visibilityController.style.display = this.defaultDisplay;
   }
 
-  toggleVisibility(shouldShow) {
+  toggleVisibility(shouldShow: Function | boolean) {
     if (shouldShow instanceof Function) {
       shouldShow() ? this.show() : this.hide();
     } else {
@@ -152,18 +150,21 @@ import "../CSS/style.css";
     }
   }
 
-  setValue(value) {
+  setValue(value: any) {
     if (this.element.classList.contains("boolean-radio")) {
-      this.yesRadio.element.checked = value;
-      this.noRadio.element.checked = !value;
+      (
+        (this.yesRadio as DOMNodeReference).element as HTMLInputElement
+      ).checked = value;
+      ((this.noRadio as DOMNodeReference).element as HTMLInputElement).checked =
+        !value;
     } else {
-      this.element.value = value;
+      (this.element as HTMLInputElement).value = value;
     }
   }
 
   disable() {
     try {
-      this.element.disabled = true;
+      (this.element as HTMLInputElement).disabled = true;
     } catch (e) {
       throw new Error(
         `There was an error trying to disable the target: ${this.target}`
@@ -173,7 +174,7 @@ import "../CSS/style.css";
 
   enable() {
     try {
-      this.element.disabled = false;
+      (this.element as HTMLInputElement).disabled = false;
     } catch (e) {
       throw new Error(
         `There was an error trying to disable the target: ${this.target}`
@@ -181,11 +182,11 @@ import "../CSS/style.css";
     }
   }
 
-  append(...elements) {
+  append(...elements: HTMLElement[]) {
     this.element.append(...elements);
   }
 
-  after(...elements) {
+  after(...elements: HTMLElement[]) {
     this.element.after(...elements);
   }
 
@@ -193,29 +194,29 @@ import "../CSS/style.css";
     return document.querySelector(`#${this.element.id}_label`) || null;
   }
 
-  appendToLabel(...elements) {
+  appendToLabel(...elements: HTMLElement[]) {
     const label = this.getLabel();
     if (label) {
       label.append(" ", ...elements);
     }
   }
 
-  addLabelTooltip(text) {
+  addLabelTooltip(text: string) {
     this.appendToLabel(createInfoEl(text));
   }
 
-  addToolTip(text) {
+  addToolTip(text: string) {
     this.append(createInfoEl(text));
   }
 
-  setTextContent(text) {
+  setTextContent(text: string) {
     this.element.innerHTML = text;
   }
 
   uncheckRadios() {
     if (this.yesRadio && this.noRadio) {
-      this.yesRadio.element.checked = false;
-      this.noRadio.element.checked = false;
+      (this.yesRadio.element as HTMLInputElement).checked = false;
+      (this.noRadio.element as HTMLInputElement).checked = false;
     } else {
       console.error(
         "[SYNACT] Attempted to uncheck radios for an element that has no radios"
@@ -223,7 +224,10 @@ import "../CSS/style.css";
     }
   }
 
-  configureConditionalRendering(condition, triggerNodes) {
+  configureConditionalRendering(
+    condition: () => boolean,
+    triggerNodes: DOMNodeReference[]
+  ) {
     try {
       this.toggleVisibility(condition());
       if (triggerNodes) {
@@ -251,17 +255,23 @@ import "../CSS/style.css";
   }
 
   configureValidationAndRequirements(
-    { requirementLogic, validationLogic },
-    fieldDisplayName,
-    dependencies = []
+    logic: {
+      requirementLogic: (instance: DOMNodeReference) => boolean;
+      validationLogic: () => boolean;
+    },
+    fieldDisplayName: string,
+    dependencies: DOMNodeReference[]
   ) {
     if (typeof Page_Validators !== "undefined") {
       const newValidator = document.createElement("span");
       newValidator.style.display = "none";
-      newValidator.id = `${this.id}Validator`;
-      newValidator.controltovalidate = this.id;
-      newValidator.errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
-      newValidator.evaluationfunction = validationLogic.bind(this);
+      newValidator.id = `${this.element.id}Validator`;
+      (newValidator as any).controltovalidate = this.element.id;
+      (
+        newValidator as any
+      ).errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
+      (newValidator as any).evaluationfunction =
+        logic.validationLogic.bind(this);
       //eslint-disable-next-line
       Page_Validators.push(newValidator);
     } else {
@@ -270,31 +280,43 @@ import "../CSS/style.css";
       );
     }
 
-    this.setRequiredLevel(requirementLogic(this));
+    this.setRequiredLevel(logic.requirementLogic(this));
 
     if (!dependencies) return;
     dependencies = Array.isArray(dependencies) ? dependencies : [dependencies];
     dependencies.forEach((dep) => {
       dep.element.addEventListener("change", () =>
-        this.setRequiredLevel(requirementLogic(this))
+        this.setRequiredLevel(logic.requirementLogic(this))
       );
     });
   }
 
-  setRequiredLevel(isRequired) {
-    if (isRequired) {
-      this.getLabel().classList.add("required-field");
+  setRequiredLevel(isRequired: Function | boolean) {
+    if (isRequired instanceof Function) {
+      isRequired()
+        ? this.getLabel()?.classList.add("required-field")
+        : this.getLabel()?.classList.remove("required-field");
+      return;
     } else {
-      this.getLabel().classList.remove("required-field");
+      isRequired
+        ? this.getLabel()?.classList.add("required-field")
+        : this.getLabel()?.classList.remove("required-field");
     }
   }
 
-  onceLoaded(callback) {
+  onceLoaded(callback: (instance: DOMNodeReference) => void) {
     if (this.isLoaded) {
       callback(this);
-    } else {
+      return 
+    } 
+
+      if (this.target instanceof HTMLElement) {
+        callback(this)
+        return 
+      }
       const observer = new MutationObserver(() => {
-        if (document.querySelector(this.target)) {
+         
+        if (document.querySelector((this.target as string))) {
           observer.disconnect(); // Stop observing once loaded
           this.isLoaded = true;
           callback(this); // Call the provided callback
@@ -305,7 +327,7 @@ import "../CSS/style.css";
         subtree: true,
         childList: true,
       });
-    }
+    
   }
 }
 
@@ -316,7 +338,7 @@ import "../CSS/style.css";
  * @param {string | HTMLElement} target - The CSS selector for the desired DOM element.
  * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
-export async function createDOMNodeReference(target) {
+export async function createDOMNodeReference(target: HTMLElement | string) {
   try {
     const instance = new DOMNodeReference(target);
     await instance._init();
@@ -329,9 +351,9 @@ export async function createDOMNodeReference(target) {
 
         // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
         // element is always available before executing method
-        const value = target[prop];
+        const value = target[prop as string];
         if (typeof value === "function" && prop !== "onceLoaded") {
-          return (...args) =>
+          return (...args: any[]) =>
             target.onceLoaded(() => value.apply(target, args));
         }
         return value;
@@ -339,7 +361,7 @@ export async function createDOMNodeReference(target) {
     });
   } catch (e) {
     console.error(`There was an error creating a DOMNodeReference: ${e}`);
-    throw new Error(e);
+    throw new Error(e as string);
   }
 }
 
@@ -350,11 +372,11 @@ export async function createDOMNodeReference(target) {
  * @param {string} querySelector - The CSS selector for the desired DOM elements.
  * @returns {Promise<DOMNodeReference[]>} A promise that resolves to an array of Proxies of initialized DOMNodeReference instances.
  */
-export async function createMultipleDOMNodeReferences(querySelector) {
+export async function createMultipleDOMNodeReferences(querySelector: string) {
   try {
     let elements = Array.from(document.querySelectorAll(querySelector));
     elements = await Promise.all(
-      elements.map((element) => createDOMNodeReference(element))
+      elements.map((element) => createDOMNodeReference(element)
     );
 
     elements.hideAll = () => elements.forEach((instance) => instance.hide());
