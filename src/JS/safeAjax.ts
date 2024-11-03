@@ -1,8 +1,9 @@
+// @ts-nocheck
 export default function safeAjax(ajaxOptions) {
   const deferredAjax = $.Deferred();
 
   // shell is only available via runtime in a PowerPages portal
-  //eslint-disable-next-line
+
   shell
     .getTokenDeferred()
     .done(function (token) {

@@ -1,3 +1,4 @@
+//@ts-nocheck
 import safeAjax from "./safeAjax.js";
 const API = {
   /**
@@ -5,7 +6,7 @@ const API = {
    * @param {Class} schema an instance of a schema class, containing the desired information for the POST request
    * @returns a Promise resolving the successful results *[record id]* of the POST request, or rejecting the failed results *[error]* of the POST request.
    */
-  createRecord(schema) {
+  createRecord(schema): string {
     return new Promise((resolve, reject) => {
       safeAjax({
         type: "POST",

@@ -2,7 +2,7 @@ export declare global {
   /**
    * Class representing a reference to a DOM node.
    */
-  export class DOMNodeReference {
+  class _DOMNodeReference {
     /**
      * Creates an instance of DOMNodeReference.
      * @param {string} querySelector - The CSS selector to find the desired DOM element.
@@ -22,6 +22,7 @@ export declare global {
     isLoaded: boolean;
     visibilityController: HTMLElement;
     defaultDisplay: string;
+    isLoaded: boolean;
     /**
      * The value of the element that this node represents
      * stays in syncs with the live DOM elements via event handler
@@ -57,7 +58,7 @@ export declare global {
      * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the DOMNodeReference instance.
      * @throws {Error} Throws an error if the element cannot be found using the provided query selector.
      */
-    private init(): Promise<this>;
+    _init(): Promise<this>;
 
     /**
      * Hides the element by setting its display style to "none".
@@ -86,12 +87,6 @@ export declare global {
      * Enables the element so that users can input data
      */
     enable(): void;
-
-    /**
-     * Prepends elements to the target
-     * @param {...HTMLElement} elements - The elements to prepend to the HTML element
-     */
-    prepend(...elements: HTMLElement[]): void;
 
     /**
      * Appends child elements to the HTML element.
@@ -214,14 +209,14 @@ export declare global {
    * @param {string} target - The CSS selector for the desired DOM element.
    * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
    */
-  export function createDOMNodeReference(
+  function createDOMNodeReference(
     querySelector: string | HTMLElement
   ): Promise<DOMNodeReference>;
 
   /**
    * Interface representing an array of DOMNodeReference instances with additional methods.
    */
-  export interface DOMNodeReferenceArray extends Array<DOMNodeReference> {
+  interface DOMNodeReferenceArray extends Array<DOMNodeReference> {
     /**
      * Hides all the containers of the DOMNodeReference instances in the array.
      */
@@ -241,16 +236,16 @@ export declare global {
    * A promise that resolves to an array of Proxies of initialized
    * DOMNodeReference instances.
    */
-  export function createMultipleDOMNodeReferences(
+  function createMultipleDOMNodeReferences(
     querySelector: string
   ): Promise<DOMNodeReferenceArray>;
 
-  export interface Schema {
+  interface Schema {
     logicalName(): string;
-    value(): any; // Adjust this type based on the structure of your schema values
+    value(): object; // Adjust this type based on the structure of your schema values
   }
 
-  export const API: {
+  const API: {
     /**
      * Creates a new record in DataVerse.
      * @param schema An instance of a schema class, containing the desired information for the POST request.
@@ -280,5 +275,5 @@ export declare global {
     getMultiple(tableSetName: string, queryParameters?: string): Promise<any>; // Adjust return type as necessary
   };
 
-  export const Page_Validators: any[];
+  const Page_Validators: any[];
 }

@@ -1,5 +1,5 @@
-import waitFor from "./waitFor.ts";
-import createInfoEl from "./createInfoElement.ts";
+import waitFor from "./waitFor.js";
+import createInfoEl from "./createInfoElement.js";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
@@ -7,12 +7,23 @@ import {
 } from "./errors.js";
 import "../CSS/style.css";
 
-
-
 /**
  * Class representing a reference to a DOM node.
  */
-/******/ /******/ /******/ class DOMNodeReference {
+/******/ /******/ /******/ export class DOMNodeReference {
+  // properties initialized in the constructor
+  public target: HTMLElement | string;
+  private isLoaded: boolean;
+  private defaultDisplay: string;
+  public value: any;
+
+  // other properties made available after async _init
+  public declare element: HTMLElement | HTMLInputElement;
+  private declare visibilityController: HTMLElement;
+  public declare checked: boolean;
+  public declare yesRadio: DOMNodeReference;
+  public declare noRadio: DOMNodeReference;
+
   /**
    * Creates an instance of DOMNodeReference.
    * @param {string} target - The CSS selector to find the desired DOM element.
@@ -25,7 +36,7 @@ import "../CSS/style.css";
     // we defer the rest of initialization
   }
 
-  async _init() {
+  public async _init() {
     try {
       const element = await waitFor(this.target);
       this.element = element;
@@ -43,11 +54,11 @@ import "../CSS/style.css";
 
       this.isLoaded = true;
     } catch (e) {
-      throw new DOMNodeInitializationError(this, e);
+      throw new DOMNodeInitializationError(this, e as string);
     }
   }
 
-  _initValueSync() {
+  private _initValueSync() {
     // Function to update this.value based on element type
 
     // Initial sync
@@ -67,7 +78,7 @@ import "../CSS/style.css";
     }
   }
 
-  updateValue(): void {
+  public updateValue(): void {
     switch ((this.element as HTMLInputElement).type) {
       case "checkbox":
       case "radio":
@@ -96,7 +107,7 @@ import "../CSS/style.css";
     }
   }
 
-  _attachVisibilityController(): void {
+  private _attachVisibilityController(): void {
     // Set the default visibility controller to the element itself
     this.visibilityController = this.element;
 
@@ -125,24 +136,24 @@ import "../CSS/style.css";
     }
   }
 
-  async _attachRadioButtons(): Promise<void> {
+  private async _attachRadioButtons(): Promise<void> {
     this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
     this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
   }
 
-  on(eventType: string, eventHandler: (e: Event) => void) {
+  public on(eventType: string, eventHandler: (e: Event) => void): void {
     this.element.addEventListener(eventType, eventHandler.bind(this));
   }
 
-  hide() {
+  public hide(): void {
     this.visibilityController.style.display = "none";
   }
 
-  show() {
+  public show(): void {
     this.visibilityController.style.display = this.defaultDisplay;
   }
 
-  toggleVisibility(shouldShow: Function | boolean) {
+  public toggleVisibility(shouldShow: Function | boolean): void {
     if (shouldShow instanceof Function) {
       shouldShow() ? this.show() : this.hide();
     } else {
@@ -150,7 +161,7 @@ import "../CSS/style.css";
     }
   }
 
-  setValue(value: any) {
+  public setValue(value: any): void {
     if (this.element.classList.contains("boolean-radio")) {
       (
         (this.yesRadio as DOMNodeReference).element as HTMLInputElement
@@ -162,7 +173,7 @@ import "../CSS/style.css";
     }
   }
 
-  disable() {
+  public disable(): void {
     try {
       (this.element as HTMLInputElement).disabled = true;
     } catch (e) {
@@ -172,7 +183,7 @@ import "../CSS/style.css";
     }
   }
 
-  enable() {
+  public enable(): void {
     try {
       (this.element as HTMLInputElement).disabled = false;
     } catch (e) {
@@ -182,38 +193,42 @@ import "../CSS/style.css";
     }
   }
 
-  append(...elements: HTMLElement[]) {
+  public append(...elements: HTMLElement[]): void {
     this.element.append(...elements);
   }
 
-  after(...elements: HTMLElement[]) {
+  public before(...elements: HTMLElement[]): void {
+    this.element.before(...elements);
+  }
+
+  public after(...elements: HTMLElement[]): void {
     this.element.after(...elements);
   }
 
-  getLabel() {
+  public getLabel(): HTMLElement | null {
     return document.querySelector(`#${this.element.id}_label`) || null;
   }
 
-  appendToLabel(...elements: HTMLElement[]) {
+  public appendToLabel(...elements: HTMLElement[]): void {
     const label = this.getLabel();
     if (label) {
       label.append(" ", ...elements);
     }
   }
 
-  addLabelTooltip(text: string) {
+  public addLabelTooltip(text: string): void {
     this.appendToLabel(createInfoEl(text));
   }
 
-  addToolTip(text: string) {
+  public addToolTip(text: string): void {
     this.append(createInfoEl(text));
   }
 
-  setTextContent(text: string) {
+  public setTextContent(text: string): void {
     this.element.innerHTML = text;
   }
 
-  uncheckRadios() {
+  public uncheckRadios(): void {
     if (this.yesRadio && this.noRadio) {
       (this.yesRadio.element as HTMLInputElement).checked = false;
       (this.noRadio.element as HTMLInputElement).checked = false;
@@ -224,10 +239,10 @@ import "../CSS/style.css";
     }
   }
 
-  configureConditionalRendering(
+  public configureConditionalRendering(
     condition: () => boolean,
     triggerNodes: DOMNodeReference[]
-  ) {
+  ): void {
     try {
       this.toggleVisibility(condition());
       if (triggerNodes) {
@@ -250,18 +265,18 @@ import "../CSS/style.css";
         });
       }
     } catch (e) {
-      throw new ConditionalRenderingError(this, e);
+      throw new ConditionalRenderingError(this, e as string);
     }
   }
 
-  configureValidationAndRequirements(
+  public configureValidationAndRequirements(
     logic: {
       requirementLogic: (instance: DOMNodeReference) => boolean;
       validationLogic: () => boolean;
     },
     fieldDisplayName: string,
     dependencies: DOMNodeReference[]
-  ) {
+  ): void {
     if (typeof Page_Validators !== "undefined") {
       const newValidator = document.createElement("span");
       newValidator.style.display = "none";
@@ -291,7 +306,7 @@ import "../CSS/style.css";
     });
   }
 
-  setRequiredLevel(isRequired: Function | boolean) {
+  public setRequiredLevel(isRequired: Function | boolean): void {
     if (isRequired instanceof Function) {
       isRequired()
         ? this.getLabel()?.classList.add("required-field")
@@ -304,30 +319,28 @@ import "../CSS/style.css";
     }
   }
 
-  onceLoaded(callback: (instance: DOMNodeReference) => void) {
+  public onceLoaded(callback: (instance: DOMNodeReference) => void): void {
     if (this.isLoaded) {
       callback(this);
-      return 
-    } 
+      return;
+    }
 
-      if (this.target instanceof HTMLElement) {
-        callback(this)
-        return 
+    if (this.target instanceof HTMLElement) {
+      callback(this);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (document.querySelector(this.target as string)) {
+        observer.disconnect(); // Stop observing once loaded
+        this.isLoaded = true;
+        callback(this); // Call the provided callback
       }
-      const observer = new MutationObserver(() => {
-         
-        if (document.querySelector((this.target as string))) {
-          observer.disconnect(); // Stop observing once loaded
-          this.isLoaded = true;
-          callback(this); // Call the provided callback
-        }
-      });
+    });
 
-      observer.observe(document.body, {
-        subtree: true,
-        childList: true,
-      });
-    
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+    });
   }
 }
 
@@ -351,7 +364,7 @@ export async function createDOMNodeReference(target: HTMLElement | string) {
 
         // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
         // element is always available before executing method
-        const value = target[prop as string];
+        const value = target[prop as keyof DOMNodeReference];
         if (typeof value === "function" && prop !== "onceLoaded") {
           return (...args: any[]) =>
             target.onceLoaded(() => value.apply(target, args));
@@ -374,19 +387,27 @@ export async function createDOMNodeReference(target: HTMLElement | string) {
  */
 export async function createMultipleDOMNodeReferences(querySelector: string) {
   try {
-    let elements = Array.from(document.querySelectorAll(querySelector));
-    elements = await Promise.all(
-      elements.map((element) => createDOMNodeReference(element)
+    const elements = Array.from(
+      document.querySelectorAll(querySelector)
+    ) as HTMLElement[];
+
+    const initializedElements = await Promise.all(
+      elements.map((element) => createDOMNodeReference(element))
     );
 
-    elements.hideAll = () => elements.forEach((instance) => instance.hide());
-    elements.showAll = () => elements.forEach((instance) => instance.show());
+    const domNodeArray =
+      initializedElements as unknown as DOMNodeReferenceArray;
+
+    domNodeArray.hideAll = () =>
+      domNodeArray.forEach((instance) => instance.hide());
+    domNodeArray.showAll = () =>
+      domNodeArray.forEach((instance) => instance.show());
 
     return elements;
   } catch (e) {
     console.error(
       `There was an error creating multiple DOMNodeReferences: ${e}`
     );
-    throw new Error(e);
+    throw new Error(e as string);
   }
 }

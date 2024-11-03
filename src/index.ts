@@ -1,7 +1,7 @@
-import API from "./JS/API.ts";
+import API from "./JS/API.js";
 import {
   createDOMNodeReference,
   createMultipleDOMNodeReferences,
-} from "./JS/DOMNodeReferences.ts";
+} from "./JS/DOMNodeReferences.js";
 
 export { API, createDOMNodeReference, createMultipleDOMNodeReferences };

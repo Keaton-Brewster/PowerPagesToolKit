@@ -5,8 +5,11 @@
   "main": "./dist/index.bundle.js",
   "types": "index.d.ts",
   "scripts": {
+    "typecheck": "tsc",
     "build": "webpack",
-    "lint": "eslint ./src/JS/*"
+    "build:types": "tsc --emitDeclarationOnly --declaration",
+    "build:all": "npm run typecheck && npm run build && npm run build:types",
+    "dev": "tsc --watch"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
@@ -20,10 +23,12 @@
     "eslint-plugin-import": "^2.31.0",
     "style-loader": "^4.0.0",
     "terser-webpack-plugin": "^5.3.4",
+    "ts-loader": "^9.5.1",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.12.2",
     "webpack": "^5.95.0",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   },
   "author": "KeatonBrewster",
   "license": "SSPL-1.0",

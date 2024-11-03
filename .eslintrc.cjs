@@ -26,6 +26,8 @@ module.exports = {
   rules: {
     "no-undef": "error",
     "no-unused-vars": "warn",
+    "no-explicit-any": "warn",
+    "@typescript/no-explicit-any": "none",
   },
   globals: {
     $: "readonly",
