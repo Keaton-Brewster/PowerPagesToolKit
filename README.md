@@ -114,10 +114,14 @@ configureConditionalRendering(
 /**
  * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
  *
- * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines whether the field should be required. Returns `true` if required, `false` otherwise.
- * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
+ * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines 
+ * whether the field should be required. Returns `true` if required, `false` otherwise.
+ * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's
+ * input is valid. Returns `true` if valid, `false` otherwise.
  * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
- * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
+ * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. 
+ * When these Nodes or their values change, the required status of this field is re-evaluated.
+ * Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
  */
 configureValidationAndRequirements(
   isRequired: (this: this) => boolean,
@@ -131,18 +135,25 @@ configureValidationAndRequirements(
     const other_node = await createDOMNodeReference(".element_class")
 
     your_node.configureValidationAndRequirements(
-        () => other_node.yesRadio.checked, // if 'yes' is checked for this other node, this function will evaluate to true, meaning that 'your_node' will be required
-        function () { // important to use standard 'function' declaration, instead of arrow function when needing to access 'this' (the instance of 'your_node')
+        () => other_node.yesRadio.checked, /* if 'yes' is checked for this other node,
+        this function will evaluate to true, meaning that 'your_node' will be required */
+
+        function () { /* important to use standard 'function' declaration, instead of
+        arrow function when needing to access 'this' (the instance of 'your_node') */
+
           if (other_node.yesRadio.checked) { // when other_node radio is checked 'yes'
             return this.value; // this is only 'valid' if it has a value
           } else return true;
         },
         "Your Field Name",
-        [other_node] // since our conditions depend on 'other_node' it must be included in the dependency array so that the requirement conditions can be re-evaluated when the value of 'other_node' changes
+        [other_node] /* since our conditions depend on 'other_node' it must be included in the
+        dependency array so that the requirement conditions can be re-evaluated when
+        the value of 'other_node' changes */
       );
 
 
-// sets the elements 'disabled' to true - useful for inputs that need to be enabled/disabled conditionally
+/* sets the elements 'disabled' to true - useful for inputs
+that need to be enabled/disabled conditionally */
 disable()
 
 // Sets the element 'disabled' to false
