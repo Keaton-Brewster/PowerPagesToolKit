@@ -30,6 +30,8 @@ The `DOMNodeReference` module simplifies DOM element management. It provides fun
 
 - **`createMultipleDOMNodeReferences(selector)`**: Creates multiple `DOMNodeReference` instances for all elements matching the specified CSS selector. Returns an array of `DOMNodeReference` instances.
 
+`selector` uses standard ED6 `document.querySelector()` syntax. For more information, read [here](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector)
+
 ```javascript
 // single instance of DOMNodeReference
 const node = await createDOMNodeReference("#my-element");
@@ -48,22 +50,27 @@ nodeArray.forEach((node) => {
 })
 ```
 
-##### Properties
+##### Available Properties
+
+These properties are public and can be used in any custom logic/configurations
 
 ```typescript
-target: string;
-element: HTMLElement | null;
+target: HTMLElement | string;
+element: HTMLElement;
 isLoaded: boolean;
-visibilityController: HTMLElement | null;
-defaultDisplay: string;
-value: string | null;
+value: any;
+yesRadio: DOMNodeReference;
+noRadio: DOMNodeReference;
 ```
 
 ##### Methods
 
 Here are the key methods you can use with a DOMNodeReference instance:
 
-```typescript
+```javascript
+
+/********/
+// VISIBILITY / ACCESSIBILITY
 
 // Hides the associated DOM element.
 hide()
@@ -71,8 +78,85 @@ hide()
 // Shows the associated DOM element.
 show()
 
+/**
+ * advanced visibility control in the case you need to apply
+ * custom logic to the visibility of an element
+ */
+toggleVisibility(shouldShow: boolean | () => boolean)
+
+/**
+  * Configures conditional rendering for the target element based on a condition
+  * and the visibility of one or more trigger elements.
+  *
+  * @param {(this: DOMNodeReference) => boolean} condition - A function that returns a boolean to determine
+  * the visibility of the target element. If `condition()` returns true, the element is shown;
+  * otherwise, it is hidden.
+  * @param {DOMNodeReference[]} triggerNodes - An array of `DOMNodeReference` instances. Event listeners are
+  * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
+  * the target node.
+  */
+configureConditionalRendering(
+  condition: (this: DOMNodeReference) => boolean,
+  triggerNodes: DOMNodeReference[]
+  )
+
+
+    // EXAMPLE:
+    const your_node = await createDOMNodeReference("#element_id")
+    const other_node = await createDOMNodeReference(".element_class")
+
+    your_node.configureConditionalRendering(() =>
+        other_node.value == "3", // your_node will only be visible when the value of other_node is "3"
+        [other_node] // and we have to include any DOMNodeReferences used in the evaluation logic, so that changes to them can be watched and the condition evaluated again
+      );
+
+
+/**
+ * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
+ *
+ * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines whether the field should be required. Returns `true` if required, `false` otherwise.
+ * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
+ * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
+ * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
+ */
+configureValidationAndRequirements(
+  isRequired: (this: this) => boolean,
+  isValid: (this: this) => boolean,
+  fieldDisplayName: string,
+  dependencies: Array<DOMNodeReference>
+)
+
+    // EXAMPLE:
+    const your_node = await createDOMNodeReference("#element_id")
+    const other_node = await createDOMNodeReference(".element_class")
+
+    your_node.configureValidationAndRequirements(
+        () => other_node.yesRadio.checked, // if 'yes' is checked for this other node, this function will evaluate to true, meaning that 'your_node' will be required
+        function () { // important to use standard 'function' declaration, instead of arrow function when needing to access 'this' (the instance of 'your_node')
+          if (other_node.yesRadio.checked) { // when other_node radio is checked 'yes'
+            return this.value; // this is only 'valid' if it has a value
+          } else return true;
+        },
+        "Your Field Name",
+        [other_node] // since our conditions depend on 'other_node' it must be included in the dependency array so that the requirement conditions can be re-evaluated when the value of 'other_node' changes
+      );
+
+
+// sets the elements 'disabled' to true - useful for inputs that need to be enabled/disabled conditionally
+disable()
+
+// Sets the element 'disabled' to false
+enable()
+```
+
+```javascript
+// OTHER METHODS
+
 // Sets the value of the associated HTML element.
-setValue(value: string)
+setValue(value: any)
+
+// Sets the inner HTML content of the associated HTML element.
+setTextContent(text: string)
 
 // Appends child elements to the associated HTML element.
 append(...elements: HTMLElement[])
@@ -86,11 +170,9 @@ getLabel(): HTMLElement | null
 // Appends child elements to the label associated with the HTML element.
 appendToLabel(...elements: HTMLElement[])
 
-// Adds a click event listener to the associated HTML element.
-addClickListener(eventHandler: () => void)
-
-// Adds a change event listener to the associated HTML element.
-addChangeListener(eventHandler: () => void)
+// Create an event listener on the target element. Provide access to 'this'
+// in the event handler function
+on(eventType: string, eventHandler: (this: DOMNodeReference) => void)
 
 // Unchecks both yes and no radio buttons if they exist.
 uncheckRadios()
@@ -101,18 +183,8 @@ createValidation(evaluationFunction: () => boolean, fieldDisplayName: string)
 // Adds a tooltip to the label associated with the HTML element.
 addLabelTooltip(text: string)
 
-// Adds a tooltip to the associated HTML element.
-
-addToolTip(text: string)
-
-// Sets the inner HTML content of the associated HTML element.
-setTextContent(text: string)
-
-// Toggles visibility based on the provided boolean value.
-toggleVisibility(shouldShow: boolean)
-
-// Sets the visibility of the element based on a condition and binds it to another DOMNodeReference.
-configureConditionalRendering(condition: () => boolean, triggerNode?: DOMNodeReference)
+// Adds a tooltip with the specified text to the element
+addTooltip(text: string)
 
 // Executes a callback function once the element is fully loaded.
 onceLoaded(callback: (instance: DOMNodeReference) => void)

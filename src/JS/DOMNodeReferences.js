@@ -225,19 +225,19 @@ import "../CSS/style.css";
 
   configureConditionalRendering(condition, triggerNodes) {
     try {
-      this.toggleVisibility(condition());
+      this.toggleVisibility(condition(this));
       if (triggerNodes) {
         const nodes = Array.isArray(triggerNodes)
           ? triggerNodes
           : [triggerNodes];
         nodes.forEach((node) => {
-          node.on("change", () => this.toggleVisibility(condition()));
+          node.on("change", () => this.toggleVisibility(condition(this)));
 
           const observer = new MutationObserver(() => {
             const display = window.getComputedStyle(
               node.visibilityController
             ).display;
-            this.toggleVisibility(display !== "none" && condition());
+            this.toggleVisibility(display !== "none" && condition(this));
           });
           observer.observe(node.visibilityController, {
             attributes: true,

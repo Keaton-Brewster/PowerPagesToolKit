@@ -127,14 +127,12 @@ class DOMNodeReference {
   uncheckRadios(): void;
 
   /**
-   * Configures validation and requirement conditions for the field based on the provided logic functions and dependencies.
-   * Creates a validator and sets a required level dynamically based on dependency changes.
-   * @param {(this: DOMNodeReference) => boolean} isRequired - Function to determine if the field is required.
-   * @param {(this: DOMNodeReference) => boolean} isValid - Function to evaluate the field's validity.
-   * @param {string} fieldDisplayName - Display name used in error messages if validation fails.
-   * @param {Array<DOMNodeReference>} [dependencies] Dependencies for setting requirement conditions dynamically.
-   * DOMNodeReferences that appear in the requirement or validation functions are required in the
-   * dependency array
+   * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
+   *
+   * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines whether the field should be required. Returns `true` if required, `false` otherwise.
+   * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
+   * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
+   * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
    */
   configureValidationAndRequirements(
     isRequired: (this: this) => boolean,
@@ -158,6 +156,12 @@ class DOMNodeReference {
   addLabelTooltip(text: string): void;
 
   /**
+   * Adds a tooltip with the specified text to the element
+   * @param {string} text - The text to display in the tooltip
+   */
+  addTooltip(text: string): void;
+
+  /**
    * Sets the inner HTML content of the HTML element.
    * @param {string} text - The text to set as the inner HTML of the element.
    */
@@ -174,16 +178,16 @@ class DOMNodeReference {
    * Configures conditional rendering for the target element based on a condition
    * and the visibility of one or more trigger elements.
    *
-   * @param {Function} condition - A function that returns a boolean to determine
+   * @param {(this: DOMNodeReference) => boolean} condition - A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
-   * @param {DOMNodeReference | DOMNodeReference[]} triggerNodes - A single `DOMNodeReference`
-   * or an array of `DOMNodeReference` instances. Event listeners are registered on each
-   * `triggerNode` to toggle the visibility of the target element based on the `condition`.
+   * @param {DOMNodeReference[]} triggerNodes - An array of `DOMNodeReference` instances. Event listeners are
+   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
+   * the target node.
    */
   configureConditionalRendering(
-    condition: () => boolean,
-    triggerNodes?: DOMNodeReference | DOMNodeReference[]
+    condition: (this: DOMNodeReference) => boolean,
+    triggerNodes: DOMNodeReference[]
   ): void;
 
   /**
