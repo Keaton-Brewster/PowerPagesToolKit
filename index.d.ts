@@ -129,19 +129,18 @@ class DOMNodeReference {
   /**
    * Configures validation and requirement conditions for the field based on the provided logic functions and dependencies.
    * Creates a validator and sets a required level dynamically based on dependency changes.
-   * @param {Object} config An object containing the requirement and validation logical functions
-   * @param {(this: DOMNodeReference) => boolean} config.requirementLogic - Function to determine if the field is required.
-   * @param {(this: DOMNodeReference) => boolean} config.validationLogic - Function to evaluate the field's validity.
+   * @param {(this: DOMNodeReference) => boolean} isRequired - Function to determine if the field is required.
+   * @param {(this: DOMNodeReference) => boolean} isValid - Function to evaluate the field's validity.
    * @param {string} fieldDisplayName - Display name used in error messages if validation fails.
-   * @param {Array<DOMNodeReference>} [dependencies] - Optional dependencies for setting requirement conditions dynamically.
+   * @param {Array<DOMNodeReference>} [dependencies] Dependencies for setting requirement conditions dynamically.
+   * DOMNodeReferences that appear in the requirement or validation functions are required in the
+   * dependency array
    */
   configureValidationAndRequirements(
-    config: {
-      requirementLogic: (this: this) => boolean;
-      validationLogic: (this: this) => boolean;
-    },
+    isRequired: (this: this) => boolean,
+    isValid: (this: this) => boolean,
     fieldDisplayName: string,
-    dependencies?: DOMNodeReference[]
+    dependencies: Array<DOMNodeReference>
   ): void;
 
   /**

@@ -251,7 +251,8 @@ import "../CSS/style.css";
   }
 
   configureValidationAndRequirements(
-    { requirementLogic, validationLogic },
+    isRequired,
+    isValid,
     fieldDisplayName,
     dependencies = []
   ) {
@@ -261,7 +262,7 @@ import "../CSS/style.css";
       newValidator.id = `${this.id}Validator`;
       newValidator.controltovalidate = this.id;
       newValidator.errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
-      newValidator.evaluationfunction = validationLogic.bind(this);
+      newValidator.evaluationfunction = isValid.bind(this);
       //eslint-disable-next-line
       Page_Validators.push(newValidator);
     } else {
@@ -270,13 +271,13 @@ import "../CSS/style.css";
       );
     }
 
-    this.setRequiredLevel(requirementLogic(this));
+    this.setRequiredLevel(isRequired(this));
 
     if (!dependencies) return;
     dependencies = Array.isArray(dependencies) ? dependencies : [dependencies];
     dependencies.forEach((dep) => {
       dep.element.addEventListener("change", () =>
-        this.setRequiredLevel(requirementLogic(this))
+        this.setRequiredLevel(isRequired(this))
       );
     });
   }
