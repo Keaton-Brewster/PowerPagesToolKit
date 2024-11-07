@@ -59,8 +59,15 @@ target: HTMLElement | string;
 element: HTMLElement;
 isLoaded: boolean;
 value: any;
+/**
+ * If the element targeted is the main input for a yes/no radio control,
+ * yesRadio and noRadio will be available as properties of 'this'
+ */
 yesRadio: DOMNodeReference;
 noRadio: DOMNodeReference;
+// and if 'this' is the instance of a yesRadio or noRadio
+// checked will represent wether the radio has been checked or not
+checked: boolean
 ```
 
 ##### Methods
@@ -85,19 +92,22 @@ show()
 toggleVisibility(shouldShow: boolean | () => boolean)
 
 /**
-  * Configures conditional rendering for the target element based on a condition
-  * and the visibility of one or more trigger elements.
+  * Configures conditional rendering for the target element
+  * based on a condition and the visibility of one or more trigger elements.
   *
-  * @param {(this: DOMNodeReference) => boolean} condition - A function that returns a boolean to determine
-  * the visibility of the target element. If `condition()` returns true, the element is shown;
-  * otherwise, it is hidden.
-  * @param {DOMNodeReference[]} triggerNodes - An array of `DOMNodeReference` instances. Event listeners are
-  * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
-  * the target node.
+  * @param {(this: DOMNodeReference) => boolean} condition -
+  * A function that returns a boolean to determine the visibility
+  * of the target element. If `condition()` returns true, the
+  * element is shown; otherwise, it is hidden.
+  * @param {Array<DOMNodeReference>} dependencies - An array
+  * of `DOMNodeReference` instances. Event listeners are
+  * registered on each to toggle the visibility of the
+  * target element based on the `condition` and the
+  *  visibility of the target node.
   */
 configureConditionalRendering(
   condition: (this: DOMNodeReference) => boolean,
-  triggerNodes: DOMNodeReference[]
+  dependencies: DOMNodeReference[]
   )
 
 
@@ -106,22 +116,36 @@ configureConditionalRendering(
     const other_node = await createDOMNodeReference(".element_class")
 
     your_node.configureConditionalRendering(() =>
-        other_node.value == "3", // your_node will only be visible when the value of other_node is "3"
-        [other_node] // and we have to include any DOMNodeReferences used in the evaluation logic, so that changes to them can be watched and the condition evaluated again
+        other_node.value == "3",
+        /* your_node will only be
+        visible when the value of other_node is "3"
+        */
+        [other_node]
+        /* and we have to include any DOMNodeReferences used
+        in the evaluation logic, so that changes to them can
+        be watched and the condition evaluated again
+        */
       );
 
 
 /**
- * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
+ * Sets up validation and requirement rules for the field.
+ * This function dynamically updates the field's required status
+ * and validates its input based on the specified conditions.
  *
- * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines
- * whether the field should be required. Returns `true` if required, `false` otherwise.
- * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's
- * input is valid. Returns `true` if valid, `false` otherwise.
- * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
- * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on.
- * When these Nodes or their values change, the required status of this field is re-evaluated.
- * Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
+ * @param {function(this: DOMNodeReference): boolean} isRequired
+ * A function that determines whether the field should be required.
+ * Return `true` if required, `false` to not be required.
+ * @param {function(this: DOMNodeReference): boolean} isValid
+ * A function that checks if the field's input is valid.
+ * Return `true` if validation satisfied, `false` if not.
+ * @param {string} fieldDisplayName - The name of the field, used
+ * in error messages if validation fails.
+ * @param {Array<DOMNodeReference>} [dependencies]
+ * Other fields that this field’s requirement depends on. When
+ * these Nodes or their values change, the required status
+ * of this field is re-evaluated. Make sure any DOMNodeReference
+ * used in `isRequired` or `isValid` is included in this array.
  */
 configureValidationAndRequirements(
   isRequired: (this: this) => boolean,
@@ -135,20 +159,27 @@ configureValidationAndRequirements(
     const other_node = await createDOMNodeReference(".element_class")
 
     your_node.configureValidationAndRequirements(
-        () => other_node.yesRadio.checked, /* if 'yes' is checked for this other node,
-        this function will evaluate to true, meaning that 'your_node' will be required */
+        () => other_node.yesRadio.checked,
+        /* if 'yes' is checked for this other node,
+          this function will evaluate to true,
+          meaning that 'your_node' will be required */
 
-        function () { /* important to use standard 'function' declaration, instead of
-        arrow function when needing to access 'this' (the instance of 'your_node') */
+        function () {
+          /* important to use standard 'function' declaration,
+            instead of arrow function when needing to
+            access 'this' (the instance of 'your_node') */
 
-          if (other_node.yesRadio.checked) { // when other_node radio is checked 'yes'
+          if (other_node.yesRadio.checked) {
+            // when other_node radio is checked 'yes'
             return this.value; // this is only 'valid' if it has a value
           } else return true;
         },
         "Your Field Name",
-        [other_node] /* since our conditions depend on 'other_node' it must be included in the
-        dependency array so that the requirement conditions can be re-evaluated when
-        the value of 'other_node' changes */
+        [other_node]
+        /* since our conditions depend on
+          'other_node' it must be included in the dependency
+          array so that the requirement conditions can be
+          re-evaluated when the value of 'other_node' changes */
       );
 
 

@@ -181,13 +181,13 @@ class DOMNodeReference {
    * @param {(this: DOMNodeReference) => boolean} condition - A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
-   * @param {DOMNodeReference[]} triggerNodes - An array of `DOMNodeReference` instances. Event listeners are
+   * @param {Array<DOMNodeReference>} dependencies - An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
    */
   configureConditionalRendering(
     condition: (this: DOMNodeReference) => boolean,
-    triggerNodes: DOMNodeReference[]
+    dependencies: DOMNodeReference[]
   ): void;
 
   /**
