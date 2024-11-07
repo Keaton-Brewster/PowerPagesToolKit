@@ -114,12 +114,12 @@ configureConditionalRendering(
 /**
  * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
  *
- * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines 
+ * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines
  * whether the field should be required. Returns `true` if required, `false` otherwise.
  * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's
  * input is valid. Returns `true` if valid, `false` otherwise.
  * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
- * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. 
+ * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on.
  * When these Nodes or their values change, the required status of this field is re-evaluated.
  * Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
  */
@@ -187,9 +187,6 @@ on(eventType: string, eventHandler: (this: DOMNodeReference) => void)
 
 // Unchecks both yes and no radio buttons if they exist.
 uncheckRadios()
-
-//Creates a validation instance for the field.
-createValidation(evaluationFunction: () => boolean, fieldDisplayName: string)
 
 // Adds a tooltip to the label associated with the HTML element.
 addLabelTooltip(text: string)
