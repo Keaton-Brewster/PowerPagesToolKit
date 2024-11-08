@@ -39,7 +39,8 @@ import "../CSS/style.css";
 
       this._initValueSync();
       this._attachVisibilityController();
-      this.defaultDisplay = this.visibilityController.style.display;
+      this.defaultDisplay =
+        this.visibilityController.style.display || "inline-block";
 
       this.isLoaded = true;
     } catch (e) {
