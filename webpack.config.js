@@ -9,16 +9,18 @@ const __dirname = path.dirname(__filename);
 export default {
   entry: "./src/index.ts",
   output: {
-    filename: "index.js",
+    filename: "index.bundle.js",
     path: path.resolve(__dirname, "dist"),
-    libraryTarget: "commonjs2",
+    libraryTarget: "module",
     clean: true,
+  },
+  experiments: {
+    outputModule: true, // Required to support library.type: "module"
   },
   mode: "production",
   optimization: {
     minimize: false,
   },
-  target: "node",
   externals: [webpackNodeExternals()],
   resolve: {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
