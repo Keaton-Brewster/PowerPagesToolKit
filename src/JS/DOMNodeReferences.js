@@ -245,6 +245,17 @@ import "../CSS/style.css";
     this.element.innerHTML = text;
   }
 
+  setStyle(options) {
+    if (!Object.prototype.toString.call(options) !== "[object Object]") {
+      throw new Error(
+        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
+      );
+    }
+    Object.keys(options).forEach((key) => {
+      this.element.style[key] = options[key];
+    });
+  }
+
   uncheckRadios() {
     if (this.yesRadio && this.noRadio) {
       this.yesRadio.element.checked = false;

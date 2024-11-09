@@ -166,6 +166,13 @@ class DOMNodeReference {
 
   /**
    *
+   * @param {Partial<CSSStyleDeclaration>} options - An object with the style properties (keys) and updated styles (values)
+   * to apply to the this. {"key": "value"}
+   */
+  setStyle(options: Partial<CSSStyleDeclaration>): void;
+
+  /**
+   *
    * @param {boolean} shouldShow shows or hides the target
    * if = true => show, if = false => hide
    */
