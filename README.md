@@ -107,7 +107,7 @@ toggleVisibility(shouldShow: boolean | () => boolean)
   */
 configureConditionalRendering(
   condition: (this: DOMNodeReference) => boolean,
-  dependencies: DOMNodeReference[]
+  dependencies: Array<DOMNodeReference>
   )
 
 

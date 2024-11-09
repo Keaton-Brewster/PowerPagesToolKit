@@ -8,7 +8,6 @@ class DOMNodeReference {
    */
   constructor(target: string): DOMNodeReference;
 
-  target: string;
   /**
    * The element targeted when instantiating DOMNodeReference.
    * Made available in order to perform normal DOM traversal,
@@ -17,8 +16,6 @@ class DOMNodeReference {
    */
   element: HTMLElement | null;
   isLoaded: boolean;
-  visibilityController: HTMLElement | null;
-  defaultDisplay: string;
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements via event handler
