@@ -182,12 +182,44 @@ import "../CSS/style.css";
     }
   }
 
-  append(...elements) {
-    this.element.append(...elements);
+  prepend(...nodes) {
+    nodes.forEach((node) => {
+      if (node instanceof DOMNodeReference) {
+        this.element.prepend(node.element);
+      } else {
+        this.element.prepend(node);
+      }
+    });
   }
 
-  after(...elements) {
-    this.element.after(...elements);
+  append(...nodes) {
+    nodes.forEach((node) => {
+      if (node instanceof DOMNodeReference) {
+        this.element.append(node.element);
+      } else {
+        this.element.append(node);
+      }
+    });
+  }
+
+  before(...nodes) {
+    nodes.forEach((node) => {
+      if (node instanceof DOMNodeReference) {
+        this.element.before(node.element);
+      } else {
+        this.element.before(node);
+      }
+    });
+  }
+
+  after(...nodes) {
+    nodes.forEach((node) => {
+      if (node instanceof DOMNodeReference) {
+        this.element.after(node.element);
+      } else {
+        this.element.after(node);
+      }
+    });
   }
 
   getLabel() {
@@ -205,7 +237,7 @@ import "../CSS/style.css";
     this.appendToLabel(createInfoEl(text));
   }
 
-  addToolTip(text) {
+  addTooltip(text) {
     this.append(createInfoEl(text));
   }
 

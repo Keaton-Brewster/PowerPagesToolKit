@@ -78,27 +78,27 @@ class DOMNodeReference {
 
   /**
    * Prepends elements to the target
-   * @param {...HTMLElement} elements - The elements to prepend to the HTML element
+   * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to prepend to the HTML element
    */
-  prepend(...elements: HTMLElement[]): void;
+  prepend(...nodes: HTMLElement[] | DOMNodeReference[]): void;
 
   /**
    * Appends child elements to the HTML element.
-   * @param {...HTMLElement} elements - The elements to append to the HTML element.
+   * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to append to the HTML element.
    */
-  append(...elements: HTMLElement[]): void;
+  append(...nodes: HTMLElement[] | DOMNodeReference[]): void;
 
   /**
    * Inserts elements before the HTML element.
-   * @param {...HTMLElement} elements - The elements to insert before the HTML element.
+   * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to insert before the HTML element.
    */
-  before(...elements: HTMLElement[]): void;
+  before(...nodes: HTMLElement[] | DOMNodeReference[]): void;
 
   /**
    * Inserts elements after the HTML element.
-   * @param {...HTMLElement} elements - The elements to insert after the HTML element.
+   * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to insert after the HTML element.
    */
-  after(...elements: HTMLElement[]): void;
+  after(...nodes: HTMLElement[] | DOMNodeReference[]): void;
 
   /**
    * Retrieves the label associated with the HTML element.
