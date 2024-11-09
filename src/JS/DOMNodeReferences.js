@@ -246,7 +246,7 @@ import "../CSS/style.css";
   }
 
   setStyle(options) {
-    if (!Object.prototype.toString.call(options) !== "[object Object]") {
+    if (Object.prototype.toString.call(options) !== "[object Object]") {
       throw new Error(
         `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
       );

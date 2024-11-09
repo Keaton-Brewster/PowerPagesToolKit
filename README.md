@@ -67,7 +67,7 @@ yesRadio: DOMNodeReference;
 noRadio: DOMNodeReference;
 // and if 'this' is the instance of a yesRadio or noRadio
 // checked will represent wether the radio has been checked or not
-checked: boolean
+checked: boolean;
 ```
 
 ##### Methods
@@ -199,6 +199,9 @@ setValue(value: any)
 
 // Sets the inner HTML content of the associated HTML element.
 setTextContent(text: string)
+
+// set any style attribute for 'this' with standard CSS style declaration
+setStyle(options: Partial<CSSStyleDeclaration>): void;
 
 // Appends child elements to the associated HTML element.
 append(...elements: HTMLElement[])
