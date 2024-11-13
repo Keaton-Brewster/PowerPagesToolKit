@@ -47,55 +47,64 @@ class DOMNodeReference {
 
   /**
    * Hides the element by setting its display style to "none".
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  hide(): void;
+  hide(): DOMNodeReference;
 
   /**
    * Shows the element by restoring its default display style.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  show(): void;
+  show(): DOMNodeReference;
 
   /**
    * Sets the value of the HTML element.
    * @param {() => any} value - The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  setValue(value: string): void;
+  setValue(value: string): DOMNodeReference;
 
   /**
    * Disables the element so that users cannot input any data
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  disable(): void;
+  disable(): DOMNodeReference;
 
   /**
    * Enables the element so that users can input data
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  enable(): void;
+  enable(): DOMNodeReference;
 
   /**
    * Prepends elements to the target
    * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to prepend to the HTML element
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  prepend(...nodes: HTMLElement[] | DOMNodeReference[]): void;
+  prepend(...nodes: HTMLElement[] | DOMNodeReference[]): DOMNodeReference;
 
   /**
    * Appends child elements to the HTML element.
    * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to append to the HTML element.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  append(...nodes: HTMLElement[] | DOMNodeReference[]): void;
+  append(...nodes: HTMLElement[] | DOMNodeReference[]): DOMNodeReference;
 
   /**
    * Inserts elements before the HTML element.
    * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to insert before the HTML element.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  before(...nodes: HTMLElement[] | DOMNodeReference[]): void;
+  before(...nodes: HTMLElement[] | DOMNodeReference[]): DOMNodeReference;
 
   /**
    * Inserts elements after the HTML element.
    * @param {HTMLElement[] | DOMNodeReference[]} nodes - The elements to insert after the HTML element.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  after(...nodes: HTMLElement[] | DOMNodeReference[]): void;
+  after(...nodes: HTMLElement[] | DOMNodeReference[]): DOMNodeReference;
 
   /**
    * Retrieves the label associated with the HTML element.
@@ -107,8 +116,9 @@ class DOMNodeReference {
   /**
    * Appends child elements to the label associated with the HTML element.
    * @param {...HTMLElement} elements - The elements to append to the label.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  appendToLabel(...elements: HTMLElement[]): void;
+  appendToLabel(...elements: HTMLElement[]): DOMNodeReference;
 
   /**
    * Sets up an event listener based on the specified event type, executing the specified
@@ -116,12 +126,15 @@ class DOMNodeReference {
    * @param {string} eventType - The DOM event to watch for
    * @param {(this: DOMNodeReference, e: Event) => void} eventHandler - The callback function that runs when the
    * specified event occurs
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  on(eventType: string, eventHandler: (event: Event) => void): void;
+  on(eventType: string, eventHandler: (event: Event) => void): DOMNodeReference;
+
   /**
    * Unchecks both the yes and no radio buttons if they exist.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  uncheckRadios(): void;
+  uncheckRadios(): DOMNodeReference;
 
   /**
    * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
@@ -130,53 +143,66 @@ class DOMNodeReference {
    * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
    * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
    * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
+   * @returns {DOMNodeReference} Returns 'this'
    */
   configureValidationAndRequirements(
     isRequired: (this: this) => boolean,
     isValid: (this: this) => boolean,
     fieldDisplayName: string,
     dependencies: Array<DOMNodeReference>
-  ): void;
+  ): DOMNodeReference;
 
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
    *
    * @param {boolean} isRequired - Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  setRequiredLevel(isRequired: boolean): void;
+  setRequiredLevel(isRequired: boolean): DOMNodeReference;
 
   /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
    * @param {string} text - The text to display in the tooltip.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  addLabelTooltip(text: string): void;
+  addLabelTooltip(text: string): DOMNodeReference;
 
   /**
    * Adds a tooltip with the specified text to the element
    * @param {string} text - The text to display in the tooltip
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  addTooltip(text: string): void;
+  addTooltip(text: string): DOMNodeReference;
 
   /**
    * Sets the inner HTML content of the HTML element.
    * @param {string} text - The text to set as the inner HTML of the element.
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  setTextContent(text: string): void;
+  setInnerHTML(text: string): DOMNodeReference;
+
+  /**
+   * Removes the element from the DOM
+   * @returns {DOMNodeReference} Returns 'this'
+   */
+  remove(): DOMNodeReference;
 
   /**
    *
    * @param {Partial<CSSStyleDeclaration>} options - An object with the style properties (keys) and updated styles (values)
    * to apply to the this. {"key": "value"}
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  setStyle(options: Partial<CSSStyleDeclaration>): void;
+  setStyle(options: Partial<CSSStyleDeclaration>): DOMNodeReference;
 
   /**
    *
    * @param {boolean} shouldShow shows or hides the target
    * if = true => show, if = false => hide
+   * @returns {DOMNodeReference} Returns 'this'
    */
-  toggleVisibility(shouldShow: boolean): void;
+  toggleVisibility(shouldShow: boolean): DOMNodeReference;
 
   /**
    * Configures conditional rendering for the target element based on a condition
@@ -188,11 +214,12 @@ class DOMNodeReference {
    * @param {Array<DOMNodeReference>} dependencies - An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
+   * @returns {DOMNodeReference} Returns 'this'
    */
   configureConditionalRendering(
     condition: (this: DOMNodeReference) => boolean,
     dependencies: DOMNodeReference[]
-  ): void;
+  ): DOMNodeReference;
 
   /**
    * Executes a callback function once the element is fully loaded.

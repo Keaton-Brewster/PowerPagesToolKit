@@ -135,14 +135,17 @@ import "../CSS/style.css";
 
   on(eventType, eventHandler) {
     this.element.addEventListener(eventType, eventHandler.bind(this));
+    return this;
   }
 
   hide() {
     this.visibilityController.style.display = "none";
+    return this;
   }
 
   show() {
     this.visibilityController.style.display = this.defaultDisplay;
+    return this;
   }
 
   toggleVisibility(shouldShow) {
@@ -151,6 +154,7 @@ import "../CSS/style.css";
     } else {
       shouldShow ? this.show() : this.hide();
     }
+    return this;
   }
 
   setValue(value) {
@@ -160,6 +164,7 @@ import "../CSS/style.css";
     } else {
       this.element.value = value;
     }
+    return this;
   }
 
   disable() {
@@ -170,6 +175,7 @@ import "../CSS/style.css";
         `There was an error trying to disable the target: ${this.target}`
       );
     }
+    return this;
   }
 
   enable() {
@@ -180,6 +186,7 @@ import "../CSS/style.css";
         `There was an error trying to disable the target: ${this.target}`
       );
     }
+    return this;
   }
 
   prepend(...nodes) {
@@ -190,6 +197,7 @@ import "../CSS/style.css";
         this.element.prepend(node);
       }
     });
+    return this;
   }
 
   append(...nodes) {
@@ -200,6 +208,7 @@ import "../CSS/style.css";
         this.element.append(node);
       }
     });
+    return this;
   }
 
   before(...nodes) {
@@ -210,6 +219,7 @@ import "../CSS/style.css";
         this.element.before(node);
       }
     });
+    return this;
   }
 
   after(...nodes) {
@@ -220,6 +230,7 @@ import "../CSS/style.css";
         this.element.after(node);
       }
     });
+    return this;
   }
 
   getLabel() {
@@ -231,18 +242,27 @@ import "../CSS/style.css";
     if (label) {
       label.append(" ", ...elements);
     }
+    return this;
   }
 
   addLabelTooltip(text) {
     this.appendToLabel(createInfoEl(text));
+    return this;
   }
 
   addTooltip(text) {
     this.append(createInfoEl(text));
+    return this;
   }
 
-  setTextContent(text) {
-    this.element.innerHTML = text;
+  setInnerHTML(string) {
+    this.element.innerHTML = string;
+    return this;
+  }
+
+  remove() {
+    this.element.remove();
+    return this;
   }
 
   setStyle(options) {
@@ -254,6 +274,7 @@ import "../CSS/style.css";
     Object.keys(options).forEach((key) => {
       this.element.style[key] = options[key];
     });
+    return this;
   }
 
   uncheckRadios() {
@@ -265,6 +286,7 @@ import "../CSS/style.css";
         "[SYNACT] Attempted to uncheck radios for an element that has no radios"
       );
     }
+    return this;
   }
 
   configureConditionalRendering(condition, triggerNodes) {
@@ -292,6 +314,7 @@ import "../CSS/style.css";
     } catch (e) {
       throw new ConditionalRenderingError(this, e);
     }
+    return this;
   }
 
   configureValidationAndRequirements(
@@ -317,13 +340,14 @@ import "../CSS/style.css";
 
     this.setRequiredLevel(isRequired(this));
 
-    if (!dependencies) return;
+    if (!dependencies) return this;
     dependencies = Array.isArray(dependencies) ? dependencies : [dependencies];
     dependencies.forEach((dep) => {
       dep.element.addEventListener("change", () =>
         this.setRequiredLevel(isRequired(this))
       );
     });
+    return this;
   }
 
   setRequiredLevel(isRequired) {
@@ -332,6 +356,7 @@ import "../CSS/style.css";
     } else {
       this.getLabel().classList.remove("required-field");
     }
+    return this;
   }
 
   onceLoaded(callback) {
@@ -376,8 +401,10 @@ export async function createDOMNodeReference(target) {
         // element is always available before executing method
         const value = target[prop];
         if (typeof value === "function" && prop !== "onceLoaded") {
-          return (...args) =>
+          return (...args) => {
             target.onceLoaded(() => value.apply(target, args));
+            return target;
+          };
         }
         return value;
       },
