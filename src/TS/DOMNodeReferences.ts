@@ -6,7 +6,6 @@ import {
   ConditionalRenderingError,
 } from "./errors.js";
 
-
 /**
  * Class representing a reference to a DOM node.
  */
@@ -175,36 +174,47 @@ import {
    * @param {string} eventType - The DOM event to watch for
    * @param {(this: DOMNodeReference, e: Event) => void} eventHandler - The callback function that runs when the
    * specified event occurs
+   * @returns - Instance of this
    */
-  public on(eventType: string, eventHandler: (e: Event) => void): void {
+  public on(
+    eventType: string,
+    eventHandler: (e: Event) => void
+  ): DOMNodeReference {
     this.element.addEventListener(eventType, eventHandler.bind(this));
+    return this;
   }
 
   /**
    * Hides the element by setting its display style to "none".
+   * @returns - Instance of this
    */
-  public hide(): void {
+  public hide(): DOMNodeReference {
     this.visibilityController.style.display = "none";
+    return this;
   }
 
   /**
    * Shows the element by restoring its default display style.
+   * @returns - Instance of this
    */
-  public show(): void {
+  public show(): DOMNodeReference {
     this.visibilityController.style.display = this.defaultDisplay;
+    return this;
   }
 
   /**
    *
    * @param {function(this: DOMNodeReference): boolean | boolean} shouldShow - Either a function that returns true or false,
    * or a natural boolean to determine the visibility of this
+   * @returns - Instance of this
    */
-  public toggleVisibility(shouldShow: Function | boolean): void {
+  public toggleVisibility(shouldShow: Function | boolean): DOMNodeReference {
     if (shouldShow instanceof Function) {
       shouldShow(this) ? this.show() : this.hide();
     } else {
       shouldShow ? this.show() : this.hide();
     }
+    return this;
   }
 
   /**
@@ -212,8 +222,9 @@ import {
    * @param {() => any} value - The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
+   * @returns - Instance of this
    */
-  public setValue(value: any): void {
+  public setValue(value: any): DOMNodeReference {
     if (this.element.classList.contains("boolean-radio")) {
       (
         (this.yesRadio as DOMNodeReference).element as HTMLInputElement
@@ -223,12 +234,14 @@ import {
     } else {
       (this.element as HTMLInputElement).value = value;
     }
+    return this;
   }
 
   /**
    * Disables the element so that users cannot input any data
+   * @returns - Instance of this
    */
-  public disable(): void {
+  public disable(): DOMNodeReference {
     try {
       (this.element as HTMLInputElement).disabled = true;
     } catch (e) {
@@ -236,12 +249,14 @@ import {
         `There was an error trying to disable the target: ${this.target}`
       );
     }
+    return this;
   }
 
   /**
    * Enables the element so that users can input data
+   * @returns - Instance of this
    */
-  public enable(): void {
+  public enable(): DOMNodeReference {
     try {
       (this.element as HTMLInputElement).disabled = false;
     } catch (e) {
@@ -249,30 +264,37 @@ import {
         `There was an error trying to disable the target: ${this.target}`
       );
     }
+    return this;
   }
 
   /**
    * Appends child elements to the HTML element.
    * @param {...HTMLElement} elements - The elements to append to the HTML element.
+   * @returns - Instance of this
    */
-  public append(...elements: HTMLElement[]): void {
+  public append(...elements: HTMLElement[]): DOMNodeReference {
     this.element.append(...elements);
+    return this;
   }
 
   /**
    * Inserts elements before the HTML element.
    * @param {...HTMLElement} elements - The elements to insert before the HTML element.
+   * @returns - Instance of this
    */
-  public before(...elements: HTMLElement[]): void {
+  public before(...elements: HTMLElement[]): DOMNodeReference {
     this.element.before(...elements);
+    return this;
   }
 
   /**
    * Inserts elements after the HTML element.
    * @param {...HTMLElement} elements - The elements to insert after the HTML element.
+   * @returns - Instance of this
    */
-  public after(...elements: HTMLElement[]): void {
+  public after(...elements: HTMLElement[]): DOMNodeReference {
     this.element.after(...elements);
+    return this;
   }
 
   /**
@@ -286,42 +308,78 @@ import {
   /**
    * Appends child elements to the label associated with the HTML element.
    * @param {...HTMLElement} elements - The elements to append to the label.
+   * @returns - Instance of this
    */
-  public appendToLabel(...elements: HTMLElement[]): void {
+  public appendToLabel(...elements: HTMLElement[]): DOMNodeReference {
     const label = this.getLabel();
     if (label) {
       label.append(" ", ...elements);
     }
+    return this;
   }
 
   /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
    * @param {string} text - The text to display in the tooltip.
+   * @returns - Instance of this
    */
-  public addLabelTooltip(text: string): void {
+  public addLabelTooltip(text: string): DOMNodeReference {
     this.appendToLabel(createInfoEl(text));
+    return this;
   }
 
   /**
    * Adds a tooltip with the specified text to the element
    * @param {string} text - The text to display in the tooltip
+   * @returns - Instance of this
    */
-  public addTooltip(text: string): void {
+  public addTooltip(text: string): DOMNodeReference {
     this.append(createInfoEl(text));
+    return this;
   }
 
   /**
    * Sets the inner HTML content of the HTML element.
-   * @param {string} text - The text to set as the inner HTML of the element.
+   * @param {string} string - The text to set as the inner HTML of the element.
+   * @returns - Instance of this
    */
-  public setTextContent(text: string): void {
-    this.element.innerHTML = text;
+  setInnerHTML(string: string) {
+    this.element.innerHTML = string;
+    return this;
+  }
+
+  /**
+   * Removes this element from the DOM
+   * @returns - Instance of this
+   */
+  remove() {
+    this.element.remove();
+    return this;
+  }
+
+  /**
+   *
+   * @param {Partial<CSSStyleDeclaration} options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
+   * @returns - Instance of this
+   */
+  setStyle(options: Partial<CSSStyleDeclaration>) {
+    if (Object.prototype.toString.call(options) !== "[object Object]") {
+      throw new Error(
+        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
+      );
+    }
+
+    for (const key in options) {
+      this.element.style[key as any] = options[key] as string;
+    }
+    return this;
   }
 
   /**
    * Unchecks both the yes and no radio buttons if they exist.
+   * @returns - Instance of this
    */
-  public uncheckRadios(): void {
+  public uncheckRadios(): DOMNodeReference {
     if (this.yesRadio && this.noRadio) {
       (this.yesRadio.element as HTMLInputElement).checked = false;
       (this.noRadio.element as HTMLInputElement).checked = false;
@@ -330,6 +388,7 @@ import {
         "[SYNACT] Attempted to uncheck radios for an element that has no radios"
       );
     }
+    return this;
   }
 
   /**
@@ -342,11 +401,12 @@ import {
    * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
+   * @returns - Instance of this
    */
   public configureConditionalRendering(
     condition: () => boolean,
     dependencies: Array<DOMNodeReference>
-  ): void {
+  ): DOMNodeReference {
     try {
       this.toggleVisibility(condition());
 
@@ -354,7 +414,7 @@ import {
         console.warn(
           `powerpagestoolkit: No dependencies were found when configuring conditional rendering for ${this}. Be sure that if you are referencing other nodes in your rendering logic, that you include those nodes in the dependency array`
         );
-        return;
+        return this;
       }
 
       dependencies.forEach((node) => {
@@ -371,6 +431,8 @@ import {
           attributeFilter: ["style"],
         });
       });
+
+      return this;
     } catch (e) {
       throw new ConditionalRenderingError(this, e as string);
     }
@@ -383,13 +445,14 @@ import {
    * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
    * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
    * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
+   * @returns - Instance of this
    */
   public configureValidationAndRequirements(
     isRequired: (instance: DOMNodeReference) => boolean,
     isValid: (instance: DOMNodeReference) => boolean,
     fieldDisplayName: string,
     dependencies: Array<DOMNodeReference>
-  ): void {
+  ): DOMNodeReference {
     if (typeof Page_Validators !== "undefined") {
       const newValidator = document.createElement("span");
       newValidator.style.display = "none";
@@ -413,13 +476,15 @@ import {
       console.warn(
         `powerpagestoolkit: No dependencies were found when configuring requirement and validation for ${this}. Be sure that if you are referencing other nodes in your requirement or validation logic, that you include those nodes in the dependency array`
       );
-      return;
+      return this;
     }
     dependencies.forEach((dep) => {
       dep.element.addEventListener("change", () =>
         this.setRequiredLevel(isRequired(this))
       );
     });
+
+    return this;
   }
 
   /**
@@ -427,17 +492,19 @@ import {
    *
    * @param {boolean} isRequired - Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
+   * @returns - Instance of this
    */
-  public setRequiredLevel(isRequired: Function | boolean): void {
+  public setRequiredLevel(isRequired: Function | boolean): DOMNodeReference {
     if (isRequired instanceof Function) {
       isRequired()
         ? this.getLabel()?.classList.add("required-field")
         : this.getLabel()?.classList.remove("required-field");
-      return;
+      return this;
     } else {
       isRequired
         ? this.getLabel()?.classList.add("required-field")
         : this.getLabel()?.classList.remove("required-field");
+      return this;
     }
   }
 
@@ -496,8 +563,10 @@ export async function createDOMNodeReference(
         // element is always available before executing method
         const value = target[prop as keyof DOMNodeReference];
         if (typeof value === "function" && prop !== "onceLoaded") {
-          return (...args: any[]) =>
+          return (...args: any[]) => {
             target.onceLoaded(() => value.apply(target, args));
+            return target;
+          };
         }
         return value;
       },
