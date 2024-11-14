@@ -5,7 +5,7 @@ import {
   DOMNodeNotFoundError,
   ConditionalRenderingError,
 } from "./errors.js";
-import "../CSS/style.css";
+
 
 /**
  * Class representing a reference to a DOM node.

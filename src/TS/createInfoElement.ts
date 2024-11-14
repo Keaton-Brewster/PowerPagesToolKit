@@ -58,5 +58,6 @@ export default function CreateInfoEl(titleString: string) {
     }
   });
 
+  flyoutContent.style.display = "none";
   return span;
 }
