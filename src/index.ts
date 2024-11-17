@@ -1,8 +1,10 @@
-import API from "./TS/API.js";
+/// <reference path="../@types/index.d.ts" />
+
+import API from "./API.js";
 import {
   createDOMNodeReference,
   createMultipleDOMNodeReferences,
-} from "./TS/DOMNodeReferences.js";
-import './style.css'
+} from "./createDOMNodeReferences.js";
+import "./style.css";
 
 export { API, createDOMNodeReference, createMultipleDOMNodeReferences };

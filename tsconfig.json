@@ -12,11 +12,11 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "sourceMap": true,
-    "baseUrl": "./",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
-      ]
+        "./src/*"
+      ],
     },
     "typeRoots": [
       "./node_modules/@types",
@@ -28,8 +28,7 @@
     ],
   },
   "include": [
-    "src/**/*",
-    "@types/**/*"
+    "src/**/*", "@types/**/*",
   ],
   "exclude": [
     "node_modules",

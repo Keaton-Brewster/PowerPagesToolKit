@@ -1,15 +1,15 @@
-import waitFor from "./waitFor.js";
-import createInfoEl from "./createInfoElement.js";
+import waitFor from "@/waitFor.js";
+import createInfoEl from "@/createInfoElement.js";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
-} from "./errors.js";
+} from "@/errors.js";
+import { createDOMNodeReference } from "@/createDOMNodeReferences.js";
 
-/**
- * Class representing a reference to a DOM node.
- */
-/******/ /******/ /******/ export class DOMNodeReference {
+export const _initSymbol = Symbol("_init");
+
+/******/ /******/ /******/ export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: HTMLElement | string;
   private isLoaded: boolean;
@@ -26,25 +26,27 @@ import {
    * The element targeted when instantiating DOMNodeReference.
    * Made available in order to perform normal DOM traversal,
    * or access properties not available through this class.
-   * @type {HTMLElement | null}
+   * @property {HTMLElement | null}
    */
-  public declare element: HTMLElement | HTMLInputElement;
+  public declare element: HTMLElement;
   private declare visibilityController: HTMLElement;
   public declare checked: boolean;
   /**
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
-   * @type {DOMNodeReference | undefined}
+   * @property {DOMNodeReferenceProxy | null}
    */
-  public declare yesRadio?: DOMNodeReference | undefined;
+  public declare yesRadio?: DOMNodeReference | null;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
-   * @type {DOMNodeReference | undefined}
+   * @property {DOMNodeReferenceProxy | null}
    */
-  public declare noRadio?: DOMNodeReference | undefined;
+  public declare noRadio?: DOMNodeReference | null;
+
+  private declare [_initSymbol]: () => Promise<void>;
 
   /**
    * Creates an instance of DOMNodeReference.
@@ -55,39 +57,38 @@ import {
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
+
+    /**
+     * dynamically define the _init method using our custom symbol
+     * this makes it so that the _init method cannot be accessed outside
+     * of this package: i.e. by any consumers of the package
+     */
+    this[_initSymbol] = async () => {
+      try {
+        const element = await waitFor(this.target);
+        this.element = element;
+
+        if (!this.element) {
+          throw new DOMNodeNotFoundError(this);
+        }
+        if (this.element.classList.contains("boolean-radio")) {
+          await this._attachRadioButtons();
+        }
+
+        this._initValueSync();
+        this._attachVisibilityController();
+        this.defaultDisplay = this.visibilityController.style.display;
+
+        this.isLoaded = true;
+      } catch (e) {
+        throw new DOMNodeInitializationError(this, e as string);
+      }
+    };
     // we defer the rest of initialization
   }
 
-  /**
-   * Initializes the DOMNodeReference instance by waiting for the element to be available in the DOM.
-   * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the DOMNodeReference instance.
-   * @throws {Error} Throws an error if the element cannot be found using the provided query selector.
-   */
-  public async _init(): Promise<void> {
-    try {
-      const element = await waitFor(this.target);
-      this.element = element;
-
-      if (!this.element) {
-        throw new DOMNodeNotFoundError(this);
-      }
-      if (this.element.classList.contains("boolean-radio")) {
-        await this._attachRadioButtons();
-      }
-
-      this._initValueSync();
-      this._attachVisibilityController();
-      this.defaultDisplay = this.visibilityController.style.display;
-
-      this.isLoaded = true;
-    } catch (e) {
-      throw new DOMNodeInitializationError(this, e as string);
-    }
-  }
-
+  // Function to update this.value based on element type
   private _initValueSync() {
-    // Function to update this.value based on element type
-
     // Initial sync
     this.updateValue();
 
@@ -268,8 +269,18 @@ import {
   }
 
   /**
+   *
+   * @param {...HTMLElement} elements - The elements to prepend to the element targeted by this.
+   * @returns - Instance of this
+   */
+  public prepend(...elements: HTMLElement[]): DOMNodeReference {
+    this.element.prepend(...elements);
+    return this;
+  }
+
+  /**
    * Appends child elements to the HTML element.
-   * @param {...HTMLElement} elements - The elements to append to the HTML element.
+   * @param {...HTMLElement} elements - The elements to append to the element targeted by this.
    * @returns - Instance of this
    */
   public append(...elements: HTMLElement[]): DOMNodeReference {
@@ -514,7 +525,7 @@ import {
    * Otherwise, a MutationObserver is used to detect when the element is added to the DOM.
    * @param {Function} callback - A callback function to execute once the element is loaded.
    */
-  public onceLoaded(callback: (instance: DOMNodeReference) => void): void {
+  public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
     if (this.isLoaded) {
       callback(this);
       return;
@@ -536,77 +547,5 @@ import {
       subtree: true,
       childList: true,
     });
-  }
-}
-
-/**
- * Creates and initializes a DOMNodeReference instance.
- * @async
- * @function createDOMNodeReference
- * @param {string | HTMLElement} target - The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
- * @returns {Promise<DOMNodeReference>} A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
- */
-export async function createDOMNodeReference(
-  target: HTMLElement | string
-): Promise<DOMNodeReference> {
-  try {
-    const instance = new DOMNodeReference(target);
-    await instance._init();
-
-    return new Proxy(instance, {
-      get: (target, prop) => {
-        // do not proxy the initialization method
-        // init() is only needed in this factory function
-        if (prop.toString().startsWith("_")) return undefined;
-
-        // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
-        // element is always available before executing method
-        const value = target[prop as keyof DOMNodeReference];
-        if (typeof value === "function" && prop !== "onceLoaded") {
-          return (...args: any[]) => {
-            target.onceLoaded(() => value.apply(target, args));
-            return target;
-          };
-        }
-        return value;
-      },
-    });
-  } catch (e) {
-    console.error(`There was an error creating a DOMNodeReference: ${e}`);
-    throw new Error(e as string);
-  }
-}
-
-/**
- * Creates and initializes multiple DOMNodeReference instances.
- * @async
- * @function createMultipleDOMNodeReferences
- * @param {string} querySelector - The CSS selector for the desired DOM elements.
- * @returns {Promise<DOMNodeReference[]>} A promise that resolves to an array of Proxies of initialized DOMNodeReference instances.
- */
-export async function createMultipleDOMNodeReferences(querySelector: string) {
-  try {
-    const elements = Array.from(
-      document.querySelectorAll(querySelector)
-    ) as HTMLElement[];
-
-    const initializedElements = await Promise.all(
-      elements.map((element) => createDOMNodeReference(element))
-    );
-
-    const domNodeArray =
-      initializedElements as unknown as DOMNodeReferenceArray;
-
-    domNodeArray.hideAll = () =>
-      domNodeArray.forEach((instance) => instance.hide());
-    domNodeArray.showAll = () =>
-      domNodeArray.forEach((instance) => instance.show());
-
-    return elements;
-  } catch (e) {
-    console.error(
-      `There was an error creating multiple DOMNodeReferences: ${e}`
-    );
-    throw new Error(e as string);
   }
 }

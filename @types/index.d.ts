@@ -1,8 +1,7 @@
-export declare global {
   /**
    * Interface representing an array of DOMNodeReference instances with additional methods.
    */
-  interface DOMNodeReferenceArray extends Array<DOMNodeReferenceProxy> {
+  declare interface DOMNodeReferenceArray extends Array<DOMNodeReference> {
     /**
      * Hides all the containers of the DOMNodeReference instances in the array.
      */
@@ -14,10 +13,9 @@ export declare global {
     showAll(): void;
   }
 
-  interface Schema {
+  declare type Schema = {
     logicalName(): string;
     value(): object; // Adjust this type based on the structure of your schema values
-  }
+  };
 
-  const Page_Validators: any[];
-}
+  declare const Page_Validators: any[];
