@@ -1,4 +1,4 @@
-import DOMNodeReference, { _initSymbol } from "./DOMNodeReference.js";
+import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 
 /**
  * Creates and initializes a DOMNodeReference instance.
@@ -11,7 +11,7 @@ export async function createDOMNodeReference(
 ): Promise<DOMNodeReference> {
   try {
     const instance = new DOMNodeReference(target);
-    await instance[_initSymbol]();
+    await instance[_init]();
 
     return new Proxy(instance, {
       get: (target, prop) => {
@@ -46,6 +46,10 @@ export async function createMultipleDOMNodeReferences(
   querySelector: string
 ): Promise<DOMNodeReference[]> {
   try {
+    /**
+     *  this needs to use the same waitFor logic, as things will get returned null even after awaiting
+     */
+    
     const elements = Array.from(
       document.querySelectorAll(querySelector)
     ) as HTMLElement[];

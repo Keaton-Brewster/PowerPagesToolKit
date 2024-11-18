@@ -1,13 +1,9 @@
-import DOMNodeReference, { _initSymbol } from "./DOMNodeReference.js";
+import List, { _listInit } from "./List.js";
 
-/**
- *
- * @returns
- */
-export default async function (): Promise<DOMNodeReference> {
+export default async function (): Promise<List> {
   try {
-    const instance = new DOMNodeReference("div.ms-DetailsList");
-    await instance[_initSymbol]();
+    const instance = new List("div.ms-DetailsList");
+    await instance[_listInit]();
 
     return new Proxy(instance, {
       get: (target, prop) => {
@@ -17,7 +13,7 @@ export default async function (): Promise<DOMNodeReference> {
 
         // proxy the class to wrap all methods in the 'onceLoaded' method, to make sure the
         // element is always available before executing method
-        const value = target[prop as keyof DOMNodeReference];
+        const value = target[prop as keyof List];
         if (typeof value === "function" && prop !== "onceLoaded") {
           return (...args: any[]) => {
             target.onceLoaded(() => value.apply(target, args));

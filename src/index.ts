@@ -5,6 +5,12 @@ import {
   createDOMNodeReference,
   createMultipleDOMNodeReferences,
 } from "./createDOMNodeReferences.js";
+import getList from "./getList.js";
 import "./style.css";
 
-export { API, createDOMNodeReference, createMultipleDOMNodeReferences };
+export {
+  API,
+  createDOMNodeReference,
+  createMultipleDOMNodeReferences,
+  getList,
+};

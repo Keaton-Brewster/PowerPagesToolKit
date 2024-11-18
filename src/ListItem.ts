@@ -8,9 +8,9 @@ import DOMNodeReference from "./DOMNodeReference.js";
 
   constructor(target: HTMLElement | string) {
     super(target);
-    this.firstColumn = this.element.querySelector(
-      "div[role='gridcell']"
-    ) as HTMLElement;
+    // this.firstColumn = this.element.querySelector(
+    //   "div[role='gridcell']"
+    // ) as HTMLElement;
   }
 
   public removeTarget() {

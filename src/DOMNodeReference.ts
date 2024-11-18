@@ -7,7 +7,7 @@ import {
 } from "@/errors.js";
 import { createDOMNodeReference } from "@/createDOMNodeReferences.js";
 
-export const _initSymbol = Symbol("_init");
+export const _init = Symbol("_init");
 
 /******/ /******/ /******/ export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -16,7 +16,7 @@ export const _initSymbol = Symbol("_init");
   private defaultDisplay: string;
   /**
    * The value of the element that this node represents
-   * stays in syncs with the live DOM elements via event handler
+   * stays in syncs with the live DOM elements?.,m  via event handler
    * @type {any}
    */
   public value: any;
@@ -46,8 +46,6 @@ export const _initSymbol = Symbol("_init");
    */
   public declare noRadio?: DOMNodeReference | null;
 
-  private declare [_initSymbol]: () => Promise<void>;
-
   /**
    * Creates an instance of DOMNodeReference.
    * @param {string} target - The CSS selector to find the desired DOM element.
@@ -58,33 +56,34 @@ export const _initSymbol = Symbol("_init");
     this.defaultDisplay = "";
     this.value = null;
 
+    // we defer the rest of initialization
+  }
+
+  public async [_init](): Promise<void> {
     /**
      * dynamically define the _init method using our custom symbol
      * this makes it so that the _init method cannot be accessed outside
      * of this package: i.e. by any consumers of the package
      */
-    this[_initSymbol] = async () => {
-      try {
-        const element = await waitFor(this.target);
-        this.element = element;
+    try {
+      const element = await waitFor(this.target);
+      this.element = element;
 
-        if (!this.element) {
-          throw new DOMNodeNotFoundError(this);
-        }
-        if (this.element.classList.contains("boolean-radio")) {
-          await this._attachRadioButtons();
-        }
-
-        this._initValueSync();
-        this._attachVisibilityController();
-        this.defaultDisplay = this.visibilityController.style.display;
-
-        this.isLoaded = true;
-      } catch (e) {
-        throw new DOMNodeInitializationError(this, e as string);
+      if (!this.element) {
+        throw new DOMNodeNotFoundError(this);
       }
-    };
-    // we defer the rest of initialization
+      if (this.element.classList.contains("boolean-radio")) {
+        await this._attachRadioButtons();
+      }
+
+      this._initValueSync();
+      this._attachVisibilityController();
+      this.defaultDisplay = this.visibilityController.style.display;
+
+      this.isLoaded = true;
+    } catch (e) {
+      throw new DOMNodeInitializationError(this, e as string);
+    }
   }
 
   // Function to update this.value based on element type
