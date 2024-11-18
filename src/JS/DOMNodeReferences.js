@@ -27,22 +27,29 @@ import "../CSS/style.css";
 
   async _init() {
     try {
-      const element = await waitFor(this.target);
-      this.element = element;
+      waitFor(this.target)
+        .then(async (element) => {
+          this.element = element;
 
-      if (!this.element) {
-        throw new DOMNodeNotFoundError(this);
-      }
-      if (this.element.classList.contains("boolean-radio")) {
-        await this._attachRadioButtons();
-      }
+          if (!this.element) {
+            throw new DOMNodeNotFoundError(this);
+          }
+          if (this.element.classList.contains("boolean-radio")) {
+            await this._attachRadioButtons();
+          }
 
-      this._initValueSync();
-      this._attachVisibilityController();
-      this.defaultDisplay =
-        this.visibilityController.style.display || "inline-block";
+          this._initValueSync();
+          this._attachVisibilityController();
+          this.defaultDisplay =
+            this.visibilityController.style.display || "inline-block";
 
-      this.isLoaded = true;
+          this.isLoaded = true;
+        })
+        .catch((err) => {
+          console.error(err);
+          this.element = null;
+          this.isLoaded = true;
+        });
     } catch (e) {
       throw new DOMNodeInitializationError(this, e);
     }
@@ -54,18 +61,11 @@ import "../CSS/style.css";
     // Initial sync
     this.updateValue();
 
-    // Event listeners for real-time changes based on element type
-    const elementType = this.element.type;
-    if (elementType === "checkbox" || elementType === "radio") {
-      this.element.addEventListener("click", this.updateValue.bind(this));
-    } else if (
-      elementType === "select-one" ||
-      elementType === "select-multiple"
-    ) {
-      this.element.addEventListener("change", this.updateValue.bind(this));
-    } else {
-      this.element.addEventListener("input", this.updateValue.bind(this));
-    }
+    this.element.addEventListener("click", this.updateValue.bind(this));
+    this.element.addEventListener("change", this.updateValue.bind(this));
+    this.element.addEventListener("input", this.updateValue.bind(this));
+    document.addEventListener("click", this.updateValue.bind(this));
+    document.addEventListener("touchstart", this.updateValue.bind(this));
   }
 
   updateValue() {
@@ -80,16 +80,13 @@ import "../CSS/style.css";
           (option) => option.value
         );
         break;
-      case "file":
-        this.value =
-          this.element.files.length > 0 ? Array.from(this.element.files) : null;
-        break;
       case "number":
         this.value =
           this.element.value !== "" ? Number(this.element.value) : null;
         break;
       default:
         this.value = this.element.value || null;
+        this.checked = this.element.checked || null;
         break;
     }
 
@@ -158,11 +155,19 @@ import "../CSS/style.css";
   }
 
   setValue(value) {
+    // Check if 'value' is a function
+    if (typeof value === "function") {
+      // Call the function and use the returned value
+      value = value();
+    }
+
     if (this.element.classList.contains("boolean-radio")) {
       this.yesRadio.element.checked = value;
       this.noRadio.element.checked = !value;
+      this.value = this.yesRadio.checked;
     } else {
       this.element.value = value;
+      this.value = value;
     }
     return this;
   }
