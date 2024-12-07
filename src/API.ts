@@ -1,4 +1,5 @@
 //@ts-nocheck
+import { error } from "console";
 import safeAjax from "./safeAjax.js";
 const API = {
   /**
@@ -24,15 +25,15 @@ const API = {
   },
   /**
    *
-   * @param {string} tableSetName The DataVerse SET name of the table being queried
-   * @param {string} recordID the GUID of the records to be retrieved
-   * @param {string} selectColumns *OPTIONAL* if desired, enter your own custom OData query for advanced GET results. Format = select=column1,column2,column3...
+   * @param tableSetName The DataVerse SET name of the table being queried
+   * @param recordID the GUID of the records to be retrieved
+   * @param selectColumns *OPTIONAL* if desired, enter your own custom OData query for advanced GET results. Format = select=column1,column2,column3...
    * @returns a Promise resolving the successful results of the GET request, or rejecting the failed results of the GET request
    */
   getRecord(
     tableSetName: string,
     recordID: string,
-    selectColumns: string
+    selectColumns?: string
   ): Promise<object> {
     return new Promise((resolve, reject) => {
       const url = `/_api/${tableSetName}(${recordID})${
@@ -49,13 +50,13 @@ const API = {
   },
   /**
    *
-   * @param {String} tableSetName The DataVerse SET name of the table being queried
-   * @param {String} queryParameters *OPTIONAL* the OData query parameters for refining search results: *format = $filter=filters&$select=columns*
+   * @param tableSetName The dataverse set name of the table being queried
+   * @param queryParameters *OPTIONAL* the OData query parameters for refining search results: *format = $filter=filters&$select=columns*
    * @returns a Promise resolving the successful results of the GET request, or rejecting the failed results of the GET request
    */
   getMultiple(
     tableSetName: string,
-    queryParameters: string
+    queryParameters?: string
   ): Promise<Array<object>> {
     return new Promise((resolve, reject) => {
       // Construct the URL based on the presence of query parameters
@@ -69,6 +70,31 @@ const API = {
         success: function (response) {
           resolve(response.value);
         },
+        error: reject,
+      });
+    });
+  },
+
+  /**
+   *
+   * @param tableSetName The dataverse set name for the table that you are updating a record in
+   * @param recordId The GUID of the record that is being updated
+   * @param data The JSON of the fields and data that are to be updated on the targeted record
+   * @returns A Promise with the results of the API execution
+   */
+  updateRecord(
+    tableSetName: string,
+    recordId: string,
+    data: object
+  ): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const url = `/_api/${tableSetName}(${recordId})`;
+
+      safeAjax({
+        type: "PATCH",
+        url: url,
+        data: data,
+        success: resolve,
         error: reject,
       });
     });
