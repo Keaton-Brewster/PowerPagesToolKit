@@ -11,5 +11,8 @@
     "iframes"
   ],
   "editor.folding": true,
-  "editor.showFoldingControls": "always"
+  "editor.showFoldingControls": "always",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifierEnding": "js"
 }

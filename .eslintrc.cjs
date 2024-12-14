@@ -3,7 +3,11 @@ module.exports = {
     browser: true,
     es2021: true,
   },
-  extends: ["eslint:recommended", "plugin:import/recommended"],
+  extends: [
+    "eslint:recommended",
+    "plugin:import/recommended",
+    "plugin:@typescript-eslint/recommended",
+  ],
   overrides: [
     {
       env: {
@@ -22,6 +26,8 @@ module.exports = {
   rules: {
     "no-undef": "error",
     "no-unused-vars": "warn",
+    "no-explicit-any": "warn",
+    "@typescript/no-explicit-any": "none",
   },
   globals: {
     $: "readonly",

@@ -1,4 +1,4 @@
-export default function CreateInfoEl(titleString) {
+export default function CreateInfoEl(titleString: string) {
   const span = document.createElement("span");
   span.classList.add("info-icon");
 
@@ -52,11 +52,12 @@ export default function CreateInfoEl(titleString) {
     }
   });
 
-  document.body.addEventListener("click", (event) => {
-    if (!span.contains(event.target)) {
+  document.body.addEventListener("click", (event: Event) => {
+    if (!span.contains(<Node>event.target)) {
       flyoutContent.style.display = "none"; // Hide on body click
     }
   });
 
+  flyoutContent.style.display = "none";
   return span;
 }
