@@ -97,6 +97,7 @@ export const _init = Symbol("_init");
       this.element.addEventListener("click", this.updateValue.bind(this));
     } else if (
       elementType === "select-one" ||
+      elementType === "select" ||
       elementType === "select-multiple"
     ) {
       this.element.addEventListener("change", this.updateValue.bind(this));
@@ -106,7 +107,7 @@ export const _init = Symbol("_init");
   }
 
   public updateValue(): void {
-    switch ((this.element as HTMLInputElement).type) {
+    switch ((this.element as any).type) {
       case "checkbox":
       case "radio":
         this.value = (this.element as HTMLInputElement).checked;
@@ -124,7 +125,7 @@ export const _init = Symbol("_init");
             : null;
         break;
       default:
-        this.value = null;
+        this.value = (this.element as any).value;
         break;
     }
 
