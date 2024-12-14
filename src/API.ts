@@ -93,7 +93,7 @@ const API = {
       safeAjax({
         type: "PATCH",
         url: url,
-        data: data,
+        data: JSON.stringify(data),
         success: resolve,
         error: reject,
       });
