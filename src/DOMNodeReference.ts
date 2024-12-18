@@ -100,7 +100,6 @@ export const _init = Symbol("_init");
       elementType === "select" ||
       elementType === "select-multiple"
     ) {
-      this.element.addEventListener("input", this.updateValue.bind(this));
       this.element.addEventListener("change", this.updateValue.bind(this));
     } else {
       this.element.addEventListener("input", this.updateValue.bind(this));
@@ -134,6 +133,20 @@ export const _init = Symbol("_init");
       (this.yesRadio as DOMNodeReference).updateValue();
       (this.noRadio as DOMNodeReference).updateValue();
     }
+
+    this._observeValueChanges();
+  }
+
+  // Add a method to observe value changes using MutationObserver
+  private _observeValueChanges(): void {
+    const observer = new MutationObserver(() => {
+      this.updateValue();
+    });
+
+    observer.observe(this.element, {
+      attributes: true,
+      attributeFilter: ["value"],
+    });
   }
 
   private _attachVisibilityController(): void {
