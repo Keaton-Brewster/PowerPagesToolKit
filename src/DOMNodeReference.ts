@@ -109,6 +109,8 @@ export const _init = Symbol("_init");
   public updateValue(): void {
     switch ((this.element as any).type) {
       case "checkbox":
+        this.value = (this.element as HTMLInputElement).checked ? 1 : 0;
+        this.checked = (this.element as HTMLInputElement).checked;
       case "radio":
         this.value = (this.element as HTMLInputElement).checked;
         this.checked = (this.element as HTMLInputElement).checked;
@@ -118,6 +120,8 @@ export const _init = Symbol("_init");
           (this.element as HTMLSelectElement).selectedOptions
         ).map((option) => option.value);
         break;
+      case "select-one":
+        this.value = (this.element as HTMLSelectElement).value;
       case "number":
         this.value =
           (this.element as HTMLInputElement).value !== ""
