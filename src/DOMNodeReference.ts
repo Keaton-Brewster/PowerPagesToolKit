@@ -4,8 +4,8 @@ import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
-} from "@/errors.js";
-import { createDOMNodeReference } from "@/createDOMNodeReferences.js";
+} from "./errors.js";
+import { createDOMNodeReference } from "./createDOMNodeReferences.js";
 
 export const _init = Symbol("_init");
 
@@ -129,9 +129,11 @@ export const _init = Symbol("_init");
         break;
     }
 
-    if (this.element.classList.contains("boolean-radio")) {
+    if (this.yesRadio instanceof DOMNodeReference) {
       (this.yesRadio as DOMNodeReference).updateValue();
       (this.noRadio as DOMNodeReference).updateValue();
+      this.checked = (this.yesRadio as DOMNodeReference).checked;
+      this.value = this.yesRadio?.checked ? 1 : 0;
     }
 
     this._observeValueChanges();
