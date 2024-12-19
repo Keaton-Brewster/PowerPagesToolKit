@@ -104,13 +104,16 @@ export const _init = Symbol("_init");
     } else {
       this.element.addEventListener("input", this.updateValue.bind(this));
     }
+
+    this._observeValueChanges();
   }
 
   public updateValue(): void {
     switch ((this.element as any).type) {
       case "checkbox":
-        this.value = (this.element as HTMLInputElement).checked ? 1 : 0;
+        this.value = +(this.element as HTMLInputElement).checked;
         this.checked = (this.element as HTMLInputElement).checked;
+        break;
       case "radio":
         this.value = (this.element as HTMLInputElement).checked;
         this.checked = (this.element as HTMLInputElement).checked;
@@ -137,10 +140,8 @@ export const _init = Symbol("_init");
       (this.yesRadio as DOMNodeReference).updateValue();
       (this.noRadio as DOMNodeReference).updateValue();
       this.checked = (this.yesRadio as DOMNodeReference).checked;
-      this.value = this.yesRadio?.checked ? 1 : 0;
+      this.value = +(this.yesRadio as DOMNodeReference).checked;
     }
-
-    this._observeValueChanges();
   }
 
   // Add a method to observe value changes using MutationObserver
