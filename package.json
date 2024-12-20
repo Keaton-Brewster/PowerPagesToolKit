@@ -6,9 +6,9 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "typecheck": "tsc",
-    "build": "node build.js",
+    "node:build": "node build.js",
     "build:types": "tsc --emitDeclarationOnly --declaration",
-    "build:all": "npm run typecheck && npm run build && npm run build:types",
+    "build": "npm run typecheck && npm run node:build && npm run build:types",
     "dev": "tsc --watch"
   },
   "devDependencies": {
