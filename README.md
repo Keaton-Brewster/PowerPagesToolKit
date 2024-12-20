@@ -33,6 +33,8 @@ import {
   createMultipleDOMNodeReferences,
 } from "powerpagestoolkit";
 
+// Both methods support standard querySelector syntax:
+
 // Create a single reference
 const node = await createDOMNodeReference("#myElement");
 
@@ -77,10 +79,11 @@ node.show();
 
 // Advanced conditional rendering
 node.configureConditionalRendering(
+  // Function to evaluate wether this node should be visible or not
   function () {
     return otherNode.value === "expected";
   },
-  [otherNode] // Dependencies that trigger re-evaluation
+  [otherNode] // Dependency array | if the values or visibility of these change, the function is re-evaluated
 );
 ```
 
@@ -88,16 +91,16 @@ node.configureConditionalRendering(
 
 ```typescript
 node.configureValidationAndRequirements(
-  // Required condition
+  // Function to evaluate if this field should be required
   function () {
     return dependentNode.yesRadio?.checked ?? false;
   },
-  // Validation condition
+  // Function to evaluate if the data in this field is valid
   function () {
     return this.value != null && this.value !== "";
   },
-  "Field Display Name",
-  [dependentNode] // Dependencies
+  "Field Display Name", // the name that will be displayed along side a validation failure message
+  [dependentNode] // Dependency array | if the requirement level of these change, this element is re-evaluated
 );
 ```
 
@@ -105,7 +108,13 @@ node.configureValidationAndRequirements(
 
 ```typescript
 // Value management
-node.setValue("new value");
+node.setValue("new value"); // set a static value
+// or set a value by using some sort of logic
+node.setValue(() => {
+  if (true) {
+    return "value";
+  } else return "default";
+});
 node.updateValue(); // Sync with DOM
 
 // Content manipulation
@@ -129,14 +138,13 @@ node.enable();
 ##### Label and Tooltip Management
 
 ```typescript
-// Label operations
+// LABEL AND INFO OPERATIONS
 const label = node.getLabel();
 node.appendToLabel(infoElement);
+// appends a tooltip to the label associated with the element targeted by 'this'
 node.addLabelTooltip("Helper text");
+// appends a tooltip directly to the element targeted by 'this'
 node.addTooltip("Inline helper");
-
-// Required state
-node.setRequiredLevel(true);
 ```
 
 ### DataVerse API
