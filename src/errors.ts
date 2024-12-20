@@ -22,3 +22,10 @@ export class ConditionalRenderingError extends Error {
     );
   }
 }
+
+export class ValidationConfigError extends Error {
+  constructor(node: DOMNodeReference, message: string) {
+    super(`Validation configuration error for ${node.target}: ${message}`);
+    this.name = "ValidationConfigError";
+  }
+}

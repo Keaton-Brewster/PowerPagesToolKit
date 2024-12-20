@@ -4,6 +4,7 @@ import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
+  ValidationConfigError,
 } from "./errors.js";
 import { createDOMNodeReference } from "./createDOMNodeReferences.js";
 
@@ -182,7 +183,7 @@ export const _init = Symbol("_init");
    * Sets up an event listener based on the specified event type, executing the specified
    * event handler
    * @param {string} eventType - The DOM event to watch for
-   * @param {(this: DOMNodeReference, e: Event) => void} eventHandler - The callback function that runs when the
+   * @param {(e: Event) => void} eventHandler - The callback function that runs when the
    * specified event occurs
    * @returns - Instance of this
    */
@@ -214,11 +215,11 @@ export const _init = Symbol("_init");
 
   /**
    *
-   * @param {function(this: DOMNodeReference): boolean | boolean} shouldShow - Either a function that returns true or false,
+   * @param {function(instance: DOMNodeReference): boolean | boolean} shouldShow - Either a function that returns true or false,
    * or a natural boolean to determine the visibility of this
    * @returns - Instance of this
    */
-  public toggleVisibility(shouldShow: Function | boolean): DOMNodeReference {
+  public toggleVisibility(shouldShow: ((instance: DOMNodeReference) => boolean) | boolean): DOMNodeReference {
     if (shouldShow instanceof Function) {
       shouldShow(this) ? this.show() : this.hide();
     } else {
@@ -414,100 +415,218 @@ export const _init = Symbol("_init");
     return this;
   }
 
-  /**
-   * Configures conditional rendering for the target element based on a condition
-   * and the visibility of one or more trigger elements.
-   *
-   * @param {(this: DOMNodeReference) => boolean} condition - A function that returns a boolean to determine
-   * the visibility of the target element. If `condition()` returns true, the element is shown;
-   * otherwise, it is hidden.
-   * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
-   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
-   * the target node.
-   * @returns - Instance of this
-   */
-  public configureConditionalRendering(
-    condition: () => boolean,
-    dependencies: Array<DOMNodeReference>
-  ): DOMNodeReference {
-    try {
-      this.toggleVisibility(condition());
+ /**
+ * Configures conditional rendering for the target element based on a condition
+ * and the visibility of one or more trigger elements.
+ *
+ * @param {() => boolean} condition - A function that returns a boolean to determine
+ * the visibility of the target element. If `condition()` returns true, the element is shown;
+ * otherwise, it is hidden.
+ * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
+ * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
+ * the target node.
+ * @throws {ConditionalRenderingError} When there's an error in setting up conditional rendering
+ * @returns {DOMNodeReference} - Instance of this
+ */
+public configureConditionalRendering(
+  condition: () => boolean,
+  dependencies?: Array<DOMNodeReference>
+): DOMNodeReference {
+  try {
+    // Validate inputs
+    if (typeof condition !== 'function') {
+      throw new TypeError('Condition must be a function');
+    }
 
-      if (!dependencies) {
-        console.warn(
-          `powerpagestoolkit: No dependencies were found when configuring conditional rendering for ${this}. Be sure that if you are referencing other nodes in your rendering logic, that you include those nodes in the dependency array`
-        );
-        return this;
+    // bind this to the condition function 
+    condition = condition.bind(this)
+
+    // Initialize state
+    const initialState = condition();
+    this.toggleVisibility(initialState);
+
+    // Early return if no dependencies
+    if (!dependencies?.length) {
+      console.warn(
+        `powerpagestoolkit: No dependencies provided for conditional rendering of ${this}. ` +
+        'Include referenced nodes in the dependency array if using them in rendering logic.'
+      );
+      return this;
+    }
+
+    // Track observers for cleanup
+    const observers: MutationObserver[] = [];
+
+    // Setup observers and event listeners
+    dependencies.forEach((node) => {
+      if (!node || !(node instanceof DOMNodeReference)) {
+        throw new TypeError('Each dependency must be a valid DOMNodeReference instance');
       }
 
-      dependencies.forEach((node) => {
-        node.on("change", () => this.toggleVisibility(condition()));
+      // Handle change events
+      const handleChange = () => {
+        try {
+          this.toggleVisibility(condition());
+        } catch (error) {
+          console.error('Error in change handler:', error);
+          // Optionally propagate error or handle differently
+        }
+      };
 
-        const observer = new MutationObserver(() => {
-          const display = window.getComputedStyle(
-            node.visibilityController
-          ).display;
+      node.on("change", handleChange);
+
+      // Setup visibility observer
+      const observer = new MutationObserver(() => {
+        try {
+          const display = window.getComputedStyle(node.visibilityController).display;
           this.toggleVisibility(display !== "none" && condition());
-        });
-        observer.observe(node.visibilityController, {
-          attributes: true,
-          attributeFilter: ["style"],
-        });
+        } catch (error) {0
+          console.error('Error in mutation observer:', error);
+          observer.disconnect();
+        }
       });
 
-      return this;
-    } catch (e) {
-      throw new ConditionalRenderingError(this, e as string);
-    }
-  }
+      observer.observe(node.visibilityController, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
 
-  /**
-   * Sets up validation and requirement rules for the field. This function dynamically updates the field's required status and validates its input based on the specified conditions.
-   *
-   * @param {function(this: DOMNodeReference): boolean} isRequired - A function that determines whether the field should be required. Returns `true` if required, `false` otherwise.
-   * @param {function(this: DOMNodeReference): boolean} isValid - A function that checks if the field's input is valid. Returns `true` if valid, `false` otherwise.
-   * @param {string} fieldDisplayName - The name of the field, used in error messages if validation fails.
-   * @param {Array<DOMNodeReference>} [dependencies] Other fields that this field’s requirement depends on. When these fields change, the required status of this field is re-evaluated. Make sure any DOMNodeReference used in `isRequired` or `isValid` is included in this array.
-   * @returns - Instance of this
-   */
-  public configureValidationAndRequirements(
-    isRequired: (instance: DOMNodeReference) => boolean,
-    isValid: (instance: DOMNodeReference) => boolean,
-    fieldDisplayName: string,
-    dependencies: Array<DOMNodeReference>
-  ): DOMNodeReference {
-    if (typeof Page_Validators !== "undefined") {
-      const newValidator = document.createElement("span");
-      newValidator.style.display = "none";
-      newValidator.id = `${this.element.id}Validator`;
-      (newValidator as any).controltovalidate = this.element.id;
-      (
-        newValidator as any
-      ).errormessage = `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`;
-      (newValidator as any).evaluationfunction = isValid.bind(this);
-      //eslint-disable-next-line
-      Page_Validators.push(newValidator);
-    } else {
-      throw new Error(
-        "Attempted to add to Validator where Page_Validators do not exist"
-      );
-    }
-
-    this.setRequiredLevel(isRequired(this));
-
-    if (!dependencies) {
-      console.warn(
-        `powerpagestoolkit: No dependencies were found when configuring requirement and validation for ${this}. Be sure that if you are referencing other nodes in your requirement or validation logic, that you include those nodes in the dependency array`
-      );
-      return this;
-    }
-    dependencies.forEach((dep) => {
-      dep.element.addEventListener("change", () =>
-        this.setRequiredLevel(isRequired(this))
-      );
+      observers.push(observer);
     });
 
     return this;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new ConditionalRenderingError(this, errorMessage);
+  }
+}
+
+  /**
+   * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
+   *
+   * @param {() => boolean} isRequired - Function determining if field is required
+   * @param {() => boolean} isValid - Function validating field input
+   * @param {string} fieldDisplayName - Display name for error messages
+   * @param {Array<DOMNodeReference>} dependencies - Fields that trigger requirement/validation updates
+   * @returns {DOMNodeReference} Instance of this for method chaining
+   * @throws {ValidationConfigError} If validation setup fails
+   */
+  public configureValidationAndRequirements(
+    isRequired: () => boolean,
+    isValid: () => boolean,
+    fieldDisplayName: string,
+    dependencies: Array<DOMNodeReference>
+  ): DOMNodeReference {
+    // Input validation
+    if (!fieldDisplayName?.trim()) {
+      throw new ValidationConfigError(this, "Field display name is required");
+    }
+
+    if (!Array.isArray(dependencies)) {
+      throw new ValidationConfigError(this, "Dependencies must be an array");
+    }
+
+    // Create and configure validator
+    try {
+      //make sure to bind 'this' to the methods for proper access to consumer 
+      isRequired = isRequired.bind(this)
+      isValid = isValid.bind(this)
+      
+      if (typeof Page_Validators === "undefined") {
+        throw new ValidationConfigError(this, "Page_Validators not found");
+      }
+
+      const validatorId = `${this.element.id}Validator`;
+
+      // Create new validator
+      const newValidator = document.createElement("span");
+      newValidator.style.display = "none";
+      newValidator.id = validatorId;
+
+      // Configure validator properties
+      const validatorConfig = {
+        controltovalidate: this.element.id,
+        errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+        evaluationfunction: () => {
+          // Only validate if the field is required and visible
+          const isFieldRequired = isRequired();
+          const isFieldVisible =
+            window.getComputedStyle(this.visibilityController).display !==
+            "none";
+
+          if (!isFieldRequired || !isFieldVisible) {
+            return true;
+          }
+
+          return isValid();
+        },
+      };
+
+      // Apply configuration
+      Object.assign(newValidator, validatorConfig);
+
+      // Add to page validators
+      Page_Validators.push(newValidator);
+
+      // Initial required state
+      this.setRequiredLevel(isRequired());
+
+      // Set up dependency tracking
+      this._setupDependencyTracking(isRequired, dependencies);
+    } catch (error: any) {
+      throw new ValidationConfigError(
+        this,
+        `Failed to configure validation: ${error}`
+      );
+    }
+
+    return this;
+  }
+
+  /**
+   * Sets up tracking for dependent fields using both event listeners and mutation observers.
+   * @private
+   */
+  private _setupDependencyTracking(
+    isRequired: (instance: DOMNodeReference) => boolean,
+    dependencies: Array<DOMNodeReference>
+  ): void {
+    if (dependencies.length === 0) {
+      console.warn(
+        `powerpagestoolkit: No dependencies specified for ${this.element.id}. ` +
+          "Include all referenced nodes in the dependency array for proper validation."
+      );
+      return;
+    }
+
+    dependencies.forEach((dep) => {
+      // Handle value changes
+      dep.on("change", () => this.setRequiredLevel(isRequired(this)));
+      dep.on("input", () => this.setRequiredLevel(isRequired(this)));
+
+      // Handle visibility changes
+      const observer = new MutationObserver(() => {
+        const display = window.getComputedStyle(
+          dep.visibilityController
+        ).display;
+        if (display !== "none") {
+          this.setRequiredLevel(isRequired(this));
+        }
+      });
+
+      observer.observe(dep.visibilityController, {
+        attributes: true,
+        attributeFilter: ["style"],
+        subtree: false,
+      });
+
+      // Handle radio button changes if applicable
+      if (dep.yesRadio || dep.noRadio) {
+        [dep.yesRadio, dep.noRadio].forEach((radio) => {
+          radio?.on("change", () => this.setRequiredLevel(isRequired(this)));
+        });
+      }
+    });
   }
 
   /**
