@@ -104,8 +104,6 @@ export const _init = Symbol("_init");
     } else {
       this.element.addEventListener("input", this.updateValue.bind(this));
     }
-
-    this._observeValueChanges();
   }
 
   public updateValue(): void {
@@ -125,6 +123,7 @@ export const _init = Symbol("_init");
         break;
       case "select-one":
         this.value = (this.element as HTMLSelectElement).value;
+        break;
       case "number":
         this.value =
           (this.element as HTMLInputElement).value !== ""
@@ -142,18 +141,6 @@ export const _init = Symbol("_init");
       this.checked = (this.yesRadio as DOMNodeReference).checked;
       this.value = +(this.yesRadio as DOMNodeReference).checked;
     }
-  }
-
-  // Add a method to observe value changes using MutationObserver
-  private _observeValueChanges(): void {
-    const observer = new MutationObserver(() => {
-      this.updateValue();
-    });
-
-    observer.observe(this.element, {
-      attributes: true,
-      attributeFilter: ["value"],
-    });
   }
 
   private _attachVisibilityController(): void {
@@ -522,11 +509,13 @@ export const _init = Symbol("_init");
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
    *
-   * @param {boolean} isRequired - Determines whether the field should be marked as required.
+   * @param {Function | boolean} isRequired - Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
    * @returns - Instance of this
    */
-  public setRequiredLevel(isRequired: Function | boolean): DOMNodeReference {
+  public setRequiredLevel(
+    isRequired: (() => boolean) | boolean
+  ): DOMNodeReference {
     if (isRequired instanceof Function) {
       isRequired()
         ? this.getLabel()?.classList.add("required-field")
