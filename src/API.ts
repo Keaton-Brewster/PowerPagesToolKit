@@ -3,16 +3,16 @@ import { error } from "console";
 import safeAjax from "./safeAjax.js";
 const API = {
   /**
-   *
-   * @param {Schema} schema an instance of a schema class, containing the desired information for the POST request
+   * @param tableSetName The dataverse set name for the table that you are updating a record in
+   * @param data The JSON of the fields and data that are to be updated on the targeted record
    * @returns a Promise resolving the successful results *[record id]* of the POST request, or rejecting the failed results *[error]* of the POST request.
    */
-  createRecord(schema: Schema): Promise<string> {
+  createRecord(tableSetName: string, data: object): Promise<string> {
     return new Promise((resolve, reject) => {
       safeAjax({
         type: "POST",
-        url: `/_api/${schema.logicalName()}`,
-        data: schema.value(),
+        url: `/_api/${tableSetName}`,
+        data: JSON.stringify(data),
         contentType: "application/json",
         success: function (response, status, xhr) {
           resolve(xhr.getResponseHeader("entityid"));
