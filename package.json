@@ -26,7 +26,7 @@
     "typescript-eslint": "^8.12.2"
   },
   "author": "KeatonBrewster",
-  "license": "SSPL-1.0",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "repository": {
     "type": "git",
