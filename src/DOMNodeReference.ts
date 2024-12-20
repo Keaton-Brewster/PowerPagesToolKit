@@ -228,12 +228,15 @@ export const _init = Symbol("_init");
 
   /**
    * Sets the value of the HTML element.
-   * @param {() => any} value - The value to set for the HTML element.
+   * @param {any} value - The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
    * @returns - Instance of this
    */
   public setValue(value: any): DOMNodeReference {
+    if (value instanceof Function) {
+      value = value();
+    }
     if (this.element.classList.contains("boolean-radio")) {
       (
         (this.yesRadio as DOMNodeReference).element as HTMLInputElement
