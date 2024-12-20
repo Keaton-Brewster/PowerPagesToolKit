@@ -128,7 +128,11 @@ export const _init = Symbol("_init");
             : null;
         break;
       default:
-        this.value = (this.element as any).value;
+        if (this.element.classList.contains("decimal")) {
+          this.value = parseFloat((this.element as HTMLInputElement).value);
+        } else {
+          this.value = (this.element as any).value;
+        }
         break;
     }
 
