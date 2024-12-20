@@ -109,9 +109,6 @@ export const _init = Symbol("_init");
   public updateValue(): void {
     switch ((this.element as any).type) {
       case "checkbox":
-        this.value = +(this.element as HTMLInputElement).checked;
-        this.checked = (this.element as HTMLInputElement).checked;
-        break;
       case "radio":
         this.value = (this.element as HTMLInputElement).checked;
         this.checked = (this.element as HTMLInputElement).checked;
@@ -139,7 +136,7 @@ export const _init = Symbol("_init");
       (this.yesRadio as DOMNodeReference).updateValue();
       (this.noRadio as DOMNodeReference).updateValue();
       this.checked = (this.yesRadio as DOMNodeReference).checked;
-      this.value = +(this.yesRadio as DOMNodeReference).checked;
+      this.value = (this.yesRadio as DOMNodeReference).checked;
     }
   }
 
@@ -228,12 +225,12 @@ export const _init = Symbol("_init");
 
   /**
    * Sets the value of the HTML element.
-   * @param {any} value - The value to set for the HTML element.
+   * @param {(() => any) | any} value - The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
    * @returns - Instance of this
    */
-  public setValue(value: any): DOMNodeReference {
+  public setValue(value: (() => any) | any): DOMNodeReference {
     if (value instanceof Function) {
       value = value();
     }
