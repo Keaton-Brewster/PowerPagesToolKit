@@ -154,14 +154,14 @@ Type-safe wrapper for DataVerse API operations.
 #### Create Record
 
 ```typescript
-const recordId = await API.createRecord("accounts", {
-  name: "New Account",
-  type: "Customer",
+await API.createRecord("accounts", {
+  name: "Gypsum LLC",
+  type: "Vendor",
 })
-  .then(() => {
+  .then((recordId) => {
     console.log("Created record:", recordId);
   })
-  .catch(() => {
+  .catch((error) => {
     console.error("Creation failed:", error);
   });
 ```
@@ -222,11 +222,11 @@ node.onceLoaded((instance) => {
 5. Use proper error handling with API operations:
 
 ```typescript
-try {
-  await API.createRecord(/*...*/);
-} catch (error) {
-  // Handle error appropriately
-}
+await API.createRecord(/*...*/)
+  .then((recordId) => {})
+  .catch((error) => {
+    // handle your errors appropriately
+  });
 ```
 
 ## TypeScript Support
