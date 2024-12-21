@@ -19,3 +19,8 @@ declare type Schema = {
 };
 
 declare const Page_Validators: any[];
+
+declare interface ElementValue {
+  value: any;
+  checked?: boolean;
+}
