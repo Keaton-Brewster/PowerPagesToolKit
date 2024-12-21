@@ -10,7 +10,7 @@ import { createDOMNodeReference } from "./createDOMNodeReferences.js";
 
 export const _init = Symbol("_init");
 
-/******/ /******/ /******/ export default class DOMNodeReference {
+export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: HTMLElement | string;
   private isLoaded: boolean;
