@@ -319,50 +319,79 @@ export const _init = Symbol("_init");
    * @returns {DOMNodeReference} Instance of this for method chaining
    * @throws {Error} If clearing values fails
    */
-  public clearValues(): DOMNodeReference {
+  public async clearValues(): Promise<DOMNodeReference> {
     try {
-      // Handle different element types
-      switch (this.element.tagName.toLowerCase()) {
-        case "input": {
-          const input = this.element as HTMLInputElement;
-          this.checked = false;
-          this.value = null;
-          input.checked = false;
-          input.value = "";
-          break;
+      const element = this.element;
+
+      if (element instanceof HTMLInputElement) {
+        switch (element.type.toLowerCase()) {
+          case "checkbox":
+          case "radio":
+            element.checked = false;
+            this.checked = false;
+            this.value = false;
+            break;
+
+          case "number":
+            element.value = "";
+            this.value = "";
+            break;
+
+          default: // handles text, email, tel, etc.
+            element.value = "";
+            this.value = "";
+            break;
         }
-        case "select": {
-          const select = this.element as HTMLSelectElement;
-          select.selectedIndex = -1;
-          this.value = select.multiple ? [] : "";
-          break;
-        }
-        case "textarea": {
-          const textarea = this.element as HTMLTextAreaElement;
-          textarea.value = "";
+      } else if (element instanceof HTMLSelectElement) {
+        if (element.multiple) {
+          Array.from(element.options).forEach(
+            (option) => (option.selected = false)
+          );
+          this.value = [];
+        } else {
+          element.selectedIndex = -1;
           this.value = "";
-          break;
         }
-        default:
-          this.value = "";
+      } else if (element instanceof HTMLTextAreaElement) {
+        element.value = "";
+        this.value = "";
+      } else {
+        this.value = "";
+
+        // Handle nested input elements in container elements
+        const childInputs = Array.from(
+          this.element.querySelectorAll("input, select, textarea")
+        );
+
+        if (childInputs.length > 0) {
+          const clearPromises = childInputs.map(async (input) => {
+            // Assuming createDOMNodeReference is imported and available
+            const inputRef = await createDOMNodeReference(input as HTMLElement);
+            return inputRef.clearValues();
+          });
+
+          await Promise.all(clearPromises);
+        }
       }
 
+      // Handle radio button group if present
       if (
         this.yesRadio instanceof DOMNodeReference &&
         this.noRadio instanceof DOMNodeReference
       ) {
-        this.yesRadio.clearValues();
-        this.noRadio.clearValues();
+        await this.yesRadio.clearValues();
+        await this.noRadio.clearValues();
       }
 
-      const changeEvent = new Event("change", { bubbles: true });
-      const inputEvent = new Event("input", { bubbles: true });
-      const clickEvent = new Event("click", { bubbles: true });
-      this.element.dispatchEvent(changeEvent);
-      this.element.dispatchEvent(inputEvent);
-      this.element.dispatchEvent(clickEvent);
+      // Dispatch events in the correct order
+      const events = [
+        new Event("input", { bubbles: true }),
+        new Event("change", { bubbles: true }),
+        new Event("click", { bubbles: true }),
+      ];
 
-      console.log(this);
+      events.forEach((event) => this.element.dispatchEvent(event));
+
       return this;
     } catch (error) {
       const errorMessage = `Failed to clear values for element with target "${
