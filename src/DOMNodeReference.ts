@@ -87,61 +87,105 @@ export const _init = Symbol("_init");
     }
   }
 
-  // Function to update this.value based on element type
-  private _initValueSync() {
+  /**
+   * Initializes value synchronization with appropriate event listeners
+   * based on element type.
+   * @private
+   */
+  private _initValueSync(): void {
     // Initial sync
     this.updateValue();
 
-    // Event listeners for real-time changes based on element type
-    const elementType = (this.element as HTMLInputElement).type;
-    if (elementType === "checkbox" || elementType === "radio") {
-      this.element.addEventListener("click", this.updateValue.bind(this));
-    } else if (
-      elementType === "select-one" ||
-      elementType === "select" ||
-      elementType === "select-multiple"
-    ) {
-      this.element.addEventListener("change", this.updateValue.bind(this));
-    } else {
-      this.element.addEventListener("input", this.updateValue.bind(this));
+    const input = this.element as HTMLInputElement;
+    const eventMapping: Record<string, string> = {
+      checkbox: "click",
+      radio: "click",
+      "select-one": "change",
+      select: "change",
+      "select-multiple": "change",
+    };
+
+    // Use bound event handler to maintain context
+    const boundUpdateValue = this.updateValue.bind(this);
+
+    // Add appropriate event listener based on element type
+    const eventType = eventMapping[input.type] || "input";
+    this.element.addEventListener(eventType, boundUpdateValue);
+  }
+
+  /**
+   * Updates the value and checked state based on element type
+   * @public
+   */
+  public updateValue(): void {
+    const elementValue = this.getElementValue();
+
+    // Update instance properties
+    this.value = elementValue.value;
+    if (elementValue.checked !== undefined) {
+      this.checked = elementValue.checked;
+    }
+
+    // Handle radio button group if present
+    this.updateRadioGroup();
+  }
+
+  /**
+   * Gets the current value of the element based on its type
+   * @private
+   * @returns {ElementValue} Object containing value and optional checked state
+   */
+  private getElementValue(): ElementValue {
+    const input = this.element as HTMLInputElement;
+    const select = this.element as HTMLSelectElement;
+
+    switch (input.type) {
+      case "checkbox":
+      case "radio":
+        return {
+          value: input.checked,
+          checked: input.checked,
+        };
+
+      case "select-multiple":
+        return {
+          value: Array.from(select.selectedOptions).map(
+            (option) => option.value
+          ),
+        };
+
+      case "select-one":
+        return {
+          value: select.value,
+        };
+
+      case "number":
+        return {
+          value: input.value !== "" ? Number(input.value) : null,
+        };
+
+      default:
+        return {
+          value: this.element.classList.contains("decimal")
+            ? parseFloat(input.value)
+            : input.value,
+        };
     }
   }
 
-  public updateValue(): void {
-    switch ((this.element as any).type) {
-      case "checkbox":
-      case "radio":
-        this.value = (this.element as HTMLInputElement).checked;
-        this.checked = (this.element as HTMLInputElement).checked;
-        break;
-      case "select-multiple":
-        this.value = Array.from(
-          (this.element as HTMLSelectElement).selectedOptions
-        ).map((option) => option.value);
-        break;
-      case "select-one":
-        this.value = (this.element as HTMLSelectElement).value;
-        break;
-      case "number":
-        this.value =
-          (this.element as HTMLInputElement).value !== ""
-            ? Number((this.element as HTMLInputElement).value)
-            : null;
-        break;
-      default:
-        if (this.element.classList.contains("decimal")) {
-          this.value = parseFloat((this.element as HTMLInputElement).value);
-        } else {
-          this.value = (this.element as any).value;
-        }
-        break;
-    }
-
-    if (this.yesRadio instanceof DOMNodeReference) {
-      (this.yesRadio as DOMNodeReference).updateValue();
-      (this.noRadio as DOMNodeReference).updateValue();
-      this.checked = (this.yesRadio as DOMNodeReference).checked;
-      this.value = (this.yesRadio as DOMNodeReference).checked;
+  /**
+   * Updates related radio buttons if this is part of a radio group
+   * @private
+   */
+  private updateRadioGroup(): void {
+    if (
+      this.yesRadio instanceof DOMNodeReference &&
+      this.noRadio instanceof DOMNodeReference
+    ) {
+      this.yesRadio.updateValue();
+      this.noRadio?.updateValue();
+      this.checked = this.yesRadio.checked;
+      this.value = this.yesRadio.checked;
     }
   }
 
@@ -219,7 +263,9 @@ export const _init = Symbol("_init");
    * or a natural boolean to determine the visibility of this
    * @returns - Instance of this
    */
-  public toggleVisibility(shouldShow: ((instance: DOMNodeReference) => boolean) | boolean): DOMNodeReference {
+  public toggleVisibility(
+    shouldShow: ((instance: DOMNodeReference) => boolean) | boolean
+  ): DOMNodeReference {
     if (shouldShow instanceof Function) {
       shouldShow(this) ? this.show() : this.hide();
     } else {
@@ -264,6 +310,66 @@ export const _init = Symbol("_init");
       );
     }
     return this;
+  }
+
+  /**
+   * Clears all values and states of the element.
+   * Handles different input types appropriately.
+   *
+   * @returns {DOMNodeReference} Instance of this for method chaining
+   * @throws {Error} If clearing values fails
+   */
+  public clearValues(): DOMNodeReference {
+    try {
+      // Handle different element types
+      switch (this.element.tagName.toLowerCase()) {
+        case "input": {
+          const input = this.element as HTMLInputElement;
+          this.checked = false;
+          this.value = null;
+          input.checked = false;
+          input.value = "";
+          break;
+        }
+        case "select": {
+          const select = this.element as HTMLSelectElement;
+          select.selectedIndex = -1;
+          this.value = select.multiple ? [] : "";
+          break;
+        }
+        case "textarea": {
+          const textarea = this.element as HTMLTextAreaElement;
+          textarea.value = "";
+          this.value = "";
+          break;
+        }
+        default:
+          this.value = "";
+      }
+
+      if (
+        this.yesRadio instanceof DOMNodeReference &&
+        this.noRadio instanceof DOMNodeReference
+      ) {
+        this.yesRadio.clearValues();
+        this.noRadio.clearValues();
+      }
+
+      const changeEvent = new Event("change", { bubbles: true });
+      const inputEvent = new Event("input", { bubbles: true });
+      const clickEvent = new Event("click", { bubbles: true });
+      this.element.dispatchEvent(changeEvent);
+      this.element.dispatchEvent(inputEvent);
+      this.element.dispatchEvent(clickEvent);
+
+      console.log(this);
+      return this;
+    } catch (error) {
+      const errorMessage = `Failed to clear values for element with target "${
+        this.target
+      }": ${error instanceof Error ? error.message : String(error)}`;
+      throw new Error(errorMessage);
+    }
   }
 
   /**
@@ -415,91 +521,97 @@ export const _init = Symbol("_init");
     return this;
   }
 
- /**
- * Configures conditional rendering for the target element based on a condition
- * and the visibility of one or more trigger elements.
- *
- * @param {() => boolean} condition - A function that returns a boolean to determine
- * the visibility of the target element. If `condition()` returns true, the element is shown;
- * otherwise, it is hidden.
- * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
- * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
- * the target node.
- * @throws {ConditionalRenderingError} When there's an error in setting up conditional rendering
- * @returns {DOMNodeReference} - Instance of this
- */
-public configureConditionalRendering(
-  condition: () => boolean,
-  dependencies?: Array<DOMNodeReference>
-): DOMNodeReference {
-  try {
-    // Validate inputs
-    if (typeof condition !== 'function') {
-      throw new TypeError('Condition must be a function');
-    }
-
-    // bind this to the condition function 
-    condition = condition.bind(this)
-
-    // Initialize state
-    const initialState = condition();
-    this.toggleVisibility(initialState);
-
-    // Early return if no dependencies
-    if (!dependencies?.length) {
-      console.warn(
-        `powerpagestoolkit: No dependencies provided for conditional rendering of ${this}. ` +
-        'Include referenced nodes in the dependency array if using them in rendering logic.'
-      );
-      return this;
-    }
-
-    // Track observers for cleanup
-    const observers: MutationObserver[] = [];
-
-    // Setup observers and event listeners
-    dependencies.forEach((node) => {
-      if (!node || !(node instanceof DOMNodeReference)) {
-        throw new TypeError('Each dependency must be a valid DOMNodeReference instance');
+  /**
+   * Configures conditional rendering for the target element based on a condition
+   * and the visibility of one or more trigger elements.
+   *
+   * @param {() => boolean} condition - A function that returns a boolean to determine
+   * the visibility of the target element. If `condition()` returns true, the element is shown;
+   * otherwise, it is hidden.
+   * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
+   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
+   * the target node.
+   * @throws {ConditionalRenderingError} When there's an error in setting up conditional rendering
+   * @returns {DOMNodeReference} - Instance of this
+   */
+  public configureConditionalRendering(
+    condition: () => boolean,
+    dependencies?: Array<DOMNodeReference>
+  ): DOMNodeReference {
+    try {
+      // Validate inputs
+      if (typeof condition !== "function") {
+        throw new TypeError("Condition must be a function");
       }
 
-      // Handle change events
-      const handleChange = () => {
-        try {
-          this.toggleVisibility(condition());
-        } catch (error) {
-          console.error('Error in change handler:', error);
-          // Optionally propagate error or handle differently
-        }
-      };
+      // bind this to the condition function
+      condition = condition.bind(this);
 
-      node.on("change", handleChange);
+      // Initialize state
+      const initialState = condition();
+      this.toggleVisibility(initialState);
 
-      // Setup visibility observer
-      const observer = new MutationObserver(() => {
-        try {
-          const display = window.getComputedStyle(node.visibilityController).display;
-          this.toggleVisibility(display !== "none" && condition());
-        } catch (error) {0
-          console.error('Error in mutation observer:', error);
-          observer.disconnect();
+      // Early return if no dependencies
+      if (!dependencies?.length) {
+        console.warn(
+          `powerpagestoolkit: No dependencies provided for conditional rendering of ${this}. ` +
+            "Include referenced nodes in the dependency array if using them in rendering logic."
+        );
+        return this;
+      }
+
+      // Setup observers and event listeners
+      dependencies.forEach((node) => {
+        if (!node || !(node instanceof DOMNodeReference)) {
+          throw new TypeError(
+            "Each dependency must be a valid DOMNodeReference instance"
+          );
         }
+
+        // Handle change events
+        const handleChange = () => {
+          try {
+            this.toggleVisibility(condition());
+
+            // if an element gets hidden, the value should be wiped
+            if (condition() === false) {
+              this.clearValues();
+            }
+          } catch (error) {
+            console.error("Error in change handler:", error);
+            // Optionally propagate error or handle differently
+          }
+        };
+
+        node.on("change", handleChange);
+
+        // Setup visibility observer
+        const observer = new MutationObserver(() => {
+          try {
+            const display = window.getComputedStyle(
+              node.visibilityController
+            ).display;
+            this.toggleVisibility(display !== "none" && condition());
+          } catch (error) {
+            0;
+            console.error("Error in mutation observer:", error);
+            observer.disconnect();
+          }
+        });
+
+        observer.observe(node.visibilityController, {
+          attributes: true,
+          attributeFilter: ["style"],
+        });
       });
 
-      observer.observe(node.visibilityController, {
-        attributes: true,
-        attributeFilter: ["style"],
-      });
-
-      observers.push(observer);
-    });
-
-    return this;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new ConditionalRenderingError(this, errorMessage);
+      return this;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new ConditionalRenderingError(this, errorMessage);
+    }
   }
-}
 
   /**
    * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
@@ -528,10 +640,10 @@ public configureConditionalRendering(
 
     // Create and configure validator
     try {
-      //make sure to bind 'this' to the methods for proper access to consumer 
-      isRequired = isRequired.bind(this)
-      isValid = isValid.bind(this)
-      
+      //make sure to bind 'this' to the methods for proper access to consumer
+      isRequired = isRequired.bind(this);
+      isValid = isValid.bind(this);
+
       if (typeof Page_Validators === "undefined") {
         throw new ValidationConfigError(this, "Page_Validators not found");
       }
