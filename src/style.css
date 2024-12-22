@@ -13,6 +13,7 @@
   position: absolute;
   left: 50%; /* Center horizontally */
   transform: translateX(-50%); /* Adjust positioning */
+  color: #000;
   background-color: #f9f9f9;
   padding: 10px;
   border: 1px solid #ddd;

@@ -1,21 +1,22 @@
 /**
  *
  * @param {string} titleString The text to display in the tooltip flyout content
- * @param containerStyle Optional CSS styles to apply to the container for the info element
+ * @param containerStyle Optional CSS styles to apply to the info icon
  * @returns
  */
 export default function CreateInfoEl(
   titleString: string,
   containerStyle?: Partial<CSSStyleDeclaration>
 ) {
+  // Input validation remains the same
   if (typeof titleString !== "string") {
     throw new Error(
       `argument "titleString" must be of type "string". Received: "${typeof titleString}"`
     );
   }
-  if (containerStyle && !(containerStyle instanceof CSSStyleDeclaration)) {
+  if (containerStyle && typeof containerStyle !== "object") {
     throw new Error(
-      `argument "containerStyle" must be of type "CSSStyleDeclaration". Received: "${typeof containerStyle}"`
+      `argument "containerStyle" must be of type "object". Received: "${typeof containerStyle}"`
     );
   }
 
@@ -34,51 +35,54 @@ export default function CreateInfoEl(
   span.appendChild(icon);
   span.appendChild(flyoutContent);
 
-  if (containerStyle instanceof CSSStyleDeclaration) {
-    Object.assign(span.style, containerStyle);
+  if (containerStyle) {
+    Object.assign(icon.style, containerStyle);
   }
 
-  // Function to position flyout content
+  // Function to position flyout content remains the same
   const positionFlyout = () => {
-    flyoutContent.style.display = "block"; // Show the flyout to calculate dimensions
+    flyoutContent.style.display = "block";
 
     const flyoutRect = flyoutContent.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
 
-    // Position the flyout
-
-    // Adjust if flyout is too far to the right
     if (flyoutRect.right > viewportWidth) {
       const overflowAmount = flyoutRect.right - viewportWidth;
-      flyoutContent.style.left = `calc(50% - ${overflowAmount}px)`; // Shift left
+      flyoutContent.style.left = `calc(50% - ${overflowAmount}px)`;
     }
 
-    // Adjust if flyout is too far to the left
     if (flyoutRect.left < 0) {
       const overflowAmount = Math.abs(flyoutRect.left);
-      flyoutContent.style.left = `calc(50% + ${overflowAmount}px)`; // Shift right
+      flyoutContent.style.left = `calc(50% + ${overflowAmount}px)`;
     }
   };
 
-  icon.addEventListener("mouseenter", positionFlyout);
-
-  icon.addEventListener("mouseleave", () => {
-    flyoutContent.style.display = "none"; // Hide on mouse leave
+  // Move event listeners to the span container
+  span.addEventListener("mouseenter", () => {
+    positionFlyout();
   });
 
+  span.addEventListener("mouseleave", (event) => {
+    // Check if we're not moving to a child element
+    const relatedTarget = event.relatedTarget as Node;
+    if (!span.contains(relatedTarget)) {
+      flyoutContent.style.display = "none";
+    }
+  });
+
+  // Touch handling remains on the icon for better mobile UX
   icon.addEventListener("touchstart", (event) => {
     event.preventDefault();
-    // Toggle flyout visibility on touch
     flyoutContent.style.display =
       flyoutContent.style.display === "block" ? "none" : "block";
     if (flyoutContent.style.display === "block") {
-      positionFlyout(); // Position the flyout when displayed
+      positionFlyout();
     }
   });
 
   document.body.addEventListener("click", (event: Event) => {
-    if (!span.contains(<Node>event.target)) {
-      flyoutContent.style.display = "none"; // Hide on body click
+    if (!span.contains(event.target as Node)) {
+      flyoutContent.style.display = "none";
     }
   });
 
