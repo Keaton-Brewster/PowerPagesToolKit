@@ -140,11 +140,18 @@ node.enable();
 ```typescript
 // LABEL AND INFO OPERATIONS
 const label = node.getLabel();
-node.appendToLabel(infoElement);
 // appends a tooltip to the label associated with the element targeted by 'this'
-node.addLabelTooltip("Helper text");
+node.addLabelTooltip(
+  "Helper text",
+  /* Optionally pass in css styles to customize the tooltip icon*/
+  { color: "orange", fontSize: "30px" }
+);
 // appends a tooltip directly to the element targeted by 'this'
-node.addTooltip("Inline helper");
+node.addTooltip(
+  "Inline helper",
+  /* Optionally pass in css styles to customize the tooltip icon*/
+  { color: "orange", fontSize: "30px" }
+);
 ```
 
 ### DataVerse API
