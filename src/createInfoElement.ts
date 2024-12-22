@@ -1,4 +1,24 @@
-export default function CreateInfoEl(titleString: string) {
+/**
+ *
+ * @param {string} titleString The text to display in the tooltip flyout content
+ * @param containerStyle Optional CSS styles to apply to the container for the info element
+ * @returns
+ */
+export default function CreateInfoEl(
+  titleString: string,
+  containerStyle?: Partial<CSSStyleDeclaration>
+) {
+  if (typeof titleString !== "string") {
+    throw new Error(
+      `argument "titleString" must be of type "string". Received: "${typeof titleString}"`
+    );
+  }
+  if (containerStyle && !(containerStyle instanceof CSSStyleDeclaration)) {
+    throw new Error(
+      `argument "containerStyle" must be of type "CSSStyleDeclaration". Received: "${typeof containerStyle}"`
+    );
+  }
+
   const span = document.createElement("span");
   span.classList.add("info-icon");
 
@@ -13,6 +33,10 @@ export default function CreateInfoEl(titleString: string) {
 
   span.appendChild(icon);
   span.appendChild(flyoutContent);
+
+  if (containerStyle instanceof CSSStyleDeclaration) {
+    Object.assign(span.style, containerStyle);
+  }
 
   // Function to position flyout content
   const positionFlyout = () => {
