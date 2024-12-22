@@ -7,6 +7,7 @@ import {
   ValidationConfigError,
 } from "./errors.js";
 import { createDOMNodeReference } from "./createDOMNodeReferences.js";
+import { error } from "console";
 
 export const _init = Symbol("_init");
 
@@ -226,22 +227,33 @@ export default class DOMNodeReference {
   /**
    * Sets up an event listener based on the specified event type, executing the specified
    * event handler
-   * @param {string} eventType - The DOM event to watch for
-   * @param {(e: Event) => void} eventHandler - The callback function that runs when the
-   * specified event occurs
-   * @returns - Instance of this
+   * @param eventType - The DOM event to watch for
+   * @param eventHandler - The callback function that runs when the
+   * specified event occurs.
+   * @returns - Instance of this [provides option to method chain]
    */
   public on(
     eventType: string,
     eventHandler: (e: Event) => void
   ): DOMNodeReference {
+    if (typeof eventType !== "string") {
+      throw new Error(
+        `Argument "eventType" must be of type "string". Received: ${typeof eventType}`
+      );
+    }
+    if (typeof eventHandler !== "function") {
+      throw new Error(
+        `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`
+      );
+    }
+
     this.element.addEventListener(eventType, eventHandler.bind(this));
     return this;
   }
 
   /**
    * Hides the element by setting its display style to "none".
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
     this.visibilityController.style.display = "none";
@@ -250,7 +262,7 @@ export default class DOMNodeReference {
 
   /**
    * Shows the element by restoring its default display style.
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
     this.visibilityController.style.display = this.defaultDisplay;
@@ -261,7 +273,7 @@ export default class DOMNodeReference {
    *
    * @param {function(instance: DOMNodeReference): boolean | boolean} shouldShow - Either a function that returns true or false,
    * or a natural boolean to determine the visibility of this
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public toggleVisibility(
     shouldShow: ((instance: DOMNodeReference) => boolean) | boolean
@@ -276,10 +288,10 @@ export default class DOMNodeReference {
 
   /**
    * Sets the value of the HTML element.
-   * @param {(() => any) | any} value - The value to set for the HTML element.
+   * @param value - The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public setValue(value: (() => any) | any): DOMNodeReference {
     if (value instanceof Function) {
@@ -299,7 +311,7 @@ export default class DOMNodeReference {
 
   /**
    * Disables the element so that users cannot input any data
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public disable(): DOMNodeReference {
     try {
@@ -316,8 +328,8 @@ export default class DOMNodeReference {
    * Clears all values and states of the element.
    * Handles different input types appropriately.
    *
-   * @returns {DOMNodeReference} Instance of this for method chaining
-   * @throws {Error} If clearing values fails
+   * @returns - Instance of this [provides option to method chain]
+   * @throws If clearing values fails
    */
   public async clearValues(): Promise<DOMNodeReference> {
     try {
@@ -403,7 +415,7 @@ export default class DOMNodeReference {
 
   /**
    * Enables the element so that users can input data
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public enable(): DOMNodeReference {
     try {
@@ -418,8 +430,8 @@ export default class DOMNodeReference {
 
   /**
    *
-   * @param {...HTMLElement} elements - The elements to prepend to the element targeted by this.
-   * @returns - Instance of this
+   * @param elements - The elements to prepend to the element targeted by this.
+   * @returns - Instance of this [provides option to method chain]
    */
   public prepend(...elements: HTMLElement[]): DOMNodeReference {
     this.element.prepend(...elements);
@@ -428,8 +440,8 @@ export default class DOMNodeReference {
 
   /**
    * Appends child elements to the HTML element.
-   * @param {...HTMLElement} elements - The elements to append to the element targeted by this.
-   * @returns - Instance of this
+   * @param elements - The elements to append to the element targeted by this.
+   * @returns - Instance of this [provides option to method chain]
    */
   public append(...elements: HTMLElement[]): DOMNodeReference {
     this.element.append(...elements);
@@ -438,8 +450,8 @@ export default class DOMNodeReference {
 
   /**
    * Inserts elements before the HTML element.
-   * @param {...HTMLElement} elements - The elements to insert before the HTML element.
-   * @returns - Instance of this
+   * @param elements - The elements to insert before the HTML element.
+   * @returns - Instance of this [provides option to method chain]
    */
   public before(...elements: HTMLElement[]): DOMNodeReference {
     this.element.before(...elements);
@@ -448,8 +460,8 @@ export default class DOMNodeReference {
 
   /**
    * Inserts elements after the HTML element.
-   * @param {...HTMLElement} elements - The elements to insert after the HTML element.
-   * @returns - Instance of this
+   * @param elements - The elements to insert after the HTML element.
+   * @returns - Instance of this [provides option to method chain]
    */
   public after(...elements: HTMLElement[]): DOMNodeReference {
     this.element.after(...elements);
@@ -465,42 +477,37 @@ export default class DOMNodeReference {
   }
 
   /**
-   * Appends child elements to the label associated with the HTML element.
-   * @param {...HTMLElement} elements - The elements to append to the label.
-   * @returns - Instance of this
-   */
-  public appendToLabel(...elements: HTMLElement[]): DOMNodeReference {
-    const label = this.getLabel();
-    if (label) {
-      label.append(" ", ...elements);
-    }
-    return this;
-  }
-
-  /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
-   * @param {string} text - The text to display in the tooltip.
-   * @returns - Instance of this
+   * @param text - The text to display in the tooltip.
+   * @param containerStyle - Optional object with CSS Styles to apply to the container of the info element
+   * @returns - Instance of this [provides option to method chain]
    */
-  public addLabelTooltip(text: string): DOMNodeReference {
-    this.appendToLabel(createInfoEl(text));
+  public addLabelTooltip(
+    text: string,
+    containerStyle?: Partial<CSSStyleDeclaration>
+  ): DOMNodeReference {
+    this.getLabel()?.append(createInfoEl(text, containerStyle || undefined));
     return this;
   }
 
   /**
    * Adds a tooltip with the specified text to the element
-   * @param {string} text - The text to display in the tooltip
-   * @returns - Instance of this
+   * @param text - The text to display in the tooltip
+   * @param containerStyle - Optional object with CSS Styles to apply to the container of the info element
+   * @returns - Instance of this [provides option to method chain]
    */
-  public addTooltip(text: string): DOMNodeReference {
-    this.append(createInfoEl(text));
+  public addTooltip(
+    text: string,
+    containerStyle?: Partial<CSSStyleDeclaration>
+  ): DOMNodeReference {
+    this.append(createInfoEl(text, containerStyle || undefined));
     return this;
   }
 
   /**
    * Sets the inner HTML content of the HTML element.
    * @param {string} string - The text to set as the inner HTML of the element.
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   setInnerHTML(string: string) {
     this.element.innerHTML = string;
@@ -509,7 +516,7 @@ export default class DOMNodeReference {
 
   /**
    * Removes this element from the DOM
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   remove() {
     this.element.remove();
@@ -519,7 +526,7 @@ export default class DOMNodeReference {
   /**
    *
    * @param {Partial<CSSStyleDeclaration} options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   setStyle(options: Partial<CSSStyleDeclaration>) {
     if (Object.prototype.toString.call(options) !== "[object Object]") {
@@ -536,7 +543,7 @@ export default class DOMNodeReference {
 
   /**
    * Unchecks both the yes and no radio buttons if they exist.
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public uncheckRadios(): DOMNodeReference {
     if (this.yesRadio && this.noRadio) {
@@ -561,7 +568,7 @@ export default class DOMNodeReference {
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
    * @throws {ConditionalRenderingError} When there's an error in setting up conditional rendering
-   * @returns {DOMNodeReference} - Instance of this
+   * @returns {DOMNodeReference} - Instance of this [provides option to method chain]
    */
   public configureConditionalRendering(
     condition: () => boolean,
@@ -649,7 +656,7 @@ export default class DOMNodeReference {
    * @param {() => boolean} isValid - Function validating field input
    * @param {string} fieldDisplayName - Display name for error messages
    * @param {Array<DOMNodeReference>} dependencies - Fields that trigger requirement/validation updates
-   * @returns {DOMNodeReference} Instance of this for method chaining
+   * @returns {DOMNodeReference} Instance of this
    * @throws {ValidationConfigError} If validation setup fails
    */
   public configureValidationAndRequirements(
@@ -775,7 +782,7 @@ export default class DOMNodeReference {
    *
    * @param {Function | boolean} isRequired - Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
-   * @returns - Instance of this
+   * @returns - Instance of this [provides option to method chain]
    */
   public setRequiredLevel(
     isRequired: (() => boolean) | boolean
