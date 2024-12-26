@@ -7,7 +7,6 @@ import {
   ValidationConfigError,
 } from "./errors.js";
 import { createDOMNodeReference } from "./createDOMNodeReferences.js";
-import { error } from "console";
 
 export const _init = Symbol("_init");
 
