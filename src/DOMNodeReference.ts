@@ -478,7 +478,7 @@ export default class DOMNodeReference {
   /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
    * @param text - The text to display in the tooltip.
-   * @param containerStyle - Optional object with CSS Styles to apply to the container of the info element
+   * @param containerStyle - Optional object with CSS Styles to apply to the info element
    * @returns - Instance of this [provides option to method chain]
    */
   public addLabelTooltip(
@@ -492,7 +492,7 @@ export default class DOMNodeReference {
   /**
    * Adds a tooltip with the specified text to the element
    * @param text - The text to display in the tooltip
-   * @param containerStyle - Optional object with CSS Styles to apply to the container of the info element
+   * @param containerStyle - Optional object with CSS Styles to apply to the info element
    * @returns - Instance of this [provides option to method chain]
    */
   public addTooltip(
