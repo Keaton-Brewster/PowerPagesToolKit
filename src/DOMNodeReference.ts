@@ -477,29 +477,31 @@ export default class DOMNodeReference {
 
   /**
    * Adds a tooltip with specified text to the label associated with the HTML element.
-   * @param text - The text to display in the tooltip.
+   * @param innerHTML - The innerHTML to append into the tooltip.
    * @param containerStyle - Optional object with CSS Styles to apply to the info element
    * @returns - Instance of this [provides option to method chain]
    */
   public addLabelTooltip(
-    text: string,
+    innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
-    this.getLabel()?.append(createInfoEl(text, containerStyle || undefined));
+    this.getLabel()?.append(
+      createInfoEl(innerHTML, containerStyle || undefined)
+    );
     return this;
   }
 
   /**
    * Adds a tooltip with the specified text to the element
-   * @param text - The text to display in the tooltip
+   * @param innerHTML - The innerHTML to append into the tooltip
    * @param containerStyle - Optional object with CSS Styles to apply to the info element
    * @returns - Instance of this [provides option to method chain]
    */
   public addTooltip(
-    text: string,
+    innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
-    this.append(createInfoEl(text, containerStyle || undefined));
+    this.append(createInfoEl(innerHTML, containerStyle || undefined));
     return this;
   }
 
