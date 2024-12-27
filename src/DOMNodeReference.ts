@@ -8,7 +8,7 @@ import {
 } from "./errors.js";
 import { createDOMNodeReference } from "./createDOMNodeReferences.js";
 
-export const _init: symbol = Symbol("_init");
+export const _init = Symbol("_init");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -29,8 +29,8 @@ export default class DOMNodeReference {
    * or access properties not available through this class.
    * @property {HTMLElement | null}
    */
-  public declare element: HTMLElement;
-  private declare visibilityController: HTMLElement;
+  public declare element: Element;
+  private declare visibilityController: Element;
   public declare checked: boolean;
   /**
    * Represents the 'yes' option of a boolean radio field.
@@ -56,7 +56,7 @@ export default class DOMNodeReference {
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
-
+    this.updateValue = this.updateValue.bind(this);
     // we defer the rest of initialization
   }
 
@@ -79,7 +79,9 @@ export default class DOMNodeReference {
 
       this._initValueSync();
       this._attachVisibilityController();
-      this.defaultDisplay = this.visibilityController.style.display;
+      this.defaultDisplay = (
+        this.visibilityController as HTMLElement
+      ).style.display;
 
       this.isLoaded = true;
     } catch (e) {
@@ -92,25 +94,60 @@ export default class DOMNodeReference {
    * based on element type.
    * @private
    */
-  private _initValueSync(): void {
-    // Initial sync
-    this.updateValue();
+  private async _initValueSync(): Promise<void> {
+    try {
+      // Initial sync
+      this.updateValue();
 
-    const input = this.element as HTMLInputElement;
-    const eventMapping: Record<string, string> = {
-      checkbox: "click",
-      radio: "click",
-      "select-one": "change",
-      select: "change",
-      "select-multiple": "change",
-    };
+      if (!(this.element instanceof HTMLElement)) {
+        throw new Error("Element is not a valid HTML element");
+      }
 
-    // Use bound event handler to maintain context
-    const boundUpdateValue = this.updateValue.bind(this);
+      // Define event mappings
+      const eventMapping: Record<string, string> = {
+        checkbox: "click",
+        radio: "click",
+        select: "change",
+        "select-multiple": "change",
+        // Add other input types as needed
+      };
 
-    // Add appropriate event listener based on element type
-    const eventType = eventMapping[input.type] || "input";
-    this.element.addEventListener(eventType, boundUpdateValue);
+      // Determine event type based on element
+      let eventType: string;
+      if (this.element instanceof HTMLSelectElement) {
+        eventType = "change";
+      } else if (this.element instanceof HTMLInputElement) {
+        eventType = eventMapping[this.element.type] || "input";
+      } else {
+        eventType = "input";
+      }
+
+      // Attach main event listener
+      this.element.addEventListener(eventType, this.updateValue);
+
+      // Handle date inputs separately
+      if (
+        this.element instanceof HTMLInputElement &&
+        this.element.dataset.type === "date"
+      ) {
+        await this._initDateSync(this.element);
+      }
+    } catch (error) {
+      throw new DOMNodeInitializationError(
+        this,
+        `Failed to initialize value sync: ${error}`
+      );
+    }
+  }
+
+  private async _initDateSync(element: HTMLInputElement): Promise<void> {
+    const parentElement = element.parentElement;
+    if (!parentElement) {
+      throw new Error("Date input must have a parent element");
+    }
+
+    const dateNode = await waitFor("[data-date-format]", parentElement);
+    dateNode.addEventListener("select", this.updateValue);
   }
 
   /**
@@ -118,7 +155,7 @@ export default class DOMNodeReference {
    * @public
    */
   public updateValue(): void {
-    const elementValue = this.getElementValue();
+    const elementValue = this._getElementValue();
 
     // Update instance properties
     this.value = elementValue.value;
@@ -127,7 +164,7 @@ export default class DOMNodeReference {
     }
 
     // Handle radio button group if present
-    this.updateRadioGroup();
+    this._updateRadioGroup();
   }
 
   /**
@@ -135,7 +172,7 @@ export default class DOMNodeReference {
    * @private
    * @returns {ElementValue} Object containing value and optional checked state
    */
-  private getElementValue(): ElementValue {
+  private _getElementValue(): ElementValue {
     const input = this.element as HTMLInputElement;
     const select = this.element as HTMLSelectElement;
 
@@ -166,9 +203,11 @@ export default class DOMNodeReference {
 
       default:
         return {
-          value: this.element.classList.contains("decimal")
-            ? parseFloat(input.value)
-            : input.value,
+          value:
+            this.element.classList.contains("decimal") ||
+            this.element.classList.contains("money")
+              ? parseFloat(input.value)
+              : input.value,
         };
     }
   }
@@ -177,7 +216,7 @@ export default class DOMNodeReference {
    * Updates related radio buttons if this is part of a radio group
    * @private
    */
-  private updateRadioGroup(): void {
+  private _updateRadioGroup(): void {
     if (
       this.yesRadio instanceof DOMNodeReference &&
       this.noRadio instanceof DOMNodeReference
@@ -255,7 +294,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    this.visibilityController.style.display = "none";
+    (this.visibilityController as HTMLElement).style.display = "none";
     return this;
   }
 
@@ -264,7 +303,8 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    this.visibilityController.style.display = this.defaultDisplay;
+    (this.visibilityController as HTMLElement).style.display =
+      this.defaultDisplay;
     return this;
   }
 
@@ -510,7 +550,7 @@ export default class DOMNodeReference {
    * @param {string} string - The text to set as the inner HTML of the element.
    * @returns - Instance of this [provides option to method chain]
    */
-  setInnerHTML(string: string) {
+  public setInnerHTML(string: string) {
     this.element.innerHTML = string;
     return this;
   }
@@ -519,7 +559,7 @@ export default class DOMNodeReference {
    * Removes this element from the DOM
    * @returns - Instance of this [provides option to method chain]
    */
-  remove() {
+  public remove() {
     this.element.remove();
     return this;
   }
@@ -529,7 +569,7 @@ export default class DOMNodeReference {
    * @param {Partial<CSSStyleDeclaration} options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
    * @returns - Instance of this [provides option to method chain]
    */
-  setStyle(options: Partial<CSSStyleDeclaration>) {
+  public setStyle(options: Partial<CSSStyleDeclaration>) {
     if (Object.prototype.toString.call(options) !== "[object Object]") {
       throw new Error(
         `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
@@ -537,7 +577,7 @@ export default class DOMNodeReference {
     }
 
     for (const key in options) {
-      this.element.style[key as any] = options[key] as string;
+      (this.element as HTMLElement).style[key as any] = options[key] as string;
     }
     return this;
   }
