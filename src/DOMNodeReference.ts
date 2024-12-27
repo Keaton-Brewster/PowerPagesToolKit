@@ -8,7 +8,7 @@ import {
 } from "./errors.js";
 import { createDOMNodeReference } from "./createDOMNodeReferences.js";
 
-export const _init = Symbol("_init");
+export const _init: symbol = Symbol("_init");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -573,7 +573,8 @@ export default class DOMNodeReference {
    */
   public configureConditionalRendering(
     condition: () => boolean,
-    dependencies?: Array<DOMNodeReference>
+    dependencies?: Array<DOMNodeReference>,
+    clearValuesOnHide: boolean = true
   ): DOMNodeReference {
     try {
       // Validate inputs
@@ -611,7 +612,7 @@ export default class DOMNodeReference {
             this.toggleVisibility(condition());
 
             // if an element gets hidden, the value should be wiped
-            if (condition() === false) {
+            if (condition() === false && clearValuesOnHide) {
               this.clearValues();
             }
           } catch (error) {
