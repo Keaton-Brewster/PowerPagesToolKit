@@ -1,12 +1,17 @@
+/**
+ *
+ * @param target basic querySelector syntax to select an element
+ * @param root optional parameter to replace document as the root from which to perform the node search
+ * @returns
+ */
 export default function waitFor(
-  target: HTMLElement | string
-): Promise<HTMLElement> {
+  target: HTMLElement | string,
+  root: Element | Document = document
+): Promise<Element> {
   return new Promise((resolve, reject) => {
     // Create observer to watch for target in DOM
     const observer = new MutationObserver(() => {
-      const observedElement = <HTMLElement>(
-        document.querySelector(<string>target)
-      );
+      const observedElement = <Element>root.querySelector(<string>target);
       if (observedElement) {
         clearTimeout(timeout);
         observer.disconnect();
@@ -23,7 +28,7 @@ export default function waitFor(
       clearTimeout(timeout);
       return resolve(target);
     }
-    const element = <HTMLElement>document.querySelector(target);
+    const element = <HTMLElement>root.querySelector(target);
     if (element) {
       clearTimeout(timeout);
       return resolve(element);
