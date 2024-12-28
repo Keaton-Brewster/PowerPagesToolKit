@@ -28,18 +28,15 @@ A powerful class for managing DOM elements with automatic value synchronization 
 #### Basic Usage
 
 ```typescript
-import {
-  createDOMNodeReference,
-  createMultipleDOMNodeReferences,
-} from "powerpagestoolkit";
+import { createRef, createMultipleDOMNodeReferences } from "powerpagestoolkit";
 
 // Both methods support standard querySelector syntax:
 
 // Create a single reference
-const node = await createDOMNodeReference("#myElement");
+const node = await createRef("#myElement");
 
 // Create multiple references
-const nodes = await createMultipleDOMNodeReferences(".my-class");
+const nodes = await createRef(".my-class", true);
 ```
 
 #### Properties
@@ -204,7 +201,7 @@ await API.updateRecord("contacts", "record-guid", {
 1. Always await DOMNodeReference creation:
 
 ```typescript
-const node = await createDOMNodeReference("#element");
+const node = await createRef("#element");
 ```
 
 2. Include all referenced nodes in dependency arrays:
