@@ -640,50 +640,16 @@ export default class DOMNodeReference {
         return this;
       }
 
-      // Setup observers and event listeners
-      dependencies.forEach((node) => {
-        if (!node || !(node instanceof DOMNodeReference)) {
-          throw new TypeError(
-            "Each dependency must be a valid DOMNodeReference instance"
-          );
+      this._configDependencyTracking(
+        () => this.toggleVisibility(condition()),
+        dependencies,
+        {
+          clearValuesOnHide,
+          observeVisibility: true,
+          trackInputEvents: false,
+          trackRadioButtons: false,
         }
-
-        // Handle change events
-        const handleChange = () => {
-          try {
-            this.toggleVisibility(condition());
-
-            // if an element gets hidden, the value should be wiped
-            if (condition() === false && clearValuesOnHide) {
-              this.clearValues();
-            }
-          } catch (error) {
-            console.error("Error in change handler:", error);
-            // Optionally propagate error or handle differently
-          }
-        };
-
-        node.on("change", handleChange);
-
-        // Setup visibility observer
-        const observer = new MutationObserver(() => {
-          try {
-            const display = window.getComputedStyle(
-              node.visibilityController
-            ).display;
-            this.toggleVisibility(display !== "none" && condition());
-          } catch (error) {
-            0;
-            console.error("Error in mutation observer:", error);
-            observer.disconnect();
-          }
-        });
-
-        observer.observe(node.visibilityController, {
-          attributes: true,
-          attributeFilter: ["style"],
-        });
-      });
+      );
 
       return this;
     } catch (error) {
@@ -764,7 +730,10 @@ export default class DOMNodeReference {
       this.setRequiredLevel(isRequired());
 
       // Set up dependency tracking
-      this._setupDependencyTracking(isRequired, dependencies);
+      this._configDependencyTracking(
+        () => this.setRequiredLevel(isRequired()),
+        dependencies
+      );
     } catch (error: any) {
       throw new ValidationConfigError(
         this,
@@ -776,46 +745,90 @@ export default class DOMNodeReference {
   }
 
   /**
-   * Sets up tracking for dependent fields using both event listeners and mutation observers.
+   * Sets up tracking for dependencies using both event listeners and mutation observers.
    * @private
+   * @param  handler - The function to execute when dependencies change
+   * @param dependencies - Array of dependent DOM nodes to track
+   * @param options - Additional configuration options
    */
-  private _setupDependencyTracking(
-    isRequired: (instance: DOMNodeReference) => boolean,
-    dependencies: Array<DOMNodeReference>
+  private _configDependencyTracking(
+    handler: () => void,
+    dependencies: Array<DOMNodeReference>,
+    options: {
+      clearValuesOnHide?: boolean;
+      observeVisibility?: boolean;
+      trackInputEvents?: boolean;
+      trackRadioButtons?: boolean;
+    } = {
+      clearValuesOnHide: false,
+      observeVisibility: true,
+      trackInputEvents: true,
+      trackRadioButtons: true,
+    }
   ): void {
-    if (dependencies.length === 0) {
+    const {
+      clearValuesOnHide = false,
+      observeVisibility = true,
+      trackInputEvents = true,
+      trackRadioButtons = true,
+    } = options;
+
+    if (!dependencies?.length) {
       console.warn(
         `powerpagestoolkit: No dependencies specified for ${this.element.id}. ` +
-          "Include all referenced nodes in the dependency array for proper validation."
+          "Include all referenced nodes in the dependency array for proper tracking."
       );
       return;
     }
 
     dependencies.forEach((dep) => {
+      if (!dep || !(dep instanceof DOMNodeReference)) {
+        throw new TypeError(
+          "Each dependency must be a valid DOMNodeReference instance"
+        );
+      }
+
       // Handle value changes
-      dep.on("change", () => this.setRequiredLevel(isRequired(this)));
-      dep.on("input", () => this.setRequiredLevel(isRequired(this)));
+      const handleChange = () => {
+        handler();
+
+        // Handle clearing values if element becomes hidden
+        if (
+          clearValuesOnHide &&
+          window.getComputedStyle(this.visibilityController).display === "none"
+        ) {
+          this.clearValues();
+        }
+      };
+
+      dep.on("change", handleChange);
+
+      if (trackInputEvents) {
+        dep.on("input", handleChange);
+      }
 
       // Handle visibility changes
-      const observer = new MutationObserver(() => {
-        const display = window.getComputedStyle(
-          dep.visibilityController
-        ).display;
-        if (display !== "none") {
-          this.setRequiredLevel(isRequired(this));
-        }
-      });
+      if (observeVisibility) {
+        const observer = new MutationObserver(() => {
+          const display = window.getComputedStyle(
+            dep.visibilityController
+          ).display;
+          if (display !== "none") {
+            handler();
+          }
+        });
 
-      observer.observe(dep.visibilityController, {
-        attributes: true,
-        attributeFilter: ["style"],
-        subtree: false,
-      });
+        observer.observe(dep.visibilityController, {
+          attributes: true,
+          attributeFilter: ["style"],
+          subtree: false,
+        });
+      }
 
       // Handle radio button changes if applicable
-      if (dep.yesRadio || dep.noRadio) {
+      if (trackRadioButtons && (dep.yesRadio || dep.noRadio)) {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
-          radio?.on("change", () => this.setRequiredLevel(isRequired(this)));
+          radio?.on("change", handleChange);
         });
       }
     });
