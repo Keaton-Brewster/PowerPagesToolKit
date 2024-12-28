@@ -6,7 +6,7 @@ import {
   ConditionalRenderingError,
   ValidationConfigError,
 } from "./errors.js";
-import { createDOMNodeReference } from "./createDOMNodeReferences.js";
+import createRef from "./createDOMNodeReferences.js";
 
 export const _init = Symbol("_init");
 
@@ -258,8 +258,8 @@ export default class DOMNodeReference {
   }
 
   private async _attachRadioButtons(): Promise<void> {
-    this.yesRadio = await createDOMNodeReference(`#${this.element.id}_1`);
-    this.noRadio = await createDOMNodeReference(`#${this.element.id}_0`);
+    this.yesRadio = <DOMNodeReference>await createRef(`#${this.element.id}_1`);
+    this.noRadio = <DOMNodeReference>await createRef(`#${this.element.id}_0`);
   }
 
   /**
@@ -417,7 +417,9 @@ export default class DOMNodeReference {
         if (childInputs.length > 0) {
           const clearPromises = childInputs.map(async (input) => {
             // Assuming createDOMNodeReference is imported and available
-            const inputRef = await createDOMNodeReference(input as HTMLElement);
+            const inputRef = <DOMNodeReference>(
+              await createRef(input as HTMLElement, false)
+            );
             return inputRef.clearValues();
           });
 
