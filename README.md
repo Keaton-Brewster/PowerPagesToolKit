@@ -28,7 +28,7 @@ A powerful class for managing DOM elements with automatic value synchronization 
 #### Basic Usage
 
 ```typescript
-import { createRef, createMultipleDOMNodeReferences } from "powerpagestoolkit";
+import { createRef } from "powerpagestoolkit";
 
 // Both methods support standard querySelector syntax:
 
