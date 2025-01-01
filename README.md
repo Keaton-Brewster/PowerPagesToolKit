@@ -19,21 +19,36 @@ A TypeScript/JavaScript utility package for seamless DOM manipulation and DataVe
 npm install powerpagestoolkit
 ```
 
-## Core Modules
+# Core Modules
 
-### DOMNodeReference
+- ### DOMNodeReference
 
 A powerful class for managing DOM elements with automatic value synchronization and event handling.
 
 #### Basic Usage
 
+DOMNodeReferences are instantiated with the help of the following factory function
+
+```typescript
+createRef(
+  target: HTMLElement | string, /* You can target an HTMLElement directly,
+  or use standard querySelector syntax */
+  multiple: (() => boolean) | boolean = false /* are you targeting a single
+  element, or multiple? true = multiple. Default is false (single) */
+): Promise<DOMNodeReference | DOMNodeReferenceArray>;
+```
+
+Import the utility function for creating DOMNodeReference(s)
+
 ```typescript
 import { createRef } from "powerpagestoolkit";
+```
 
-// Both methods support standard querySelector syntax:
+Instantiate one, or multiple instances of a DOMNodeReference
 
+```typescript
 // Create a single reference
-const node = await createRef("#myElement");
+const node = await createRef("#myElement", false);
 
 // Create multiple references
 const nodes = await createRef(".my-class", true);
@@ -57,14 +72,16 @@ const nodes = await createRef(".my-class", true);
 
 ```typescript
 // Add event listener with proper 'this' context
+// uses standard eventListener API, and so supports all DOM events
 node.on("change", function (e) {
   console.log("Current value:", this.value);
 });
 
-// Wait for element to be loaded
-node.onceLoaded((instance) => {
-  console.log("Element ready:", instance.element);
+node.on("click", function (e) {
+  console.log(this, " has been clicked");
 });
+
+...
 ```
 
 ##### Visibility Control
@@ -73,63 +90,108 @@ node.onceLoaded((instance) => {
 // Basic visibility
 node.hide();
 node.show();
+```
 
-// Advanced conditional rendering
+###### Advanced conditional rendering
+
+Out of the box, Microsoft does not provide PowerPages developers to hide or show fields or form elements based on the value of another field. This method allows such configurations
+
+- Method Signature
+
+```typescript
+DOMNodeReference.configureConditionalRendering(
+    condition: () => boolean,
+    dependencies?: Array<DOMNodeReference>,
+    clearValuesOnHide: boolean = true
+  ): DOMNodeReference
+```
+
+- Method Implementation
+
+```typescript
 node.configureConditionalRendering(
   // Function to evaluate wether this node should be visible or not
   function () {
-    return otherNode.value === "expected";
+    return otherNode.value === "some value";
   },
-  [otherNode] // Dependency array | if the values or visibility of these change, the function is re-evaluated
+  [otherNode] /* Dependency array | if the values or visibility of these
+  change, the function is re-evaluated */,
+  true /* should the values in the targeted elements (this.element)
+  be cleared if this node is hidden? Default = true */
 );
 ```
 
 ##### Validation and Requirements
 
+This utility enhances PowerPages forms by adding dynamic field validation and conditional requirements based on other field values.
+
+```typescript
+// Core method for setting up validation
+function configureValidationAndRequirements(
+  isRequired: () => boolean, // Determines if field is required
+  isValid: () => boolean, // Validates field content
+  fieldDisplayName: string, // User-facing field name for error messages
+  dependencies: DOMNodeReference[] // Fields that trigger validation checks
+): DOMNodeReference; /* instance of this is returned for optional
+ method chaining */
+```
+
+- Here's a practical example showing how to make a field required only when a "Yes" radio button is selected:
+
 ```typescript
 node.configureValidationAndRequirements(
-  // Function to evaluate if this field should be required
-  function () {
-    return dependentNode.yesRadio?.checked ?? false;
-  },
-  // Function to evaluate if the data in this field is valid
+  // Make field required only when "Yes" is checked
+  () => dependentNode.yesRadio?.checked ?? false,
+
+  // Basic validation: ensure field isn't empty
   function () {
     return this.value != null && this.value !== "";
   },
-  "Field Display Name", // the name that will be displayed along side a validation failure message
-  [dependentNode] // Dependency array | if the requirement level of these change, this element is re-evaluated
+
+  "Contact Phone", // Shows in error message: "Contact Phone is required"
+
+  [dependentNode] // Revalidate when dependentNode changes
 );
 ```
 
 ##### Element Manipulation
 
 ```typescript
-// Value management
-node.setValue("new value"); // set a static value
+/****/ Value management /****/
+
+// set a static value
+node.setValue("new value");
+
 // or set a value by using some sort of logic
 node.setValue(() => {
   if (true) {
     return "value";
   } else return "default";
 });
-node.updateValue(); // Sync with DOM
 
-// Content manipulation
+// Sync with DOM
+node.updateValue();
+
+/****/ Content manipulation /****/
+
 node.setInnerHTML("<span>New content</span>");
 node.append(childElement);
 node.prepend(headerElement);
 node.after(siblingElement);
 node.before(labelElement);
 
-// Styling
+/****/ Styling /****/
+
 node.setStyle({
   display: "block",
   color: "red",
 });
 
-// State management
+/****/ State management /****/
+
 node.disable();
 node.enable();
+
 ```
 
 ##### Label and Tooltip Management
@@ -151,7 +213,7 @@ node.addTooltip(
 );
 ```
 
-### DataVerse API
+- ### DataVerse API
 
 Type-safe wrapper for DataVerse API operations.
 
