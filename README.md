@@ -92,9 +92,9 @@ node.hide();
 node.show();
 ```
 
-###### Advanced conditional rendering
+##### Advanced conditional rendering
 
-Out of the box, Microsoft does not provide PowerPages developers to hide or show fields or form elements based on the value of another field. This method allows such configurations
+Out of the box, Microsoft does not provide PowerPages developers the ability to hide or show fields or form elements based on the value of another field. This method allows such configurations
 
 - Method Signature
 
