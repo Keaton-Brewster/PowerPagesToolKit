@@ -18,16 +18,15 @@ export default class DOMNodeReference {
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
-   * @type {any}
    */
   public value: any;
 
   // other properties made available after async _init
+  
   /**
    * The element targeted when instantiating DOMNodeReference.
    * Made available in order to perform normal DOM traversal,
    * or access properties not available through this class.
-   * @property {HTMLElement | null}
    */
   public declare element: Element;
   private declare visibilityController: Element;
@@ -36,20 +35,18 @@ export default class DOMNodeReference {
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
-   * @property {DOMNodeReferenceProxy | null}
    */
   public declare yesRadio?: DOMNodeReference | null;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
-   * @property {DOMNodeReferenceProxy | null}
    */
   public declare noRadio?: DOMNodeReference | null;
 
   /**
    * Creates an instance of DOMNodeReference.
-   * @param {string} target - The CSS selector to find the desired DOM element.
+   * @param target - The CSS selector to find the desired DOM element.
    */
   /******/ /******/ constructor(target: HTMLElement | string) {
     this.target = target;
@@ -747,7 +744,7 @@ export default class DOMNodeReference {
   /**
    * Sets up tracking for dependencies using both event listeners and mutation observers.
    * @private
-   * @param  handler - The function to execute when dependencies change
+   * @param handler - The function to execute when dependencies change
    * @param dependencies - Array of dependent DOM nodes to track
    * @param options - Additional configuration options
    */
