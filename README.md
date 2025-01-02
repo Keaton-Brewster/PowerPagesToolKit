@@ -224,14 +224,12 @@ _Example:_
 ```typescript
 import { createRef } from "powerpagestoolkit";
 
-const title = await createRef("h1");
+const title = await createRef("#myTitle");
 
-title.setInnerHTML("Hello World");
 title.addTooltip("This is an Example of a tooltip!", { color: "red" });
 ```
 
 ![Example](./assets//infoIconExample.gif)
-
 
 ### DataVerse API
 
