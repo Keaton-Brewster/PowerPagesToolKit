@@ -53,7 +53,9 @@ export default class DOMNodeReference {
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
-    this.updateValue = this.updateValue.bind(this);
+
+    // we want to ensure that all method calls from the consumer have access to 'this'
+    this._bindMethods();
     // we defer the rest of initialization
   }
 
@@ -79,8 +81,10 @@ export default class DOMNodeReference {
       this.defaultDisplay = this.visibilityController.style.display;
 
       this.isLoaded = true;
-    } catch (e) {
-      throw new DOMNodeInitializationError(this, e as string);
+    } catch (error) {
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
+      throw new DOMNodeInitializationError(this, errorMessage);
     }
   }
 
@@ -240,6 +244,17 @@ export default class DOMNodeReference {
     this.noRadio = <DOMNodeReference>await createRef(`#${this.element.id}_0`);
   }
 
+  private _bindMethods() {
+    // Iterate over all properties of the instance
+    for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
+      const value = this[key as keyof this];
+      // Bind only functions (excluding the constructor)
+      if (key !== "constructor" && typeof value === "function") {
+        (this as any)[key] = value.bind(this);
+      }
+    }
+  }
+
   /**
    * Updates the value and checked state based on element type
    * @public
@@ -349,9 +364,11 @@ export default class DOMNodeReference {
   public disable(): DOMNodeReference {
     try {
       (this.element as HTMLInputElement).disabled = true;
-    } catch (e) {
+    } catch (error) {
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
-        `There was an error trying to disable the target: ${this.target}`
+        `There was an error trying to disable the target: ${this.target}: "${errorMessage}"`
       );
     }
     return this;
@@ -359,7 +376,8 @@ export default class DOMNodeReference {
 
   /**
    * Clears all values and states of the element.
-   * Handles different input types appropriately.
+   * Handles different input types appropriately, and can be called
+   * on an element containing N child inputs to clear all
    *
    * @returns - Instance of this [provides option to method chain]
    * @throws If clearing values fails
@@ -409,15 +427,14 @@ export default class DOMNodeReference {
         );
 
         if (childInputs.length > 0) {
-          const clearPromises = childInputs.map(async (input) => {
-            // Assuming createDOMNodeReference is imported and available
+          const promises = childInputs.map(async (input) => {
             const inputRef = <DOMNodeReference>(
               await createRef(input as HTMLElement, false)
             );
             return inputRef.clearValue();
           });
 
-          await Promise.all(clearPromises);
+          await Promise.all(promises);
         }
       }
 
@@ -598,14 +615,14 @@ export default class DOMNodeReference {
    * Configures conditional rendering for the target element based on a condition
    * and the visibility of one or more trigger elements.
    *
-   * @param {() => boolean} condition - A function that returns a boolean to determine
+   * @param condition - A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
-   * @param {Array<DOMNodeReference>} [dependencies] - An array of `DOMNodeReference` instances. Event listeners are
+   * @param dependencies - An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
-   * @throws {ConditionalRenderingError} When there's an error in setting up conditional rendering
-   * @returns {DOMNodeReference} - Instance of this [provides option to method chain]
+   * @throws - When there's an error in setting up conditional rendering
+   * @returns - Instance of this [provides option to method chain]
    */
   public configureConditionalRendering(
     condition: () => boolean,
@@ -656,12 +673,12 @@ export default class DOMNodeReference {
   /**
    * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
    *
-   * @param {() => boolean} isRequired - Function determining if field is required
-   * @param {() => boolean} isValid - Function validating field input
-   * @param {string} fieldDisplayName - Display name for error messages
-   * @param {Array<DOMNodeReference>} dependencies - Fields that trigger requirement/validation updates
-   * @returns {DOMNodeReference} Instance of this
-   * @throws {ValidationConfigError} If validation setup fails
+   * @param isRequired - Function determining if field is required
+   * @param isValid - Function validating field input
+   * @param fieldDisplayName - Display name for error messages
+   * @param dependencies - Fields that trigger requirement/validation updates
+   * @returns - Instance of this
+   * @throws - If validation setup fails
    */
   public configureValidationAndRequirements(
     isRequired: () => boolean,
@@ -831,7 +848,7 @@ export default class DOMNodeReference {
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
    *
-   * @param {Function | boolean} isRequired - Determines whether the field should be marked as required.
+   * @param isRequired - Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
    * @returns - Instance of this [provides option to method chain]
    */
@@ -855,7 +872,8 @@ export default class DOMNodeReference {
    * Executes a callback function once the element is fully loaded.
    * If the element is already loaded, the callback is called immediately.
    * Otherwise, a MutationObserver is used to detect when the element is added to the DOM.
-   * @param {Function} callback - A callback function to execute once the element is loaded.
+   * @param callback - A callback function to execute once the element is loaded.
+   * Receives instance of 'this' as an argument
    */
   public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
     if (this.isLoaded) {
