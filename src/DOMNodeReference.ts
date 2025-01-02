@@ -8,6 +8,12 @@ import {
 } from "./errors.js";
 import createRef from "./createDOMNodeReferences.js";
 
+interface BoundEventListener {
+  element: HTMLElement;
+  handler: (e: Event) => void;
+  event: keyof HTMLElementEventMap;
+}
+
 export const _init = Symbol("_init");
 
 export default class DOMNodeReference {
@@ -15,6 +21,8 @@ export default class DOMNodeReference {
   public target: HTMLElement | string;
   private isLoaded: boolean;
   private defaultDisplay: string;
+  private observers: Array<MutationObserver>;
+  private boundEventListeners: Array<BoundEventListener>;
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -53,6 +61,8 @@ export default class DOMNodeReference {
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
+    this.observers = [];
+    this.boundEventListeners = [];
 
     // we want to ensure that all method calls from the consumer have access to 'this'
     this._bindMethods();
@@ -80,6 +90,22 @@ export default class DOMNodeReference {
       this._attachVisibilityController();
       this.defaultDisplay = this.visibilityController.style.display;
 
+      // when the element is removed from the dom, destroy this
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (Array.from(mutation.removedNodes).includes(this.element)) {
+            this._destroy();
+            observer.disconnect();
+            break;
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
       this.isLoaded = true;
     } catch (error) {
       const errorMessage: string =
@@ -103,7 +129,7 @@ export default class DOMNodeReference {
       }
 
       // Define event mappings
-      const eventMapping: Record<string, string> = {
+      const eventMapping: Record<string, keyof HTMLElementEventMap> = {
         checkbox: "click",
         radio: "click",
         select: "change",
@@ -112,7 +138,7 @@ export default class DOMNodeReference {
       };
 
       // Determine event type based on element
-      let eventType: string;
+      let eventType: keyof HTMLElementEventMap;
       if (this.element instanceof HTMLSelectElement) {
         eventType = "change";
       } else if (this.element instanceof HTMLInputElement) {
@@ -123,6 +149,15 @@ export default class DOMNodeReference {
 
       // Attach main event listener
       this.element.addEventListener(eventType, this.updateValue);
+
+      // push element and handler for event listener cleanup on _destroy()
+      const _element = <HTMLElement>this.element;
+      const _updateValue = this.updateValue;
+      this.boundEventListeners.push({
+        element: _element,
+        handler: _updateValue,
+        event: eventType,
+      });
 
       // Handle date inputs separately
       if (
@@ -147,6 +182,14 @@ export default class DOMNodeReference {
 
     const dateNode = await waitFor("[data-date-format]", parentElement);
     dateNode.addEventListener("select", this.updateValue);
+
+    // make sure to push into bound listeners for event cleanup on _destroy()
+    const _handler = this.updateValue;
+    this.boundEventListeners.push({
+      element: dateNode,
+      handler: _handler,
+      event: "select",
+    });
   }
 
   /**
@@ -255,6 +298,27 @@ export default class DOMNodeReference {
     }
   }
 
+  private _destroy(): void {
+    if (this.boundEventListeners.length > 0) {
+      this.boundEventListeners.forEach((binding) => {
+        binding.element?.removeEventListener(binding.event, binding.handler);
+      });
+    }
+
+    if (this.observers.length > 0) {
+      this.observers.forEach((observer) => {
+        observer.disconnect();
+      });
+    }
+
+    this.yesRadio?._destroy();
+    this.noRadio?._destroy();
+    this.yesRadio = null;
+    this.noRadio = null;
+    this.isLoaded = false;
+    this.value = null;
+  }
+
   /**
    * Updates the value and checked state based on element type
    * @public
@@ -281,14 +345,9 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public on(
-    eventType: string,
+    eventType: keyof HTMLElementEventMap,
     eventHandler: (e: Event) => void
   ): DOMNodeReference {
-    if (typeof eventType !== "string") {
-      throw new Error(
-        `Argument "eventType" must be of type "string". Received: ${typeof eventType}`
-      );
-    }
     if (typeof eventHandler !== "function") {
       throw new Error(
         `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`
@@ -296,6 +355,16 @@ export default class DOMNodeReference {
     }
 
     this.element.addEventListener(eventType, eventHandler.bind(this));
+
+    // push to bound listeners for cleanup on _destroy()
+    const _element = <HTMLElement>this.element;
+    const _handler = eventHandler;
+    this.boundEventListeners.push({
+      element: _element,
+      handler: _handler,
+      event: eventType,
+    });
+
     return this;
   }
 
@@ -834,6 +903,8 @@ export default class DOMNodeReference {
           attributeFilter: ["style"],
           subtree: false,
         });
+
+        this.observers.push(observer);
       }
 
       // Handle radio button changes if applicable
@@ -897,5 +968,7 @@ export default class DOMNodeReference {
       subtree: true,
       childList: true,
     });
+
+    this.observers.push(observer);
   }
 }
