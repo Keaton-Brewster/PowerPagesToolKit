@@ -99,23 +99,25 @@ Out of the box, Microsoft does not provide PowerPages developers the ability to 
 _Method signature:_
 
 ```typescript
-DOMNodeReference.configureConditionalRendering(
+configureConditionalRendering(
     condition: () => boolean,
     dependencies?: Array<DOMNodeReference>,
     clearValuesOnHide: boolean = true
-  ): DOMNodeReference
+  ): DOMNodeReference /* Instance of this returned
+  for optional method chaining */
 ```
 
 _Example implementation:_
 
 ```typescript
 node.configureConditionalRendering(
-  // Function to evaluate wether this node should be visible or not
-  function () {
+  function () // Function to evaluate wether this node should be visible or not
+  {
     return otherNode.value === "some value";
   },
   [otherNode] /* Dependency array | if the values or visibility of these
   change, the function is re-evaluated */,
+
   true /* should the values in the targeted elements (this.element)
   be cleared if this node is hidden? Default = true */
 );
@@ -128,12 +130,11 @@ This utility enhances PowerPages forms by adding dynamic field validation and co
 _Method signature:_
 
 ```typescript
-// Core method for setting up validation
-function configureValidationAndRequirements(
-  isRequired: () => boolean, // Determines if field is required
-  isValid: () => boolean, // Validates field content
-  fieldDisplayName: string, // User-facing field name for error messages
-  dependencies: DOMNodeReference[] // Fields that trigger validation checks
+configureValidationAndRequirements(
+  isRequired: () => boolean,
+  isValid: () => boolean,
+  fieldDisplayName: string,
+  dependencies: DOMNodeReference[]
 ): DOMNodeReference; /* instance of this is returned for optional
  method chaining */
 ```
@@ -217,6 +218,20 @@ node.addTooltip(
   { color: "orange", fontSize: "30px" }
 );
 ```
+
+_Example:_
+
+```typescript
+import { createRef } from "powerpagestoolkit";
+
+const title = await createRef("h1");
+
+title.setInnerHTML("Hello World");
+title.addTooltip("This is an Example of a tooltip!", { color: "red" });
+```
+
+![Example](./assets//infoIconExample.gif)
+
 
 ### DataVerse API
 
