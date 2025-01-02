@@ -10,7 +10,7 @@ import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
   multiple: (() => boolean) | boolean = false
-): Promise<DOMNodeReference | DOMNodeReferenceArray> {
+): Promise<DOMNodeReference | DOMNodeReference[]> {
   try {
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;
@@ -65,9 +65,21 @@ function createProxyHandler() {
 }
 
 // Separate array enhancement for cleaner code
-function enhanceArray(array: DOMNodeReference[]): DOMNodeReferenceArray {
-  const enhanced = array as DOMNodeReferenceArray;
-  enhanced.hideAll = () => enhanced.forEach((instance) => instance.hide());
-  enhanced.showAll = () => enhanced.forEach((instance) => instance.show());
-  return enhanced;
+function enhanceArray(array: DOMNodeReference[]): DOMNodeReference[] {
+  Object.defineProperties(array, {
+    hideAll: {
+      value: function () {
+        this.forEach((instance: DOMNodeReference) => instance.hide());
+        return this;
+      },
+    },
+    showAll: {
+      value: function () {
+        this.forEach((instance: DOMNodeReference) => instance.show());
+        return this;
+      },
+    },
+  });
+
+  return array;
 }
