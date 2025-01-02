@@ -28,8 +28,8 @@ export default class DOMNodeReference {
    * Made available in order to perform normal DOM traversal,
    * or access properties not available through this class.
    */
-  public declare element: Element;
-  private declare visibilityController: Element;
+  public declare element: HTMLElement;
+  private declare visibilityController: HTMLElement;
   public declare checked: boolean;
   /**
    * Represents the 'yes' option of a boolean radio field.
@@ -76,9 +76,7 @@ export default class DOMNodeReference {
 
       this._initValueSync();
       this._attachVisibilityController();
-      this.defaultDisplay = (
-        this.visibilityController as HTMLElement
-      ).style.display;
+      this.defaultDisplay = this.visibilityController.style.display;
 
       this.isLoaded = true;
     } catch (e) {
@@ -145,23 +143,6 @@ export default class DOMNodeReference {
 
     const dateNode = await waitFor("[data-date-format]", parentElement);
     dateNode.addEventListener("select", this.updateValue);
-  }
-
-  /**
-   * Updates the value and checked state based on element type
-   * @public
-   */
-  public updateValue(): void {
-    const elementValue = this._getElementValue();
-
-    // Update instance properties
-    this.value = elementValue.value;
-    if (elementValue.checked !== undefined) {
-      this.checked = elementValue.checked;
-    }
-
-    // Handle radio button group if present
-    this._updateRadioGroup();
   }
 
   /**
@@ -260,6 +241,23 @@ export default class DOMNodeReference {
   }
 
   /**
+   * Updates the value and checked state based on element type
+   * @public
+   */
+  public updateValue(): void {
+    const elementValue = this._getElementValue();
+
+    // Update instance properties
+    this.value = elementValue.value;
+    if (elementValue.checked !== undefined) {
+      this.checked = elementValue.checked;
+    }
+
+    // Handle radio button group if present
+    this._updateRadioGroup();
+  }
+
+  /**
    * Sets up an event listener based on the specified event type, executing the specified
    * event handler
    * @param eventType - The DOM event to watch for
@@ -291,7 +289,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    (this.visibilityController as HTMLElement).style.display = "none";
+    this.visibilityController.style.display = "none";
     return this;
   }
 
@@ -300,8 +298,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    (this.visibilityController as HTMLElement).style.display =
-      this.defaultDisplay;
+    this.visibilityController.style.display = this.defaultDisplay;
     return this;
   }
 
