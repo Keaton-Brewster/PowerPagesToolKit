@@ -22,7 +22,7 @@ export default class DOMNodeReference {
   public value: any;
 
   // other properties made available after async _init
-  
+
   /**
    * The element targeted when instantiating DOMNodeReference.
    * Made available in order to perform normal DOM traversal,
@@ -307,7 +307,7 @@ export default class DOMNodeReference {
 
   /**
    *
-   * @param {function(instance: DOMNodeReference): boolean | boolean} shouldShow - Either a function that returns true or false,
+   * @param shouldShow - Either a function that returns true or false,
    * or a natural boolean to determine the visibility of this
    * @returns - Instance of this [provides option to method chain]
    */
@@ -367,7 +367,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    * @throws If clearing values fails
    */
-  public async clearValues(): Promise<DOMNodeReference> {
+  public async clearValue(): Promise<DOMNodeReference> {
     try {
       const element = this.element;
 
@@ -417,7 +417,7 @@ export default class DOMNodeReference {
             const inputRef = <DOMNodeReference>(
               await createRef(input as HTMLElement, false)
             );
-            return inputRef.clearValues();
+            return inputRef.clearValue();
           });
 
           await Promise.all(clearPromises);
@@ -429,8 +429,8 @@ export default class DOMNodeReference {
         this.yesRadio instanceof DOMNodeReference &&
         this.noRadio instanceof DOMNodeReference
       ) {
-        await this.yesRadio.clearValues();
-        await this.noRadio.clearValues();
+        await this.yesRadio.clearValue();
+        await this.noRadio.clearValue();
       }
 
       // Dispatch events in the correct order
@@ -794,7 +794,7 @@ export default class DOMNodeReference {
           clearValuesOnHide &&
           window.getComputedStyle(this.visibilityController).display === "none"
         ) {
-          this.clearValues();
+          this.clearValue();
         }
       };
 

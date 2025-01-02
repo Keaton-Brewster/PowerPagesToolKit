@@ -21,7 +21,7 @@ npm install powerpagestoolkit
 
 # Core Modules
 
-- ### DOMNodeReference
+### DOMNodeReference
 
 A powerful class for managing DOM elements with automatic value synchronization and event handling.
 
@@ -92,11 +92,11 @@ node.hide();
 node.show();
 ```
 
-##### Advanced conditional rendering
+**_Advanced conditional rendering_**
 
 Out of the box, Microsoft does not provide PowerPages developers the ability to hide or show fields or form elements based on the value of another field. This method allows such configurations
 
-- Method Signature
+_Method signature:_
 
 ```typescript
 DOMNodeReference.configureConditionalRendering(
@@ -106,7 +106,7 @@ DOMNodeReference.configureConditionalRendering(
   ): DOMNodeReference
 ```
 
-- Method Implementation
+_Example implementation:_
 
 ```typescript
 node.configureConditionalRendering(
@@ -125,6 +125,8 @@ node.configureConditionalRendering(
 
 This utility enhances PowerPages forms by adding dynamic field validation and conditional requirements based on other field values.
 
+_Method signature:_
+
 ```typescript
 // Core method for setting up validation
 function configureValidationAndRequirements(
@@ -136,7 +138,7 @@ function configureValidationAndRequirements(
  method chaining */
 ```
 
-- Here's a practical example showing how to make a field required only when a "Yes" radio button is selected:
+_Example implementation:_
 
 ```typescript
 node.configureValidationAndRequirements(
@@ -171,6 +173,9 @@ node.setValue(() => {
 
 // Sync with DOM
 node.updateValue();
+
+// Clear the value for both the instance and the target element
+node.clearValue()
 
 /****/ Content manipulation /****/
 
@@ -213,11 +218,11 @@ node.addTooltip(
 );
 ```
 
-- ### DataVerse API
+### DataVerse API
 
-Type-safe wrapper for DataVerse API operations.
+Perform secure API calls to DataVerse from your PowerPages site. This method implements the shell deferred token to send requests with `__RequestVerificationToken`
 
-#### Create Record
+#### Create Records
 
 ```typescript
 await API.createRecord("accounts", {
@@ -277,18 +282,10 @@ node.configureConditionalRendering(
 
 3. Use TypeScript for better type safety and IntelliSense support.
 
-4. Handle loading states:
+4. Use proper error handling with API operations:
 
 ```typescript
-node.onceLoaded((instance) => {
-  // Safe to manipulate the element here
-});
-```
-
-5. Use proper error handling with API operations:
-
-```typescript
-await API.createRecord(/*...*/)
+/* optionally await */ API.createRecord(/*...*/)
   .then((recordId) => {})
   .catch((error) => {
     // handle your errors appropriately
@@ -306,3 +303,7 @@ Contributions are welcome, feel free to create a pull request with enhancements.
 ## License
 
 This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+
+## Funding
+
+If you like this project, found it useful, or would like to help support the long-term support of this package, please feel free to contribute via GitHub Sponsors: [Keaton-Brewster](https://github.com/sponsors/Keaton-Brewster)
