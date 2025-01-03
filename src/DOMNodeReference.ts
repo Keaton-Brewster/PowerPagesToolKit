@@ -23,14 +23,18 @@ const _updateRadioGroup = Symbol("_URG");
 const _attachVisibilityController = Symbol("_AVC");
 const _attachRadioButtons = Symbol("_ARB");
 const _bindMethods = Symbol("_B");
+const observers = Symbol("O");
+const boundEventListeners = Symbol("BEV");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: HTMLElement | string;
+  public root: HTMLElement;
+  private debounceTime: number;
   private isLoaded: boolean;
   private defaultDisplay: string;
-  private observers: Array<MutationObserver> = [];
-  private boundEventListeners: Array<BoundEventListener> = [];
+  private [observers]: Array<MutationObserver> = [];
+  private [boundEventListeners]: Array<BoundEventListener> = [];
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -63,9 +67,17 @@ export default class DOMNodeReference {
   /**
    * Creates an instance of DOMNodeReference.
    * @param target - The CSS selector to find the desired DOM element.
+   * @param root - Optionally specify the element within to search for the element targeted by 'target'
+   * Defaults to 'document.body'
    */
-  /******/ /******/ constructor(target: HTMLElement | string) {
+  /******/ /******/ constructor(
+    target: HTMLElement | string,
+    root: HTMLElement = document.body,
+    debounceTime: number = 5000
+  ) {
     this.target = target;
+    this.root = root;
+    this.debounceTime = debounceTime;
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
@@ -82,8 +94,13 @@ export default class DOMNodeReference {
      * of this package: i.e. by any consumers of the package
      */
     try {
-      const element = await waitFor(this.target);
-      this.element = element;
+      if (this.target instanceof HTMLElement) {
+        this.element = this.target;
+      } else {
+        this.element = <HTMLElement>(
+          await waitFor(this.target, this.root, false, this.debounceTime)
+        );
+      }
 
       if (!this.element) {
         throw new DOMNodeNotFoundError(this);
@@ -159,7 +176,7 @@ export default class DOMNodeReference {
       // push element and handler for event listener cleanup on _destroy()
       const _element = <HTMLElement>this.element;
       const _updateValue = this.updateValue;
-      this.boundEventListeners.push({
+      this[boundEventListeners].push({
         element: _element,
         handler: _updateValue,
         event: eventType,
@@ -186,12 +203,14 @@ export default class DOMNodeReference {
       throw new Error("Date input must have a parent element");
     }
 
-    const dateNode = await waitFor("[data-date-format]", parentElement);
+    const dateNode = <HTMLElement>(
+      await waitFor("[data-date-format]", parentElement, false, 1500)
+    );
     dateNode.addEventListener("select", this.updateValue);
 
     // make sure to push into bound listeners for event cleanup on _destroy()
     const _handler = this.updateValue;
-    this.boundEventListeners.push({
+    this[boundEventListeners].push({
       element: dateNode,
       handler: _handler,
       event: "select",
@@ -305,10 +324,10 @@ export default class DOMNodeReference {
   }
 
   private [_destroy](): void {
-    this.boundEventListeners?.forEach((binding) => {
+    this[boundEventListeners]?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
-    this.observers?.forEach((observer) => {
+    this[observers]?.forEach((observer) => {
       observer.disconnect();
     });
     this.yesRadio?.[_destroy]();
@@ -359,7 +378,7 @@ export default class DOMNodeReference {
     // push to bound listeners for cleanup on _destroy()
     const _element = <HTMLElement>this.element;
     const _handler = eventHandler;
-    this.boundEventListeners.push({
+    this[boundEventListeners].push({
       element: _element,
       handler: _handler,
       event: eventType,
@@ -883,7 +902,7 @@ export default class DOMNodeReference {
 
       dep.on("change", handleChange);
       //make sure to track event listener for _destroy()
-      this.boundEventListeners.push({
+      this[boundEventListeners].push({
         element: dep.element,
         event: "change",
         handler: handleChange,
@@ -892,7 +911,7 @@ export default class DOMNodeReference {
       if (trackInputEvents) {
         dep.on("input", handleChange);
         //make sure to track event listener for _destroy()
-        this.boundEventListeners.push({
+        this[boundEventListeners].push({
           element: dep.element,
           event: "input",
           handler: handleChange,
@@ -916,7 +935,7 @@ export default class DOMNodeReference {
           subtree: false,
         });
 
-        this.observers.push(observer);
+        this[observers].push(observer);
       }
 
       // Handle radio button changes if applicable
@@ -924,7 +943,7 @@ export default class DOMNodeReference {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
           <DOMNodeReference>radio.on("change", handleChange);
           //make sure to track event listener for _destroy()
-          this.boundEventListeners.push({
+          this[boundEventListeners].push({
             element: radio.element,
             event: "change",
             handler: handleChange,
@@ -987,6 +1006,6 @@ export default class DOMNodeReference {
       childList: true,
     });
 
-    this.observers.push(observer);
+    this[observers].push(observer);
   }
 }
