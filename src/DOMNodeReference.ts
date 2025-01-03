@@ -14,15 +14,23 @@ interface BoundEventListener {
   event: keyof HTMLElementEventMap;
 }
 
-export const _init = Symbol("_init");
+export const _init = Symbol("_I");
+const _destroy = Symbol("_D");
+const _valueSync = Symbol("_VS");
+const _dateSync = Symbol("_DS");
+const _getElementValue = Symbol("_GEV");
+const _updateRadioGroup = Symbol("_URG");
+const _attachVisibilityController = Symbol("_AVC");
+const _attachRadioButtons = Symbol("_ARB");
+const _bindMethods = Symbol("_B");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: HTMLElement | string;
   private isLoaded: boolean;
   private defaultDisplay: string;
-  private observers: Array<MutationObserver>;
-  private boundEventListeners: Array<BoundEventListener>;
+  private observers: Array<MutationObserver> = [];
+  private boundEventListeners: Array<BoundEventListener> = [];
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -44,13 +52,13 @@ export default class DOMNodeReference {
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare yesRadio?: DOMNodeReference | null;
+  public declare yesRadio: DOMNodeReference | null;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare noRadio?: DOMNodeReference | null;
+  public declare noRadio: DOMNodeReference | null;
 
   /**
    * Creates an instance of DOMNodeReference.
@@ -61,11 +69,9 @@ export default class DOMNodeReference {
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
-    this.observers = [];
-    this.boundEventListeners = [];
 
     // we want to ensure that all method calls from the consumer have access to 'this'
-    this._bindMethods();
+    this[_bindMethods]();
     // we defer the rest of initialization
   }
 
@@ -83,18 +89,18 @@ export default class DOMNodeReference {
         throw new DOMNodeNotFoundError(this);
       }
       if (this.element.classList.contains("boolean-radio")) {
-        await this._attachRadioButtons();
+        await this[_attachRadioButtons]();
       }
 
-      this._initValueSync();
-      this._attachVisibilityController();
+      this[_valueSync]();
+      this[_attachVisibilityController]();
       this.defaultDisplay = this.visibilityController.style.display;
 
       // when the element is removed from the dom, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (Array.from(mutation.removedNodes).includes(this.element)) {
-            this._destroy();
+            this[_destroy]();
             observer.disconnect();
             break;
           }
@@ -119,7 +125,7 @@ export default class DOMNodeReference {
    * based on element type.
    * @private
    */
-  private async _initValueSync(): Promise<void> {
+  private async [_valueSync](): Promise<void> {
     try {
       // Initial sync
       this.updateValue();
@@ -164,7 +170,7 @@ export default class DOMNodeReference {
         this.element instanceof HTMLInputElement &&
         this.element.dataset.type === "date"
       ) {
-        await this._initDateSync(this.element);
+        await this[_dateSync](this.element);
       }
     } catch (error) {
       throw new DOMNodeInitializationError(
@@ -174,7 +180,7 @@ export default class DOMNodeReference {
     }
   }
 
-  private async _initDateSync(element: HTMLInputElement): Promise<void> {
+  private async [_dateSync](element: HTMLInputElement): Promise<void> {
     const parentElement = element.parentElement;
     if (!parentElement) {
       throw new Error("Date input must have a parent element");
@@ -195,9 +201,9 @@ export default class DOMNodeReference {
   /**
    * Gets the current value of the element based on its type
    * @private
-   * @returns {ElementValue} Object containing value and optional checked state
+   * @returns Object containing value and optional checked state
    */
-  private _getElementValue(): ElementValue {
+  private [_getElementValue](): ElementValue {
     const input = this.element as HTMLInputElement;
     const select = this.element as HTMLSelectElement;
 
@@ -241,7 +247,7 @@ export default class DOMNodeReference {
    * Updates related radio buttons if this is part of a radio group
    * @private
    */
-  private _updateRadioGroup(): void {
+  private [_updateRadioGroup](): void {
     if (
       this.yesRadio instanceof DOMNodeReference &&
       this.noRadio instanceof DOMNodeReference
@@ -253,7 +259,7 @@ export default class DOMNodeReference {
     }
   }
 
-  private _attachVisibilityController(): void {
+  private [_attachVisibilityController](): void {
     // Set the default visibility controller to the element itself
     this.visibilityController = this.element;
 
@@ -282,12 +288,12 @@ export default class DOMNodeReference {
     }
   }
 
-  private async _attachRadioButtons(): Promise<void> {
+  private async [_attachRadioButtons](): Promise<void> {
     this.yesRadio = <DOMNodeReference>await createRef(`#${this.element.id}_1`);
     this.noRadio = <DOMNodeReference>await createRef(`#${this.element.id}_0`);
   }
 
-  private _bindMethods() {
+  private [_bindMethods]() {
     // Iterate over all properties of the instance
     for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
       const value = this[key as keyof this];
@@ -298,21 +304,15 @@ export default class DOMNodeReference {
     }
   }
 
-  private _destroy(): void {
-    if (this.boundEventListeners.length > 0) {
-      this.boundEventListeners.forEach((binding) => {
-        binding.element?.removeEventListener(binding.event, binding.handler);
-      });
-    }
-
-    if (this.observers.length > 0) {
-      this.observers.forEach((observer) => {
-        observer.disconnect();
-      });
-    }
-
-    this.yesRadio?._destroy();
-    this.noRadio?._destroy();
+  private [_destroy](): void {
+    this.boundEventListeners?.forEach((binding) => {
+      binding.element?.removeEventListener(binding.event, binding.handler);
+    });
+    this.observers?.forEach((observer) => {
+      observer.disconnect();
+    });
+    this.yesRadio?.[_destroy]();
+    this.noRadio?.[_destroy]();
     this.yesRadio = null;
     this.noRadio = null;
     this.isLoaded = false;
@@ -324,7 +324,7 @@ export default class DOMNodeReference {
    * @public
    */
   public updateValue(): void {
-    const elementValue = this._getElementValue();
+    const elementValue = this[_getElementValue]();
 
     // Update instance properties
     this.value = elementValue.value;
@@ -333,7 +333,7 @@ export default class DOMNodeReference {
     }
 
     // Handle radio button group if present
-    this._updateRadioGroup();
+    this[_updateRadioGroup]();
   }
 
   /**
@@ -882,9 +882,21 @@ export default class DOMNodeReference {
       };
 
       dep.on("change", handleChange);
+      //make sure to track event listener for _destroy()
+      this.boundEventListeners.push({
+        element: dep.element,
+        event: "change",
+        handler: handleChange,
+      });
 
       if (trackInputEvents) {
         dep.on("input", handleChange);
+        //make sure to track event listener for _destroy()
+        this.boundEventListeners.push({
+          element: dep.element,
+          event: "input",
+          handler: handleChange,
+        });
       }
 
       // Handle visibility changes
@@ -908,9 +920,15 @@ export default class DOMNodeReference {
       }
 
       // Handle radio button changes if applicable
-      if (trackRadioButtons && (dep.yesRadio || dep.noRadio)) {
+      if (trackRadioButtons && dep.yesRadio && dep.noRadio) {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
-          radio?.on("change", handleChange);
+          <DOMNodeReference>radio.on("change", handleChange);
+          //make sure to track event listener for _destroy()
+          this.boundEventListeners.push({
+            element: radio.element,
+            event: "change",
+            handler: handleChange,
+          });
         });
       }
     });
