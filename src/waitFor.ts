@@ -6,38 +6,102 @@
  */
 export default function waitFor(
   target: HTMLElement | string,
-  root: HTMLElement | Document = document
-): Promise<HTMLElement> {
+  root: HTMLElement | Document = document,
+  multiple: boolean = false,
+  debounceTime: number
+): Promise<HTMLElement | HTMLElement[]> {
+  //
   return new Promise((resolve, reject) => {
-    // Create observer to watch for target in DOM
-    const observer = new MutationObserver(() => {
-      const observedElement = <HTMLElement>root.querySelector(<string>target);
-      if (observedElement) {
-        clearTimeout(timeout);
-        observer.disconnect();
-        resolve(observedElement);
+    //
+    if (multiple) {
+      //
+      let timeout: NodeJS.Timeout;
+      const observedElements: HTMLElement[] = [];
+      const observedSet: Set<HTMLElement> = new Set();
+
+      if (debounceTime < 1) {
+        return resolve(
+          <HTMLElement[]>Array.from(root.querySelectorAll(<string>target))
+        );
       }
-    });
-    const timeout = setTimeout(() => {
-      observer.disconnect();
-      reject(new Error(`Element not found: ${target} within 5 seconds`));
-    }, 5000);
+      const observer = new MutationObserver(() => {
+        const found = <HTMLElement[]>(
+          Array.from(root.querySelectorAll(<string>target))
+        );
 
-    // Check if target is already in DOM
-    if (target instanceof HTMLElement) {
-      clearTimeout(timeout);
-      return resolve(target);
-    }
-    const element = <HTMLElement>root.querySelector(target);
-    if (element) {
-      clearTimeout(timeout);
-      return resolve(element);
-    }
+        // If elements are found, store them in observedElements
+        found.forEach((element) => {
+          if (!observedSet.has(element)) {
+            observedSet.add(element);
+            observedElements.push(element);
+          }
+        });
 
-    observer.observe(document.body, {
-      subtree: true,
-      attributes: true,
-      childList: true, // Detects added/removed child elements
-    });
+        // Clear the previous timeout and set a new one
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          // Resolve the promise after debounce period if no more mutations
+          if (observedElements.length > 0) {
+            observer.disconnect();
+            resolve(observedElements);
+          } else {
+            reject(
+              new Error(
+                `No elements found with target: "${target}" within ${
+                  debounceTime / 1000
+                } seconds. If the element you are expected has not loading, consider raising your timeout.`
+              )
+            );
+          }
+        }, debounceTime);
+      });
+
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: false,
+      });
+      //
+    } else {
+      // Create observer to watch for target in DOM
+      const observer = new MutationObserver(() => {
+        const observedElement = <HTMLElement>root.querySelector(<string>target);
+        if (observedElement) {
+          clearTimeout(timeout);
+          observer.disconnect();
+          resolve(observedElement);
+        }
+      });
+      const timeout = setTimeout(() => {
+        observer.disconnect();
+        reject(
+          new Error(
+            `Element not found by target: "${target}" within ${
+              debounceTime / 1000
+            } second. If the element you are expected has not loading, consider raising your timeout.`
+          )
+        );
+      }, debounceTime);
+
+      // Check if target is already in DOM
+      if (target instanceof HTMLElement) {
+        clearTimeout(timeout);
+        return resolve(target);
+      }
+      const element = <HTMLElement>root.querySelector(target);
+      if (element) {
+        clearTimeout(timeout);
+        return resolve(element);
+      }
+
+      observer.observe(root, {
+        subtree: true,
+        attributes: true,
+        childList: true, // Detects added/removed child elements
+      });
+      //
+    }
+    //
   });
+  //
 }
