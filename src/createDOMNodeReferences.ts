@@ -2,7 +2,7 @@ import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
-export default function createDOMNodeReference(
+export default async function createDOMNodeReference(
   target: HTMLElement | string,
   multiple: true | (() => true),
   options?: {
@@ -11,7 +11,7 @@ export default function createDOMNodeReference(
   }
 ): Promise<DOMNodeReference[]>;
 
-export default function createDOMNodeReference(
+export default async function createDOMNodeReference(
   target: HTMLElement | string,
   multiple?: false | (() => false),
   options?: {
