@@ -1,3 +1,17 @@
+export default function waitFor(
+  target: HTMLElement | string,
+  root: HTMLElement | Document,
+  multiple: false,
+  debounceTime: number
+): Promise<HTMLElement>;
+
+export default function waitFor(
+  target: HTMLElement | string,
+  root: HTMLElement | Document,
+  multiple: true,
+  debounceTime: number
+): Promise<HTMLElement[]>;
+
 /**
  *
  * @param target basic querySelector syntax to select an element
