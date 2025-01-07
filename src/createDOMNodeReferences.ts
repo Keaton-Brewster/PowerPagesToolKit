@@ -5,14 +5,18 @@ import waitFor from "./waitFor.js";
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
   options?: {
-    multiple?: false | undefined;
+    multiple?: (() => boolean) | false;
+    root?: HTMLElement;
+    timeout?: number;
   }
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
   options?: {
-    multiple?: true;
+    multiple?: (() => true) | true;
+    root?: HTMLElement;
+    timeout?: number;
   }
 ): Promise<DOMNodeReference[]>;
 
