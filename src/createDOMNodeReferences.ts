@@ -4,21 +4,17 @@ import waitFor from "./waitFor.js";
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
-  multiple: true | (() => true),
   options?: {
-    root?: HTMLElement;
-    timeout?: number;
+    multiple?: false | undefined;
   }
-): Promise<DOMNodeReference[]>;
+): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
-  multiple?: false | (() => false),
   options?: {
-    root?: HTMLElement;
-    timeout?: number;
+    multiple?: true;
   }
-): Promise<DOMNodeReference>;
+): Promise<DOMNodeReference[]>;
 
 /**
  * Creates and initializes a DOMNodeReference instance.
@@ -31,16 +27,17 @@ export default async function createDOMNodeReference(
  */
 export default async function createDOMNodeReference(
   target: HTMLElement | string,
-  multiple: (() => boolean) | boolean = false,
   options: {
+    multiple?: (() => boolean) | boolean;
     root?: HTMLElement;
     timeout?: number;
   } = {
+    multiple: false,
     root: document.body,
     timeout: 0,
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]> {
-  const { root = document.body, timeout = 0 } = options;
+  const { multiple = false, root = document.body, timeout = 0 } = options;
   try {
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;

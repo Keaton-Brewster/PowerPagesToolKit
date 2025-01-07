@@ -517,7 +517,7 @@ export default class DOMNodeReference {
         if (childInputs.length > 0) {
           const promises = childInputs.map(async (input) => {
             const inputRef = <DOMNodeReference>(
-              await createRef(input as HTMLElement, false)
+              await createRef(input as HTMLElement, { multiple: false })
             );
             return inputRef.clearValue();
           });

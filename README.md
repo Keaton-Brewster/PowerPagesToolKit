@@ -27,16 +27,54 @@ A powerful class for managing DOM elements with automatic value synchronization 
 
 #### Basic Usage
 
-DOMNodeReferences are instantiated with the help of the following factory function
+DOMNodeReferences are instantiated with the help of the following factory function: `createRef`
 
 ```typescript
 createRef(
-  target: HTMLElement | string, /* You can target an HTMLElement directly,
-  or use standard querySelector syntax */
-  multiple: (() => boolean) | boolean = false /* are you targeting a single
-  element, or multiple? true = multiple. Default is false (single) */
+  target: HTMLElement | string,
+  options: {
+    multiple: (() => boolean) | boolean = false,
+    root: HTMLElement,
+    timeout: number
+  }
 ): Promise<DOMNodeReference | DOMNodeReferenceArray>;
 ```
+
+createRef takes two main arguments:
+
+<table style="width: 100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Property</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Type</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;">target</td>
+      <td style="border: 1px solid #ddd; padding: 8px;">
+        <pre><code class="language-javascript">string | HTMLElement</code></pre>
+      </td>
+      <td style="border: 1px solid #ddd; padding: 8px;">
+        Use standard <code>querySelector</code> syntax to target an element, or elements in the DOM, or pass in an instance of the element itself to create a reference.
+      </td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;">options</td>
+      <td style="border: 1px solid #ddd; padding: 8px;">
+        <pre><code class="language-javascript">{
+  multiple: () => boolean | boolean,
+  root: HTMLElement,
+  timeout: number
+}</code></pre>
+      </td>
+      <td style="border: 1px solid #ddd; padding: 8px;">
+        Provides advanced configurations for niche scenarios, such as async DOM element loading, returning arrays of elements, or specifying the parent to search within for the target node.
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 Import the utility function for creating DOMNodeReference(s)
 
@@ -44,14 +82,33 @@ Import the utility function for creating DOMNodeReference(s)
 import { createRef } from "powerpagestoolkit";
 ```
 
-Instantiate one, or multiple instances of a DOMNodeReference
+Instantiate one, or multiple instances of a DOMNodeReference, and optionally configure advanced options
 
-```typescript
+```javascript
 // Create a single reference
-const node = await createRef("#myElement", false);
+const node = await createRef("#myElement");
 
 // Create multiple references
-const nodes = await createRef(".my-class", true);
+const nodes = await createRef(".my-class", { multiple: true });
+
+/******************/
+// ADVANCED OPTIONS
+// in the event that you need to be more granular with how you are targeting
+// and retrieving elements, there are additional options
+// If the node you are targeted is not available at the initial execution
+// of the script, set a timeout for 2 seconds
+const node2 = await createRef("#target", { timeout: 2000 });
+
+// need to target a node within a specific node? use that node as the root
+const otherElement = document.getElementById("id");
+const node3 = await createRef("#target", { root: otherElement });
+
+// implement all options:
+const nodes2 = await createRef("#target", {
+  multiple: true,
+  timeout: 4000,
+  root: otherElement,
+});
 ```
 
 #### Properties
