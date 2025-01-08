@@ -63,7 +63,7 @@ export default function waitFor(
               new Error(
                 `No elements found with target: "${target}" within ${
                   debounceTime / 1000
-                } seconds. If the element you are expected has not loading, consider raising your timeout.`
+                } seconds. If the element you are expected has not loaded yet, consider raising your timeout.`
               )
             );
           }
@@ -92,7 +92,7 @@ export default function waitFor(
           new Error(
             `Element not found by target: "${target}" within ${
               debounceTime / 1000
-            } second. If the element you are expected has not loading, consider raising your timeout.`
+            } second. If the element you are expected has not loaded yet, consider raising your timeout.`
           )
         );
       }, debounceTime);
