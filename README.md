@@ -217,7 +217,7 @@ node.configureValidationAndRequirements(
 ##### Element Manipulation
 
 ```typescript
-/****/ Value management /****/
+/**** Value management ****/
 
 // set a static value
 node.setValue("new value");
@@ -235,7 +235,7 @@ node.updateValue();
 // Clear the value for both the instance and the target element
 node.clearValue()
 
-/****/ Content manipulation /****/
+/**** Content manipulation ****/
 
 node.setInnerHTML("<span>New content</span>");
 node.append(childElement);
@@ -250,7 +250,7 @@ node.setStyle({
   color: "red",
 });
 
-/****/ State management /****/
+/**** Enable/Disable ****/
 
 node.disable();
 node.enable();
