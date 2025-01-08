@@ -243,7 +243,7 @@ node.prepend(headerElement);
 node.after(siblingElement);
 node.before(labelElement);
 
-/****/ Styling /****/
+/**** Styling ****/
 
 node.setStyle({
   display: "block",
