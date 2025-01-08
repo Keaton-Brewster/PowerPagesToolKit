@@ -158,7 +158,7 @@ _Method signature:_
 ```typescript
 configureConditionalRendering(
     condition: () => boolean,
-    dependencies?: Array<DOMNodeReference>,
+    dependencies?: DOMNodeReference[],
     clearValuesOnHide: boolean = true
   ): DOMNodeReference /* Instance of this returned
   for optional method chaining */
