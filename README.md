@@ -238,7 +238,7 @@ node.clearValue();
 
 _Content manipulation_
 
-```
+```typescript
 node.setInnerHTML("<span>New content</span>");
 node.append(childElement);
 node.prepend(headerElement);
@@ -248,7 +248,7 @@ node.before(labelElement);
 
 _Styling_
 
-```
+```typescript
 node.setStyle({
   display: "block",
   color: "red",
@@ -257,7 +257,7 @@ node.setStyle({
 
 _Enabling/Disabling inputs_
 
-```
+```typescript
 node.disable();
 node.enable();
 
