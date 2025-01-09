@@ -38,10 +38,10 @@ export default async function createDOMNodeReference(
   } = {
     multiple: false,
     root: document.body,
-    timeout: 50,
+    timeout: 1000,
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]> {
-  const { multiple = false, root = document.body, timeout = 0 } = options;
+  const { multiple = false, root = document.body, timeout = 1000 } = options;
   try {
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;
