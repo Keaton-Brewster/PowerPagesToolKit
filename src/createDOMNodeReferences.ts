@@ -3,7 +3,7 @@ import waitFor from "./waitFor.js";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference(
-  target: HTMLElement | string,
+  target: HTMLElement | QuerySelector,
   options?: {
     multiple?: (() => boolean) | false;
     root?: HTMLElement;
@@ -12,7 +12,7 @@ export default async function createDOMNodeReference(
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
-  target: HTMLElement | string,
+  target: HTMLElement | QuerySelector,
   options?: {
     multiple?: (() => true) | true;
     root?: HTMLElement;
@@ -30,7 +30,7 @@ export default async function createDOMNodeReference(
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(
-  target: HTMLElement | string,
+  target: HTMLElement | QuerySelector,
   options: {
     multiple?: (() => boolean) | boolean;
     root?: HTMLElement;
@@ -38,7 +38,7 @@ export default async function createDOMNodeReference(
   } = {
     multiple: false,
     root: document.body,
-    timeout: 0,
+    timeout: 500,
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]> {
   const { multiple = false, root = document.body, timeout = 0 } = options;
@@ -60,7 +60,7 @@ export default async function createDOMNodeReference(
       // Avoid recursive call with multiple flag for better performance
       const initializedElements = <DOMNodeReference[]>await Promise.all(
         elements.map(async (element) => {
-          const instance = new DOMNodeReference(element);
+          const instance = new DOMNodeReference(element, root, timeout);
           await instance[_init]();
           return new Proxy(instance, createProxyHandler());
         })
