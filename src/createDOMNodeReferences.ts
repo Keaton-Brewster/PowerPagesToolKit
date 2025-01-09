@@ -3,7 +3,7 @@ import waitFor from "./waitFor.js";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference(
-  target: HTMLElement | QuerySelector,
+  target: HTMLElement | string,
   options?: {
     multiple?: (() => boolean) | false;
     root?: HTMLElement;
@@ -12,7 +12,7 @@ export default async function createDOMNodeReference(
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
-  target: HTMLElement | QuerySelector,
+  target: string,
   options?: {
     multiple?: (() => true) | true;
     root?: HTMLElement;
@@ -30,7 +30,7 @@ export default async function createDOMNodeReference(
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(
-  target: HTMLElement | QuerySelector,
+  target: HTMLElement | string,
   options: {
     multiple?: (() => boolean) | boolean;
     root?: HTMLElement;
@@ -38,11 +38,33 @@ export default async function createDOMNodeReference(
   } = {
     multiple: false,
     root: document.body,
-    timeout: 1000,
+    timeout: 0,
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]> {
-  const { multiple = false, root = document.body, timeout = 1000 } = options;
   try {
+    if (typeof options !== "object") {
+      throw new Error(
+        `'options' must be of type 'object'. Received type: '${typeof options}'`
+      );
+    }
+    const { multiple = false, root = document.body, timeout = 0 } = options;
+
+    if (typeof multiple !== "boolean" && typeof multiple !== "function") {
+      throw new Error(
+        `'multiple' must be of type 'boolean' or 'function'. Received type: '${typeof multiple}'`
+      );
+    }
+    if (!(root instanceof HTMLElement)) {
+      throw new Error(
+        `'root' must be of type 'HTMLElement'. Received type: '${typeof root}'`
+      );
+    }
+    if (typeof timeout !== "number") {
+      throw new Error(
+        `'timeout' must be of type 'number'. Received type: '${typeof timeout}'`
+      );
+    }
+
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;
 

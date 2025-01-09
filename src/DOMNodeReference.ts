@@ -29,7 +29,7 @@ const _boundEventListeners = Symbol("BEV");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
-  public target: HTMLElement | QuerySelector;
+  public target: HTMLElement | string;
   public root: HTMLElement;
   private [_debounceTime]: number;
   private isLoaded: boolean;
