@@ -37,7 +37,7 @@ createRef(
     root: HTMLElement,
     timeout: number
   }
-): Promise<DOMNodeReference | DOMNodeReferenceArray>;
+): Promise<DOMNodeReference | DOMNodeReference[]>;
 ```
 
 createRef takes two main arguments:
