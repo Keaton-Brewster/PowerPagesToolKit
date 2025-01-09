@@ -38,7 +38,7 @@ export default async function createDOMNodeReference(
   } = {
     multiple: false,
     root: document.body,
-    timeout: 500,
+    timeout: 50,
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]> {
   const { multiple = false, root = document.body, timeout = 0 } = options;
