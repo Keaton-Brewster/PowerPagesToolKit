@@ -24,3 +24,6 @@ declare interface ElementValue {
   value: any;
   checked?: boolean;
 }
+
+// Alias for QuerySelector
+declare type QuerySelector = string;
