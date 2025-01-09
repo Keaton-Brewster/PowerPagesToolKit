@@ -47,23 +47,9 @@ export default async function createDOMNodeReference(
         `'options' must be of type 'object'. Received type: '${typeof options}'`
       );
     }
-    const { multiple = false, root = document.body, timeout = 0 } = options;
 
-    if (typeof multiple !== "boolean" && typeof multiple !== "function") {
-      throw new Error(
-        `'multiple' must be of type 'boolean' or 'function'. Received type: '${typeof multiple}'`
-      );
-    }
-    if (!(root instanceof HTMLElement)) {
-      throw new Error(
-        `'root' must be of type 'HTMLElement'. Received type: '${typeof root}'`
-      );
-    }
-    if (typeof timeout !== "number") {
-      throw new Error(
-        `'timeout' must be of type 'number'. Received type: '${typeof timeout}'`
-      );
-    }
+    validateOptions(options);
+    const { multiple = false, root = document.body, timeout = 0 } = options;
 
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;
@@ -94,8 +80,36 @@ export default async function createDOMNodeReference(
     await instance[_init]();
     return new Proxy(instance, createProxyHandler());
   } catch (e) {
-    throw new Error(e as string);
+    throw new Error(<string>e);
   }
+}
+
+function validateOptions(options: any) {
+  const { multiple = false, root = document.body, timeout = 0 } = options;
+  if (typeof multiple !== "boolean" && typeof multiple !== "function") {
+    throw new Error(
+      `'multiple' must be of type 'boolean' or 'function'. Received type: '${typeof multiple}'`
+    );
+  }
+  if (typeof multiple === "function") {
+    const value = multiple();
+    if (typeof value !== "boolean") {
+      throw new Error(
+        `'multiple' function must return a boolean. Received type: '${typeof value}'`
+      );
+    }
+  }
+  if (!(root instanceof HTMLElement)) {
+    throw new Error(
+      `'root' must be of type 'HTMLElement'. Received type: '${typeof root}'`
+    );
+  }
+  if (typeof timeout !== "number") {
+    throw new Error(
+      `'timeout' must be of type 'number'. Received type: '${typeof timeout}'`
+    );
+  }
+  return;
 }
 
 // Separate proxy handler for reusability
@@ -104,7 +118,7 @@ function createProxyHandler() {
     get: (target: DOMNodeReference, prop: string | symbol) => {
       if (prop.toString().startsWith("_")) return undefined;
 
-      const value = target[prop as keyof DOMNodeReference];
+      const value = target[<keyof DOMNodeReference>prop];
       if (typeof value === "function" && prop !== "onceLoaded") {
         return (...args: any[]) => {
           target.onceLoaded(() => value.apply(target, args));
@@ -133,5 +147,5 @@ function enhanceArray(array: DOMNodeReference[]): DOMNodeReference[] {
     },
   });
 
-  return array as DOMNodeReference[];
+  return <DOMNodeReference[]>array;
 }
