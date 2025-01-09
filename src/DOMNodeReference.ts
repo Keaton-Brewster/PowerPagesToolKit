@@ -224,8 +224,8 @@ export default class DOMNodeReference {
    * @returns Object containing value and optional checked state
    */
   private [_getElementValue](): ElementValue {
-    const input = this.element as HTMLInputElement;
-    const select = this.element as HTMLSelectElement;
+    const input = <HTMLInputElement>this.element;
+    const select = <HTMLSelectElement>this.element;
 
     switch (input.type) {
       case "checkbox":
@@ -314,12 +314,14 @@ export default class DOMNodeReference {
   }
 
   private [_bindMethods]() {
-    // Iterate over all properties of the instance
-    for (const key of Object.getOwnPropertyNames(Object.getPrototypeOf(this))) {
-      const value = this[key as keyof this];
-      // Bind only functions (excluding the constructor)
+    const prototype = Object.getPrototypeOf(this);
+
+    for (const key of <(keyof this)[]>Object.getOwnPropertyNames(prototype)) {
+      const value = this[key];
+
+      // Ensure we're binding only functions and skip the constructor
       if (key !== "constructor" && typeof value === "function") {
-        (this as any)[key] = value.bind(this);
+        this[key] = value.bind(this);
       }
     }
   }
@@ -434,12 +436,13 @@ export default class DOMNodeReference {
     if (value instanceof Function) {
       value = value();
     }
-    if (this.element.classList.contains("boolean-radio")) {
-      (
-        (this.yesRadio as DOMNodeReference).element as HTMLInputElement
-      ).checked = value;
-      ((this.noRadio as DOMNodeReference).element as HTMLInputElement).checked =
-        !value;
+    if (
+      this.element.classList.contains("boolean-radio") &&
+      this.yesRadio instanceof DOMNodeReference &&
+      this.noRadio instanceof DOMNodeReference
+    ) {
+      (this.yesRadio.element as HTMLInputElement).checked = value;
+      (this.noRadio.element as HTMLInputElement).checked = !value;
     } else {
       (this.element as HTMLInputElement).value = value;
     }
@@ -518,7 +521,7 @@ export default class DOMNodeReference {
         if (childInputs.length > 0) {
           const promises = childInputs.map(async (input) => {
             const inputRef = <DOMNodeReference>(
-              await createRef(input as HTMLElement, { multiple: false })
+              await createRef(<HTMLElement>input, { multiple: false })
             );
             return inputRef.clearValue();
           });
@@ -668,7 +671,7 @@ export default class DOMNodeReference {
 
   /**
    *
-   * @param {Partial<CSSStyleDeclaration} options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
+   * @param options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
    * @returns - Instance of this [provides option to method chain]
    */
   public setStyle(options: Partial<CSSStyleDeclaration>) {
@@ -678,8 +681,9 @@ export default class DOMNodeReference {
       );
     }
 
-    for (const key in options) {
-      (this.element as HTMLElement).style[key as any] = options[key] as string;
+    for (const _key in options) {
+      const key = _key as keyof Partial<CSSStyleDeclaration>;
+      this.element.style[<any>key] = <string>options[key];
     }
     return this;
   }
@@ -995,7 +999,7 @@ export default class DOMNodeReference {
       return;
     }
     const observer = new MutationObserver(() => {
-      if (document.querySelector(this.target as string)) {
+      if (document.querySelector(<string>this.target)) {
         observer.disconnect(); // Stop observing once loaded
         this.isLoaded = true;
         callback(this); // Call the provided callback
