@@ -95,7 +95,8 @@ const nodes = await createRef(".my-class", { multiple: true });
 // ADVANCED OPTIONS
 // in the event that you need to be more granular with how you are targeting
 // and retrieving elements, there are additional options
-// If the node you are targeted is not available at the initial execution
+
+// If the node you are targeting is not available at the initial execution
 // of the script, set a timeout for 2 seconds
 const node2 = await createRef("#target", { timeout: 2000 });
 
