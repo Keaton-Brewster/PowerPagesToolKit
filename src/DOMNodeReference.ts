@@ -14,6 +14,46 @@ interface BoundEventListener {
   event: keyof HTMLElementEventMap;
 }
 
+interface BusinessRule {
+  /**
+   * @param condition A function that returns a boolean to determine
+   * the visibility of the target element. If `condition()` returns true, the element is shown;
+   * otherwise, it is hidden.
+   * @param dependencies An array of `DOMNodeReference` instances. Event listeners are
+   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
+   * the target node.
+   */
+  setVisibility?: {
+    condition: () => boolean;
+    clearValuesOnHide: boolean;
+    dependencies?: DOMNodeReference[];
+  };
+  /**
+   * @param isRequired Function determining if field is required
+   * @param isValid Function validating field input
+   * @param fieldDisplayName Display name for error messages
+   * @param dependencies Fields that trigger requirement/validation updates
+   */
+  setRequired?: {
+    isRequired: () => boolean;
+    isValid: () => boolean;
+    fieldDisplayName: string;
+    dependencies: DOMNodeReference[];
+  };
+  /**
+   * @param condition A function to determine the value of this
+   * element, given applied logic
+   * @param value The value to set for the HTML element.
+   * for parents of boolean radios, pass true or false as value, or
+   * an expression returning a boolean
+   */
+  setValue?: {
+    condition: () => boolean;
+    value: any;
+  };
+  setDisabled?: () => boolean;
+}
+
 export const _init = Symbol("_I");
 const _destroy = Symbol("_D");
 const _valueSync = Symbol("_VS");
@@ -705,17 +745,117 @@ export default class DOMNodeReference {
   }
 
   /**
+   * Applies a business rule to manage visibility, required state, value, and disabled state dynamically.
+   *
+   * @param rule The business rule containing conditions for various actions.
+   * @returns Instance of this for method chaining.
+   */
+  public applyBusinessRule(rule: Partial<BusinessRule>): DOMNodeReference {
+    try {
+      // Apply Visibility Rule
+      if (rule.setVisibility) {
+        const {
+          condition,
+          clearValuesOnHide,
+          dependencies = [],
+        } = rule.setVisibility;
+        const initialState = condition();
+        this.toggleVisibility(initialState);
+
+        if (dependencies.length) {
+          this._configDependencyTracking(
+            () => this.toggleVisibility(condition()),
+            dependencies,
+            {
+              clearValuesOnHide,
+              observeVisibility: true,
+              trackInputEvents: false,
+              trackRadioButtons: false,
+            }
+          );
+        }
+      }
+
+      // Apply Required & Validation Rule
+      if (rule.setRequired) {
+        const { isRequired, isValid, fieldDisplayName, dependencies } =
+          rule.setRequired;
+
+        if (!fieldDisplayName.trim()) {
+          throw new ValidationConfigError(
+            this,
+            "Field display name is required"
+          );
+        }
+
+        if (typeof Page_Validators === "undefined") {
+          throw new ValidationConfigError(this, "Page_Validators not found");
+        }
+
+        const validatorId = `${this.element.id}Validator`;
+
+        const newValidator = document.createElement("span");
+        newValidator.style.display = "none";
+        newValidator.id = validatorId;
+
+        Object.assign(newValidator, {
+          controltovalidate: this.element.id,
+          errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+          evaluationfunction: () => {
+            const isFieldRequired = isRequired();
+            const isFieldVisible =
+              window.getComputedStyle(this.visibilityController).display !==
+              "none";
+
+            return !isFieldRequired || !isFieldVisible || isValid();
+          },
+        });
+
+        Page_Validators.push(newValidator);
+        this.setRequiredLevel(isRequired());
+
+        // Track dependencies
+        this._configDependencyTracking(
+          () => this.setRequiredLevel(isRequired()),
+          dependencies
+        );
+      }
+
+      // Apply Set Value Rule
+      if (rule.setValue) {
+        const { condition, value } = rule.setValue;
+        if (condition()) {
+          this.setValue(value);
+        }
+      }
+
+      // Apply Disabled Rule
+      if (rule.setDisabled) {
+        const condition = rule.setDisabled;
+        condition() ? this.disable() : this.enable();
+      }
+
+      return this;
+    } catch (error: any) {
+      throw new ValidationConfigError(
+        this,
+        `Failed to apply business rule: ${error}`
+      );
+    }
+  }
+
+  /**
    * Configures conditional rendering for the target element based on a condition
    * and the visibility of one or more trigger elements.
-   *
-   * @param condition - A function that returns a boolean to determine
+   * @deprecated Use the new 'applyBusinessRule Method
+   * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
    * @param dependencies - An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
-   * @throws - When there's an error in setting up conditional rendering
-   * @returns - Instance of this [provides option to method chain]
+   * @throws When there's an error in setting up conditional rendering
+   * @returns Instance of this [provides option to method chain]
    */
   public configureConditionalRendering(
     condition: () => boolean,
@@ -765,13 +905,13 @@ export default class DOMNodeReference {
 
   /**
    * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
-   *
-   * @param isRequired - Function determining if field is required
-   * @param isValid - Function validating field input
-   * @param fieldDisplayName - Display name for error messages
-   * @param dependencies - Fields that trigger requirement/validation updates
-   * @returns - Instance of this
-   * @throws - If validation setup fails
+   * @deprecated Use the new 'applyBusinessRule Method
+   * @param isRequired Function determining if field is required
+   * @param isValid Function validating field input
+   * @param fieldDisplayName Display name for error messages
+   * @param dependencies Fields that trigger requirement/validation updates
+   * @returns Instance of this
+   * @throws If validation setup fails
    */
   public configureValidationAndRequirements(
     isRequired: () => boolean,
@@ -851,9 +991,9 @@ export default class DOMNodeReference {
   /**
    * Sets up tracking for dependencies using both event listeners and mutation observers.
    * @private
-   * @param handler - The function to execute when dependencies change
-   * @param dependencies - Array of dependent DOM nodes to track
-   * @param options - Additional configuration options
+   * @param handler The function to execute when dependencies change
+   * @param dependencies Array of dependent DOM nodes to track
+   * @param options Additional configuration options
    */
   private _configDependencyTracking(
     handler: () => void,
@@ -961,9 +1101,9 @@ export default class DOMNodeReference {
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
    *
-   * @param isRequired - Determines whether the field should be marked as required.
+   * @param isRequired Determines whether the field should be marked as required.
    * If true, the "required-field" class is added to the label; if false, it is removed.
-   * @returns - Instance of this [provides option to method chain]
+   * @returns Instance of this [provides option to method chain]
    */
   public setRequiredLevel(
     isRequired: (() => boolean) | boolean
@@ -985,7 +1125,7 @@ export default class DOMNodeReference {
    * Executes a callback function once the element is fully loaded.
    * If the element is already loaded, the callback is called immediately.
    * Otherwise, a MutationObserver is used to detect when the element is added to the DOM.
-   * @param callback - A callback function to execute once the element is loaded.
+   * @param callback A callback function to execute once the element is loaded.
    * Receives instance of 'this' as an argument
    */
   public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
