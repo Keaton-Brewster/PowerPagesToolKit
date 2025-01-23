@@ -1,3 +1,4 @@
+import { DOMNodeReferenceArray } from "./DOMNodeReferenceArray.js";
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
@@ -48,7 +49,7 @@ export default async function createDOMNodeReference(
      */
     multiple?: true;
   }
-): Promise<DOMNodeReference[]>;
+): Promise<DOMNodeReferenceArray>;
 
 /**
  * Creates and initializes a DOMNodeReference instance.
@@ -69,7 +70,7 @@ export default async function createDOMNodeReference(
     root: document.body,
     timeout: 0,
   }
-): Promise<DOMNodeReference | DOMNodeReference[]> {
+): Promise<DOMNodeReference | DOMNodeReferenceArray> {
   try {
     if (typeof options !== "object") {
       throw new Error(
@@ -95,7 +96,7 @@ export default async function createDOMNodeReference(
       );
 
       // Avoid recursive call with multiple flag for better performance
-      const initializedElements = <DOMNodeReference[]>await Promise.all(
+      const initializedElements = <DOMNodeReferenceArray>await Promise.all(
         elements.map(async (element) => {
           const instance = new DOMNodeReference(element, root, timeout);
           await instance[_init]();
@@ -160,26 +161,27 @@ function createProxyHandler() {
 }
 
 // Separate array enhancement for cleaner code
-function enhanceArray(array: DOMNodeReference[]): DOMNodeReference[] {
-  Object.defineProperties(array, {
-    hideAll: {
-      value: function (this: DOMNodeReference[]) {
-        this.forEach((instance: DOMNodeReference) => instance.hide());
-        return this;
-      },
-    },
-    showAll: {
-      value: function (this: DOMNodeReference[]) {
-        this.forEach((instance: DOMNodeReference) => instance.show());
-        return this;
-      },
-    },
-    [string]: {
-      // want to find the object in the array whose element.id === string
-    },
-  });
+export function enhanceArray(
+  array: DOMNodeReferenceArray
+): DOMNodeReferenceArray {
+  // Object.defineProperties(array, {
+  //   hideAll: {
+  //     value: function (this: DOMNodeReferenceArray) {
+  //       this.forEach((instance: DOMNodeReference) => instance.hide());
+  //       return this;
+  //     },
+  //   },
+  //   showAll: {
+  //     value: function (this: DOMNodeReferenceArray) {
+  //       this.forEach((instance: DOMNodeReference) => instance.show());
+  //       return this;
+  //     },
+  //   },
+  // });
 
-  // return <DOMNodeReference[]>array;
+  array = new DOMNodeReferenceArray(...array);
+
+  // return <DOMNodeReferenceArray>array;
   return new Proxy(array, {
     get(target, prop) {
       if (prop in target) {
@@ -187,7 +189,7 @@ function enhanceArray(array: DOMNodeReference[]): DOMNodeReference[] {
       }
       if (typeof prop === "string") {
         return target.find((instance) => {
-          instance.element.id === prop;
+          return instance.element.id === prop;
         });
       }
 

@@ -1,6 +1,8 @@
 import API from "./API.js";
 import DOMNodeReference from "./DOMNodeReference.js";
 import { createRef } from "./index.js";
+import { enhanceArray } from "./createDOMNodeReferences.js";
+import { DOMNodeReferenceArray } from "./DOMNodeReferenceArray.js";
 
 /**
  * @function
@@ -10,9 +12,9 @@ import { createRef } from "./index.js";
  * @param formId The string GUID of the form you want to bind to'
  * @returns An array of DOMNodeReferences
  */
-export default async function getFormControls(
+export default async function bindForm(
   formId: string
-): Promise<DOMNodeReference[]> {
+): Promise<DOMNodeReferenceArray> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -23,15 +25,29 @@ export default async function getFormControls(
 
     // 3. Access the parsed XML data
     const controls = xmlDoc.getElementsByTagName("control");
-    const dataFields: Promise<DOMNodeReference>[] = [];
+    const dataFields: Promise<DOMNodeReference | null>[] = [];
+
     for (let i = 0; i < controls.length; i++) {
       const datafieldname = controls[i].getAttribute("datafieldname");
       if (datafieldname) {
-        const ref = createRef(datafieldname);
-        dataFields.push(ref);
+        const refPromise = createRef(`#${datafieldname}`).catch((error) => {
+          console.warn(
+            `Failed to create a reference to the form field: ${datafieldname}`,
+            error
+          );
+          return null;
+        });
+        dataFields.push(refPromise);
       }
     }
-    return Promise.all(dataFields);
+
+    // Resolve all promises, filtering out any null values
+    const resolvedRefs = await Promise.all(dataFields);
+    return enhanceArray(
+      <DOMNodeReferenceArray>(
+        resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
+      )
+    );
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error(error.message);
