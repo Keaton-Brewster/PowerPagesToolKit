@@ -11,12 +11,12 @@ import {
  * Get all controls related to the form for manipulating with the
  * DOMNodeReference class. Rather than having to instantiate each fields that you need manually,
  * you can call this method once with the form ID and gain access to all fields
- * @param formId The string GUID of the form you want to bind to'
+ * @param formId The string GUID of the form you want to bind to
  * @returns An array of DOMNodeReferences
  */
-export default async function bindForm(
+export default async function bindForm<T extends string>(
   formId: string
-): Promise<DOMNodeReferenceArray> {
+): Promise<DOMNodeReferenceArray & Record<T, DOMNodeReference>> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -45,7 +45,7 @@ export default async function bindForm(
 
     // Resolve all promises, filtering out any null values
     const resolvedRefs = await Promise.all(dataFields);
-    return enhanceArray(
+    return enhanceArray<T>(
       <DOMNodeReferenceArray>(
         resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
       )

@@ -22,24 +22,25 @@ interface BusinessRule {
    * @param dependencies An array of `DOMNodeReference` instances. Event listeners are
    * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
    * the target node.
+   * @param clearValuesOnHide Should the values in the targeted field be cleared when hidden? Defaults to true
    */
-  setVisibility?: {
-    condition: () => boolean;
-    clearValuesOnHide: boolean;
-    dependencies?: DOMNodeReference[];
-  };
+  setVisibility?: [
+    condition: () => boolean,
+    dependencies: DOMNodeReference[],
+    clearValuesOnHide?: boolean
+  ];
   /**
    * @param isRequired Function determining if field is required
    * @param isValid Function validating field input
    * @param fieldDisplayName Display name for error messages
    * @param dependencies Fields that trigger requirement/validation updates
    */
-  setRequired?: {
-    isRequired: () => boolean;
-    isValid: () => boolean;
-    fieldDisplayName: string;
-    dependencies: DOMNodeReference[];
-  };
+  setRequired?: [
+    isRequired: () => boolean,
+    isValid: () => boolean,
+    fieldDisplayName: string,
+    dependencies: DOMNodeReference[]
+  ];
   /**
    * @param condition A function to determine the value of this
    * element, given applied logic
@@ -47,19 +48,13 @@ interface BusinessRule {
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
    */
-  setValue?: {
-    condition: () => boolean;
-    value: any;
-  };
+  setValue?: [condition: () => boolean, value: any];
   /**
    * @param condition A function to determine if this field
    * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
    * @param dependencies
    */
-  setDisabled?: {
-    condition: () => boolean;
-    dependencies: DOMNodeReference[];
-  };
+  setDisabled?: [condition: () => boolean, dependencies: DOMNodeReference[]];
 }
 
 export const _init = Symbol("_I");
@@ -759,11 +754,8 @@ export default class DOMNodeReference {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
-        const {
-          condition,
-          clearValuesOnHide,
-          dependencies = [],
-        } = rule.setVisibility;
+        const [condition, dependencies = [], clearValuesOnHide = true] =
+          rule.setVisibility;
         const initialState = condition();
         this.toggleVisibility(initialState);
 
@@ -783,7 +775,7 @@ export default class DOMNodeReference {
 
       // Apply Required & Validation Rule
       if (rule.setRequired) {
-        const { isRequired, isValid, fieldDisplayName, dependencies } =
+        const [isRequired, isValid, fieldDisplayName, dependencies] =
           rule.setRequired;
 
         if (!fieldDisplayName.trim()) {
@@ -828,7 +820,7 @@ export default class DOMNodeReference {
 
       // Apply Set Value Rule
       if (rule.setValue) {
-        const { condition, value } = rule.setValue;
+        const [condition, value] = rule.setValue;
         if (condition()) {
           this.setValue(value);
         }
@@ -836,7 +828,7 @@ export default class DOMNodeReference {
 
       // Apply Disabled Rule
       if (rule.setDisabled) {
-        const { condition, dependencies = [] } = rule.setDisabled;
+        const [condition, dependencies = []] = rule.setDisabled;
         condition() ? this.disable() : this.enable();
 
         const initialState = condition();

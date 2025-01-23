@@ -20,23 +20,24 @@ export class DOMNodeReferenceArray extends Array<DOMNodeReference> {
 }
 
 // Separate array enhancement for cleaner code
-export function enhanceArray(
-  array: DOMNodeReferenceArray
-): DOMNodeReferenceArray {
-  array = new DOMNodeReferenceArray(...array);
+export function enhanceArray<T extends string>(
+  array: DOMNodeReference[]
+): DOMNodeReferenceArray & Record<T, DOMNodeReference> {
+  const enhancedArray = new DOMNodeReferenceArray(...array);
 
-  return new Proxy(array, {
-    get(target, prop) {
+  return new Proxy(enhancedArray, {
+    get(target, prop: string | symbol, receiver) {
+      // Preserve existing array methods
       if (prop in target) {
-        return target[prop as keyof typeof target];
+        return Reflect.get(target, prop, receiver);
       }
+
+      // Ensure `prop` is a string and search by `element.id`
       if (typeof prop === "string") {
-        return target.find((instance) => {
-          return instance.element.id === prop;
-        });
+        return target.find((instance) => instance.element.id === prop);
       }
 
       return undefined;
     },
-  });
+  }) as DOMNodeReferenceArray & Record<T, DOMNodeReference>;
 }
