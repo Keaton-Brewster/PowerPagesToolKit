@@ -1,4 +1,7 @@
-import { DOMNodeReferenceArray } from "./DOMNodeReferenceArray.js";
+import {
+  DOMNodeReferenceArray,
+  enhanceArray,
+} from "./DOMNodeReferenceArray.js";
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
@@ -158,42 +161,4 @@ function createProxyHandler() {
       return value;
     },
   };
-}
-
-// Separate array enhancement for cleaner code
-export function enhanceArray(
-  array: DOMNodeReferenceArray
-): DOMNodeReferenceArray {
-  // Object.defineProperties(array, {
-  //   hideAll: {
-  //     value: function (this: DOMNodeReferenceArray) {
-  //       this.forEach((instance: DOMNodeReference) => instance.hide());
-  //       return this;
-  //     },
-  //   },
-  //   showAll: {
-  //     value: function (this: DOMNodeReferenceArray) {
-  //       this.forEach((instance: DOMNodeReference) => instance.show());
-  //       return this;
-  //     },
-  //   },
-  // });
-
-  array = new DOMNodeReferenceArray(...array);
-
-  // return <DOMNodeReferenceArray>array;
-  return new Proxy(array, {
-    get(target, prop) {
-      if (prop in target) {
-        return target[prop as keyof typeof target];
-      }
-      if (typeof prop === "string") {
-        return target.find((instance) => {
-          return instance.element.id === prop;
-        });
-      }
-
-      return undefined;
-    },
-  });
 }

@@ -1,8 +1,10 @@
 import API from "./API.js";
 import DOMNodeReference from "./DOMNodeReference.js";
 import { createRef } from "./index.js";
-import { enhanceArray } from "./createDOMNodeReferences.js";
-import { DOMNodeReferenceArray } from "./DOMNodeReferenceArray.js";
+import {
+  DOMNodeReferenceArray,
+  enhanceArray,
+} from "./DOMNodeReferenceArray.js";
 
 /**
  * @function
