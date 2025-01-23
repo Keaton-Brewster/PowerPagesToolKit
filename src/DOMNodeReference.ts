@@ -51,7 +51,15 @@ interface BusinessRule {
     condition: () => boolean;
     value: any;
   };
-  setDisabled?: () => boolean;
+  /**
+   * @param condition A function to determine if this field
+   * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
+   * @param dependencies
+   */
+  setDisabled?: {
+    condition: () => boolean;
+    dependencies: DOMNodeReference[];
+  };
 }
 
 export const _init = Symbol("_I");
@@ -69,8 +77,8 @@ const _boundEventListeners = Symbol("BEV");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
-  public target: HTMLElement | string;
-  public root: HTMLElement;
+  public target: Element | string;
+  public root: Element;
   private [_debounceTime]: number;
   private isLoaded: boolean;
   private defaultDisplay: string;
@@ -112,8 +120,8 @@ export default class DOMNodeReference {
    * Defaults to 'document.body'
    */
   /******/ /******/ constructor(
-    target: HTMLElement | string,
-    root: HTMLElement = document.body,
+    target: Element | string,
+    root: Element = document.body,
     debounceTime: number
   ) {
     this.target = target;
@@ -188,16 +196,13 @@ export default class DOMNodeReference {
       // Initial sync
       this.updateValue();
 
-      if (!(this.element instanceof HTMLElement)) {
-        throw new Error("Element is not a valid HTML element");
-      }
-
       // Define event mappings
       const eventMapping: Record<string, keyof HTMLElementEventMap> = {
         checkbox: "click",
         radio: "click",
         select: "change",
         "select-multiple": "change",
+        textarea: "keyup",
         // Add other input types as needed
       };
 
@@ -206,7 +211,9 @@ export default class DOMNodeReference {
       if (this.element instanceof HTMLSelectElement) {
         eventType = "change";
       } else if (this.element instanceof HTMLInputElement) {
-        eventType = eventMapping[this.element.type] || "input";
+        eventType = eventMapping[this.element.type] ?? "input";
+      } else if (this.element instanceof HTMLTextAreaElement) {
+        eventType = eventMapping[this.element.type] ?? "input";
       } else {
         eventType = "input";
       }
@@ -215,11 +222,9 @@ export default class DOMNodeReference {
       this.element.addEventListener(eventType, this.updateValue);
 
       // push element and handler for event listener cleanup on _destroy()
-      const _element = <HTMLElement>this.element;
-      const _updateValue = this.updateValue;
       this[_boundEventListeners].push({
-        element: _element,
-        handler: _updateValue,
+        element: <HTMLElement>this.element,
+        handler: this.updateValue,
         event: eventType,
       });
 
@@ -831,8 +836,24 @@ export default class DOMNodeReference {
 
       // Apply Disabled Rule
       if (rule.setDisabled) {
-        const condition = rule.setDisabled;
+        const { condition, dependencies = [] } = rule.setDisabled;
         condition() ? this.disable() : this.enable();
+
+        const initialState = condition();
+
+        if (dependencies.length) {
+          this._configDependencyTracking(
+            () => {
+              condition() ? this.enable() : this.disable();
+            },
+            dependencies,
+            {
+              observeVisibility: true,
+              trackInputEvents: true,
+              trackRadioButtons: true,
+            }
+          );
+        }
       }
 
       return this;

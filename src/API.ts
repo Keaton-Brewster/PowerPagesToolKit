@@ -30,11 +30,11 @@ const API = {
    * @param selectColumns *OPTIONAL* if desired, enter your own custom OData query for advanced GET results. Format = select=column1,column2,column3...
    * @returns a Promise resolving the successful results of the GET request, or rejecting the failed results of the GET request
    */
-  getRecord(
+  getRecord<T>(
     tableSetName: string,
     recordID: string,
     selectColumns?: string
-  ): Promise<object> {
+  ): Promise<T> {
     return new Promise((resolve, reject) => {
       const url = `/_api/${tableSetName}(${recordID})${
         selectColumns ? `?$${selectColumns}` : ""

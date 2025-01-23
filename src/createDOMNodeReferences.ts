@@ -1,41 +1,70 @@
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
+interface CreationOptions {
+  /**
+   * Should this call return an array of instantiated references, or just a single?
+   * Defaults to false, returning a single instance.
+   */
+  multiple?: (() => boolean) | boolean;
+
+  /**
+   * Optionally specify the element within which to search for the element targeted by 'target'.
+   * Defaults to 'document.body'.
+   */
+  root?: HTMLElement;
+
+  /**
+   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+   * Useful for async DOM loading. Relies on MutationObserver.
+   * WARNING: Implementing multiple references with timeout can result in infinite loading.
+   */
+  timeout?: number;
+}
+
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference(
-  target: HTMLElement | string,
-  options?: {
-    multiple?: (() => boolean) | false;
-    root?: HTMLElement;
-    timeout?: number;
+  target: Element,
+  options?: CreationOptions
+): Promise<DOMNodeReference>;
+
+export default async function createDOMNodeReference(
+  target: string,
+  options?: Omit<CreationOptions, "multiple"> & {
+    /**
+     * Should this call return an array of instantiated references, or just a single instance?
+     * Defaults to false, returning a single instance.
+     */
+    multiple?: false;
   }
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
   target: string,
-  options?: {
-    multiple?: (() => true) | true;
-    root?: HTMLElement;
-    timeout?: number;
+  options?: Omit<CreationOptions, "multiple"> & {
+    /**
+     * Should this call return an array of instantiated references, or just a single instance?
+     * Defaults to false, returning a single instance.
+     */
+    multiple?: true;
   }
 ): Promise<DOMNodeReference[]>;
 
 /**
  * Creates and initializes a DOMNodeReference instance.
  * @async
- * @param  target - The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
- * @param multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
- * @param root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
- * @param timeout - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
+ * @param  target The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
+ * @param options Options for advanced retrieval of elements
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(
-  target: HTMLElement | string,
-  options: {
-    multiple?: (() => boolean) | boolean;
-    root?: HTMLElement;
-    timeout?: number;
-  } = {
+  target: Element | string,
+  /**
+   * @property multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
+   * @property root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
+   * @property timeout - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
+   */
+  options: CreationOptions = {
     multiple: false,
     root: document.body,
     timeout: 0,
@@ -145,7 +174,24 @@ function enhanceArray(array: DOMNodeReference[]): DOMNodeReference[] {
         return this;
       },
     },
+    [string]: {
+      // want to find the object in the array whose element.id === string
+    },
   });
 
-  return <DOMNodeReference[]>array;
+  // return <DOMNodeReference[]>array;
+  return new Proxy(array, {
+    get(target, prop) {
+      if (prop in target) {
+        return target[prop as keyof typeof target];
+      }
+      if (typeof prop === "string") {
+        return target.find((instance) => {
+          instance.element.id === prop;
+        });
+      }
+
+      return undefined;
+    },
+  });
 }

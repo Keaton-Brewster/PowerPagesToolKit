@@ -1,13 +1,13 @@
 export default function waitFor(
-  target: HTMLElement | string,
-  root: HTMLElement | Document,
+  target: Element | string,
+  root: Element | Document,
   multiple: false,
   debounceTime: number
 ): Promise<HTMLElement>;
 
 export default function waitFor(
-  target: HTMLElement | string,
-  root: HTMLElement | Document,
+  target: Element | string,
+  root: Element | Document,
   multiple: true,
   debounceTime: number
 ): Promise<HTMLElement[]>;
@@ -19,8 +19,8 @@ export default function waitFor(
  * @returns
  */
 export default function waitFor(
-  target: HTMLElement | string,
-  root: HTMLElement | Document = document,
+  target: Element | string,
+  root: Element | Document = document,
   multiple: boolean = false,
   debounceTime: number
 ): Promise<HTMLElement | HTMLElement[]> {
@@ -63,7 +63,7 @@ export default function waitFor(
               new Error(
                 `No elements found with target: "${target}" within ${
                   debounceTime / 1000
-                } seconds. If the element you are expected has not loaded yet, consider raising your timeout.`
+                } seconds. If the element you are expecting has not loaded yet, consider raising your timeout.`
               )
             );
           }
@@ -92,7 +92,7 @@ export default function waitFor(
           new Error(
             `Element not found by target: "${target}" within ${
               debounceTime / 1000
-            } second. If the element you are expected has not loaded yet, consider raising your timeout.`
+            } second. If the element you are expecting has not loaded yet, consider raising your timeout.`
           )
         );
       }, debounceTime);
@@ -102,7 +102,7 @@ export default function waitFor(
         clearTimeout(timeout);
         return resolve(target);
       }
-      const element = <HTMLElement>root.querySelector(target);
+      const element = <HTMLElement>root.querySelector(<string>target);
       if (element) {
         clearTimeout(timeout);
         return resolve(element);
