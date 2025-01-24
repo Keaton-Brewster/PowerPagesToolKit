@@ -21,36 +21,31 @@ export default async function bindForm<T extends string>(
     const form = await API.getRecord<IForm>("systemforms", formId);
     const { formxml } = form;
 
-    const parser = new DOMParser();
-    // 2. Parse the XML string into an XML Document object
-    const xmlDoc = parser.parseFromString(formxml, "application/xml");
-
-    // 3. Access the parsed XML data
-    const controls = xmlDoc.getElementsByTagName("control");
-    
-    const dataFields: Promise<DOMNodeReference | null>[] = [];
-
-    for (let i = 0; i < controls.length; i++) {
-      const datafieldname = controls[i].getAttribute("datafieldname");
-      if (datafieldname) {
-        const refPromise = createRef(`#${datafieldname}`).catch((error) => {
-          console.warn(
-            `Failed to create a reference to the form field: ${datafieldname}`,
-            error
-          );
-          return null;
-        });
-        dataFields.push(refPromise);
-      }
-    }
+    /**
+     * since the form is coming in as a string containing XML
+     * We have to set up a parser to extract the information we need
+     */
+    const parser = new DOMParser(); // establish the parser
+    const xmlDoc = parser.parseFromString(formxml, "application/xml"); // parse the XML
+    /**
+     * Then we can get the attributes we want from the parsed XML
+     */
+    const controls = processElements(xmlDoc.getElementsByTagName("control")); // get control elements (will represent columns in the form)
+    const sections = processElements(xmlDoc.getElementsByTagName("section")); // self explanatory
+    const tabs = processElements(xmlDoc.getElementsByTagName("tab")); // self explanatory
 
     // Resolve all promises, filtering out any null values
-    const resolvedRefs = await Promise.all(dataFields);
+    const resolvedRefs = await Promise.all([...controls, ...sections, ...tabs]);
+    /**
+     * Then, finally, 'enhance' the array, adding custom methods and a custom 'getter'
+     * which will allow us to access individual nodes using the syntax `array["logical_name"]`
+     */
     return enhanceArray<T>(
       <DOMNodeReferenceArray>(
         resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
       )
     );
+    /** handle errors */
   } catch (error: unknown) {
     if (error instanceof Error) {
       console.error(error.message);
@@ -58,6 +53,40 @@ export default async function bindForm<T extends string>(
     } else {
       console.error(error);
       throw new Error(String(error)); // Ensure non-Error values are converted to a string
+    }
+  }
+}
+
+function processElements(array: HTMLCollectionOf<Element>) {
+  try {
+    const results: Promise<DOMNodeReference | null>[] = [];
+    for (let i = 0; i < array.length; i++) {
+      const datafieldname = array[i].getAttribute("datafieldname");
+      if (datafieldname) {
+        /**
+         * since 'createRef()' returns a Promise<DOMNodeReference>, when we don't 'await'
+         * we get the pending promise itself, rather than the resolved 'DOMNodeReference'
+         * This way, we can collect all our pending promises with their own catch statements
+         * and then resolve them all at once later
+         */
+        const refPromise = createRef(`#${datafieldname}`).catch((error) => {
+          console.warn(
+            `Failed to create a reference to the form field: ${datafieldname}`,
+            error
+          );
+          return null;
+        });
+        results.push(refPromise);
+      }
+    }
+    return results;
+  } catch (error: any) {
+    if (error instanceof Error) {
+      console.error(error.message);
+      throw error;
+    } else {
+      console.error(error);
+      throw new Error(String(error));
     }
   }
 }
