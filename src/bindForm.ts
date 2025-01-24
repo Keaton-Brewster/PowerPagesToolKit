@@ -18,7 +18,7 @@ export default async function bindForm<T extends string>(
   formId: string
 ): Promise<DOMNodeReferenceArray & Record<T, DOMNodeReference>> {
   try {
-    const form = await API.getRecord<Form>("systemforms", formId);
+    const form = await API.getRecord<IForm>("systemforms", formId);
     const { formxml } = form;
 
     const parser = new DOMParser();
@@ -27,6 +27,7 @@ export default async function bindForm<T extends string>(
 
     // 3. Access the parsed XML data
     const controls = xmlDoc.getElementsByTagName("control");
+    
     const dataFields: Promise<DOMNodeReference | null>[] = [];
 
     for (let i = 0; i < controls.length; i++) {

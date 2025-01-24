@@ -13,7 +13,7 @@ declare interface ElementValue {
 // Alias for QuerySelector
 declare type QuerySelector = string;
 
-interface SystemForm extends Object {
+interface ISystemForm extends Object {
   "@odata.context": string;
   "@odata.etag": string;
   "overwritetime@OData.Community.Display.V1.FormattedValue": string;
@@ -56,6 +56,6 @@ interface SystemForm extends Object {
   formid: string;
 }
 
-interface Form extends Partial<SystemForm> {
+interface IForm extends Partial<ISystemForm> {
   formxml: string;
 }

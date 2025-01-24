@@ -5,7 +5,7 @@ import {
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
-interface CreationOptions {
+interface ICreationOptions {
   /**
    * Should this call return an array of instantiated references, or just a single?
    * Defaults to false, returning a single instance.
@@ -29,12 +29,12 @@ interface CreationOptions {
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference(
   target: Element,
-  options?: CreationOptions
+  options?: ICreationOptions
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
   target: string,
-  options?: Omit<CreationOptions, "multiple"> & {
+  options?: Omit<ICreationOptions, "multiple"> & {
     /**
      * Should this call return an array of instantiated references, or just a single instance?
      * Defaults to false, returning a single instance.
@@ -45,7 +45,7 @@ export default async function createDOMNodeReference(
 
 export default async function createDOMNodeReference(
   target: string,
-  options?: Omit<CreationOptions, "multiple"> & {
+  options?: Omit<ICreationOptions, "multiple"> & {
     /**
      * Should this call return an array of instantiated references, or just a single instance?
      * Defaults to false, returning a single instance.
@@ -68,7 +68,7 @@ export default async function createDOMNodeReference(
    * @property root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
    * @property timeout - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
    */
-  options: CreationOptions = {
+  options: ICreationOptions = {
     multiple: false,
     root: document.body,
     timeout: 0,

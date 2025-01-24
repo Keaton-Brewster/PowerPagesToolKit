@@ -8,13 +8,13 @@ import {
 } from "./errors.js";
 import createRef from "./createDOMNodeReferences.js";
 
-interface BoundEventListener {
+interface IBoundEventListener {
   element: HTMLElement;
   handler: (e: Event) => void;
   event: keyof HTMLElementEventMap;
 }
 
-interface BusinessRule {
+interface IBusinessRule {
   /**
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
@@ -68,7 +68,7 @@ const _attachRadioButtons = Symbol("_ARB");
 const _bindMethods = Symbol("_B");
 const _debounceTime = Symbol("DT");
 const _observers = Symbol("O");
-const _boundEventListeners = Symbol("BEV");
+const _IboundEventListeners = Symbol("BEV");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -78,7 +78,7 @@ export default class DOMNodeReference {
   private isLoaded: boolean;
   private defaultDisplay: string;
   private [_observers]: Array<MutationObserver> = [];
-  private [_boundEventListeners]: Array<BoundEventListener> = [];
+  private [_IboundEventListeners]: Array<IBoundEventListener> = [];
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -217,7 +217,7 @@ export default class DOMNodeReference {
       this.element.addEventListener(eventType, this.updateValue);
 
       // push element and handler for event listener cleanup on _destroy()
-      this[_boundEventListeners].push({
+      this[_IboundEventListeners].push({
         element: <HTMLElement>this.element,
         handler: this.updateValue,
         event: eventType,
@@ -251,7 +251,7 @@ export default class DOMNodeReference {
 
     // make sure to push into bound listeners for event cleanup on _destroy()
     const _handler = this.updateValue;
-    this[_boundEventListeners].push({
+    this[_IboundEventListeners].push({
       element: dateNode,
       handler: _handler,
       event: "select",
@@ -367,7 +367,7 @@ export default class DOMNodeReference {
   }
 
   private [_destroy](): void {
-    this[_boundEventListeners]?.forEach((binding) => {
+    this[_IboundEventListeners]?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
     this[_observers]?.forEach((observer) => {
@@ -421,7 +421,7 @@ export default class DOMNodeReference {
     // push to bound listeners for cleanup on _destroy()
     const _element = <HTMLElement>this.element;
     const _handler = eventHandler;
-    this[_boundEventListeners].push({
+    this[_IboundEventListeners].push({
       element: _element,
       handler: _handler,
       event: eventType,
@@ -750,7 +750,7 @@ export default class DOMNodeReference {
    * @param rule The business rule containing conditions for various actions.
    * @returns Instance of this for method chaining.
    */
-  public applyBusinessRule(rule: Partial<BusinessRule>): DOMNodeReference {
+  public applyIBusinessRule(rule: Partial<IBusinessRule>): DOMNodeReference {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
@@ -860,7 +860,7 @@ export default class DOMNodeReference {
   /**
    * Configures conditional rendering for the target element based on a condition
    * and the visibility of one or more trigger elements.
-   * @deprecated Use the new 'applyBusinessRule Method
+   * @deprecated Use the new 'applyIBusinessRule Method
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
@@ -918,7 +918,7 @@ export default class DOMNodeReference {
 
   /**
    * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
-   * @deprecated Use the new 'applyBusinessRule Method
+   * @deprecated Use the new 'applyIBusinessRule Method
    * @param isRequired Function determining if field is required
    * @param isValid Function validating field input
    * @param fieldDisplayName Display name for error messages
@@ -1060,7 +1060,7 @@ export default class DOMNodeReference {
 
       dep.on("change", handleChange);
       //make sure to track event listener for _destroy()
-      this[_boundEventListeners].push({
+      this[_IboundEventListeners].push({
         element: dep.element,
         event: "change",
         handler: handleChange,
@@ -1069,7 +1069,7 @@ export default class DOMNodeReference {
       if (trackInputEvents) {
         dep.on("input", handleChange);
         //make sure to track event listener for _destroy()
-        this[_boundEventListeners].push({
+        this[_IboundEventListeners].push({
           element: dep.element,
           event: "input",
           handler: handleChange,
@@ -1101,7 +1101,7 @@ export default class DOMNodeReference {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
           <DOMNodeReference>radio.on("change", handleChange);
           //make sure to track event listener for _destroy()
-          this[_boundEventListeners].push({
+          this[_IboundEventListeners].push({
             element: radio.element,
             event: "change",
             handler: handleChange,
