@@ -25,13 +25,11 @@ interface IBusinessRule {
   setVisibility?: [condition: () => boolean, clearValuesOnHide?: boolean];
   /**
    * @param isRequired Function determining if field is required
-   * @param isValid Function validating field input
-   * @param fieldDisplayName Display name for error messages
+   * @param isValid Function validating field input. allows access to the invoked expression passed by {@link isRequired}
    */
   setRequired?: [
     isRequired: () => boolean,
-    isValid: () => boolean,
-    fieldDisplayName: string
+    isValid: (isRequired: () => boolean) => boolean
   ];
   /**
    * @param condition A function to determine if the value provided should be applied to this field
@@ -58,7 +56,7 @@ const _attachRadioButtons = Symbol("_ARB");
 const _bindMethods = Symbol("_B");
 const _debounceTime = Symbol("DT");
 const _observers = Symbol("O");
-const _IboundEventListeners = Symbol("BEV");
+const _boundEventListeners = Symbol("BEV");
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -69,7 +67,7 @@ export default class DOMNodeReference {
   private isLoaded: boolean;
   private defaultDisplay: string;
   private [_observers]: Array<MutationObserver> = [];
-  private [_IboundEventListeners]: Array<IBoundEventListener> = [];
+  private [_boundEventListeners]: Array<IBoundEventListener> = [];
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -225,7 +223,7 @@ export default class DOMNodeReference {
       this.element.addEventListener(eventType, this.updateValue);
 
       // push element and handler for event listener cleanup on _destroy()
-      this[_IboundEventListeners].push({
+      this[_boundEventListeners].push({
         element: <HTMLElement>this.element,
         handler: this.updateValue,
         event: eventType,
@@ -259,7 +257,7 @@ export default class DOMNodeReference {
 
     // make sure to push into bound listeners for event cleanup on _destroy()
     const _handler = this.updateValue;
-    this[_IboundEventListeners].push({
+    this[_boundEventListeners].push({
       element: dateNode,
       handler: _handler,
       event: "select",
@@ -381,7 +379,7 @@ export default class DOMNodeReference {
   }
 
   private [_destroy](): void {
-    this[_IboundEventListeners]?.forEach((binding) => {
+    this[_boundEventListeners]?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
     this[_observers]?.forEach((observer) => {
@@ -435,7 +433,7 @@ export default class DOMNodeReference {
     // push to bound listeners for cleanup on _destroy()
     const _element = <HTMLElement>this.element;
     const _handler = eventHandler;
-    this[_IboundEventListeners].push({
+    this[_boundEventListeners].push({
       element: _element,
       handler: _handler,
       event: eventType,
@@ -789,12 +787,12 @@ export default class DOMNodeReference {
       // Apply Visibility Rule
       if (rule.setVisibility) {
         const [condition, clearValuesOnHide = true] = rule.setVisibility;
-        const initialState = condition();
+        const initialState = condition.bind(this)();
         this.toggleVisibility(initialState);
 
         if (dependencies.length) {
           this._configDependencyTracking(
-            () => this.toggleVisibility(condition()),
+            () => this.toggleVisibility(condition.bind(this)()),
             dependencies,
             {
               clearValuesOnHide,
@@ -808,14 +806,22 @@ export default class DOMNodeReference {
 
       // Apply Required & Validation Rule
       if (rule.setRequired) {
-        const [isRequired, isValid, fieldDisplayName] = rule.setRequired;
+        const [isRequired, isValid] = rule.setRequired;
 
-        if (!fieldDisplayName.trim()) {
-          throw new ValidationConfigError(
-            this,
-            "Field display name is required"
-          );
-        }
+        const fieldDisplayName = (() => {
+          let label: any = this.getLabel();
+          if (!label)
+            return new Error(
+              `There was an error accessing the label for this element: ${String(
+                this.target
+              )}`
+            );
+          label = label.innerHTML;
+          if (label.length > 50) {
+            label = label.substring(0, 50) + "...";
+          }
+          return label;
+        })();
 
         if (typeof Page_Validators === "undefined") {
           throw new ValidationConfigError(this, "Page_Validators not found");
@@ -831,21 +837,25 @@ export default class DOMNodeReference {
           controltovalidate: this.element.id,
           errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
           evaluationfunction: () => {
-            const isFieldRequired = isRequired();
+            const isFieldRequired = isRequired.bind(this)();
             const isFieldVisible =
               window.getComputedStyle(this.visibilityController).display !==
               "none";
 
-            return !isFieldRequired || !isFieldVisible || isValid();
+            return (
+              !isFieldRequired ||
+              !isFieldVisible ||
+              isValid.bind(this)(isRequired.bind(this))
+            );
           },
         });
 
         Page_Validators.push(newValidator);
-        this.setRequiredLevel(isRequired());
+        this.setRequiredLevel(isRequired.bind(this)());
 
         // Track dependencies
         this._configDependencyTracking(
-          () => this.setRequiredLevel(isRequired()),
+          () => this.setRequiredLevel(isRequired.bind(this)()),
           dependencies,
           { clearValuesOnHide: false }
         );
@@ -854,14 +864,16 @@ export default class DOMNodeReference {
       // Apply Set Value Rule
       if (rule.setValue) {
         const [condition, value] = rule.setValue;
-        if (condition()) {
-          this.setValue(value);
+        if (condition.bind(this)()) {
+          this.setValue.bind(this)(value);
         }
 
         if (dependencies.length) {
           this._configDependencyTracking(
             () => {
-              this.setValue(value);
+              if (condition.bind(this)()) {
+                this.setValue.bind(this)(value);
+              }
             },
             dependencies,
             { clearValuesOnHide: false }
@@ -872,12 +884,12 @@ export default class DOMNodeReference {
       // Apply Disabled Rule
       if (rule.setDisabled) {
         const [condition] = rule.setDisabled;
-        condition() ? this.disable() : this.enable();
+        condition.bind(this)() ? this.disable() : this.enable();
 
         if (dependencies.length) {
           this._configDependencyTracking(
             () => {
-              condition() ? this.enable() : this.disable();
+              condition.bind(this)() ? this.enable() : this.disable();
             },
             dependencies,
             {
@@ -1103,7 +1115,7 @@ export default class DOMNodeReference {
 
       dep.on("change", handleChange);
       //make sure to track event listener for _destroy()
-      this[_IboundEventListeners].push({
+      this[_boundEventListeners].push({
         element: dep.element,
         event: "change",
         handler: handleChange,
@@ -1112,7 +1124,7 @@ export default class DOMNodeReference {
       if (trackInputEvents) {
         dep.on("input", handleChange);
         //make sure to track event listener for _destroy()
-        this[_IboundEventListeners].push({
+        this[_boundEventListeners].push({
           element: dep.element,
           event: "input",
           handler: handleChange,
@@ -1144,7 +1156,7 @@ export default class DOMNodeReference {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
           <DOMNodeReference>radio.on("change", handleChange);
           //make sure to track event listener for _destroy()
-          this[_IboundEventListeners].push({
+          this[_boundEventListeners].push({
             element: radio.element,
             event: "change",
             handler: handleChange,
