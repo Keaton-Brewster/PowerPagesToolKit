@@ -57,36 +57,46 @@ export default async function bindForm<T extends string>(
   }
 }
 
-function processElements(array: HTMLCollectionOf<Element>) {
-  try {
-    const results: Promise<DOMNodeReference | null>[] = [];
-    for (let i = 0; i < array.length; i++) {
-      const datafieldname = array[i].getAttribute("datafieldname");
-      if (datafieldname) {
-        /**
-         * since 'createRef()' returns a Promise<DOMNodeReference>, when we don't 'await'
-         * we get the pending promise itself, rather than the resolved 'DOMNodeReference'
-         * This way, we can collect all our pending promises with their own catch statements
-         * and then resolve them all at once later
-         */
-        const refPromise = createRef(`#${datafieldname}`).catch((error) => {
-          console.warn(
-            `Failed to create a reference to the form field: ${datafieldname}`,
-            error
-          );
-          return null;
-        });
-        results.push(refPromise);
-      }
-    }
-    return results;
-  } catch (error: any) {
-    if (error instanceof Error) {
-      console.error(error.message);
-      throw error;
-    } else {
-      console.error(error);
-      throw new Error(String(error));
-    }
-  }
+function processElements(element: HTMLCollectionOf<Element>) {
+  return Array.from(element)
+    .map((element) => {
+      // use a helper function to determine the attribute we want based on the tagname of the element
+      const identifyingAttribute = getIdentifyingAttribute(element.tagName);
+      const datafieldname = element.getAttribute(identifyingAttribute);
+      // if we don't find the desired thing,
+      if (!datafieldname) return null;
+
+      const referenceString: string | null = createReferenceString(
+        element.tagName,
+        datafieldname
+      );
+      if (!referenceString) return null;
+
+      return createRef(referenceString).catch((error) => {
+        console.warn(
+          `Failed to create a reference to the form field: ${datafieldname}`,
+          error
+        );
+        return null;
+      });
+    })
+    .filter(Boolean); // Remove null values
+}
+
+function getIdentifyingAttribute(tagName: string): string {
+  return tagName === "control"
+    ? "id"
+    : tagName === "tab" || tagName === "section"
+    ? "name"
+    : "id";
+}
+
+function createReferenceString(
+  tagName: string,
+  datafieldname: string
+): string | null {
+  if (tagName === "control") return `#${datafieldname}`;
+  if (tagName === "tab" || tagName === "section")
+    return `[data-name="${datafieldname}"]`;
+  return null; // Explicitly return null instead of undefined
 }
