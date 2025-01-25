@@ -305,12 +305,13 @@ export default class DOMNodeReference {
           this.element.classList.contains("money")
         )
           cleanValue = input.value.replace(/[$,]/g, "");
+
         return {
           value:
             this.element.classList.contains("decimal") ||
             this.element.classList.contains("money")
               ? parseFloat(cleanValue)
-              : input.value,
+              : cleanValue,
         };
     }
   }
@@ -402,6 +403,7 @@ export default class DOMNodeReference {
 
     // Update instance properties
     this.value = elementValue.value;
+
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
     }
