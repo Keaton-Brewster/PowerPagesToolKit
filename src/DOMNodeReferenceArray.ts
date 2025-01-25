@@ -34,7 +34,11 @@ export function enhanceArray<T extends string>(
 
       // Ensure `prop` is a string and search by `element.id`
       if (typeof prop === "string") {
-        return target.find((instance) => instance.element.id === prop);
+        return target.find(
+          (instance) =>
+            instance.target.toString().replace(/[#\[\]]/g, "") === prop ||
+            instance.logicalName === prop
+        );
       }
 
       return undefined;

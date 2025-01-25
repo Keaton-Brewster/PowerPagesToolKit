@@ -19,31 +19,22 @@ interface IBusinessRule {
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
-   * @param dependencies An array of `DOMNodeReference` instances. Event listeners are
-   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
-   * the target node.
+   
    * @param clearValuesOnHide Should the values in the targeted field be cleared when hidden? Defaults to true
    */
-  setVisibility?: [
-    condition: () => boolean,
-    dependencies: DOMNodeReference[],
-    clearValuesOnHide?: boolean
-  ];
+  setVisibility?: [condition: () => boolean, clearValuesOnHide?: boolean];
   /**
    * @param isRequired Function determining if field is required
    * @param isValid Function validating field input
    * @param fieldDisplayName Display name for error messages
-   * @param dependencies Fields that trigger requirement/validation updates
    */
   setRequired?: [
     isRequired: () => boolean,
     isValid: () => boolean,
-    fieldDisplayName: string,
-    dependencies: DOMNodeReference[]
+    fieldDisplayName: string
   ];
   /**
-   * @param condition A function to determine the value of this
-   * element, given applied logic
+   * @param condition A function to determine if the value provided should be applied to this field
    * @param value The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
@@ -52,9 +43,8 @@ interface IBusinessRule {
   /**
    * @param condition A function to determine if this field
    * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
-   * @param dependencies
    */
-  setDisabled?: [condition: () => boolean, dependencies: DOMNodeReference[]];
+  setDisabled?: [condition: () => boolean];
 }
 
 export const _init = Symbol("_I");
@@ -73,6 +63,7 @@ const _IboundEventListeners = Symbol("BEV");
 export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: Element | string;
+  public logicalName?: string;
   public root: Element;
   private [_debounceTime]: number;
   private isLoaded: boolean;
@@ -120,6 +111,24 @@ export default class DOMNodeReference {
     debounceTime: number
   ) {
     this.target = target;
+    if (typeof target === "string") {
+      let lName: string | null = null;
+
+      // Extract content inside brackets []
+      const bracketMatch = target.match(/\[([^\]]+)\]/);
+      if (bracketMatch) {
+        lName = bracketMatch[1];
+
+        // Extract content inside quotes (single or double)
+        const quoteMatch = lName.match(/["']([^"']+)["']/);
+        if (quoteMatch) {
+          lName = quoteMatch[1];
+        }
+      }
+
+      // If no match, use target as fallback
+      this.logicalName = (lName || target).replace(/[#\[\]]/g, "");
+    }
     this.root = root;
     this[_debounceTime] = debounceTime;
     this.isLoaded = false;
@@ -181,6 +190,15 @@ export default class DOMNodeReference {
     }
   }
 
+  private eventMapping: Record<string, keyof HTMLElementEventMap> = {
+    checkbox: "click",
+    radio: "click",
+    select: "change",
+    "select-multiple": "change",
+    textarea: "keyup",
+    // Add other input types as needed
+  };
+
   /**
    * Initializes value synchronization with appropriate event listeners
    * based on element type.
@@ -191,24 +209,14 @@ export default class DOMNodeReference {
       // Initial sync
       this.updateValue();
 
-      // Define event mappings
-      const eventMapping: Record<string, keyof HTMLElementEventMap> = {
-        checkbox: "click",
-        radio: "click",
-        select: "change",
-        "select-multiple": "change",
-        textarea: "keyup",
-        // Add other input types as needed
-      };
-
       // Determine event type based on element
       let eventType: keyof HTMLElementEventMap;
       if (this.element instanceof HTMLSelectElement) {
         eventType = "change";
       } else if (this.element instanceof HTMLInputElement) {
-        eventType = eventMapping[this.element.type] ?? "input";
+        eventType = this.eventMapping[this.element.type] ?? "input";
       } else if (this.element instanceof HTMLTextAreaElement) {
-        eventType = eventMapping[this.element.type] ?? "input";
+        eventType = this.eventMapping[this.element.type] ?? "input";
       } else {
         eventType = "input";
       }
@@ -293,11 +301,17 @@ export default class DOMNodeReference {
         };
 
       default:
+        let cleanValue: string = input.value;
+        if (
+          this.element.classList.contains("decimal") ||
+          this.element.classList.contains("money")
+        )
+          cleanValue = input.value.replace(/[$,]/g, "");
         return {
           value:
             this.element.classList.contains("decimal") ||
             this.element.classList.contains("money")
-              ? parseFloat(input.value)
+              ? parseFloat(cleanValue)
               : input.value,
         };
     }
@@ -476,6 +490,21 @@ export default class DOMNodeReference {
     if (value instanceof Function) {
       value = value();
     }
+    // when the value of one of these things is updated, we need to propagate an event to trigger
+    // the update of any bound elements
+    // Determine event type based on element
+    let eventType: keyof HTMLElementEventMap;
+    if (this.element instanceof HTMLSelectElement) {
+      eventType = "change";
+    } else if (this.element instanceof HTMLInputElement) {
+      eventType = this.eventMapping[this.element.type] ?? "input";
+    } else if (this.element instanceof HTMLTextAreaElement) {
+      eventType = this.eventMapping[this.element.type] ?? "input";
+    } else {
+      eventType = "input";
+    }
+    this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
+
     if (
       this.element.classList.contains("boolean-radio") &&
       this.yesRadio instanceof DOMNodeReference &&
@@ -483,6 +512,7 @@ export default class DOMNodeReference {
     ) {
       (this.yesRadio.element as HTMLInputElement).checked = value;
       (this.noRadio.element as HTMLInputElement).checked = !value;
+      this.value = value;
     } else {
       (this.element as HTMLInputElement).value = value;
     }
@@ -748,14 +778,17 @@ export default class DOMNodeReference {
    * Applies a business rule to manage visibility, required state, value, and disabled state dynamically.
    *
    * @param rule The business rule containing conditions for various actions.
+   * @param dependencies For re-evaluation conditions when the state of the dependencies change
    * @returns Instance of this for method chaining.
    */
-  public applyIBusinessRule(rule: Partial<IBusinessRule>): DOMNodeReference {
+  public applyBusinessRule(
+    rule: IBusinessRule,
+    dependencies: DOMNodeReference[]
+  ): DOMNodeReference {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
-        const [condition, dependencies = [], clearValuesOnHide = true] =
-          rule.setVisibility;
+        const [condition, clearValuesOnHide = true] = rule.setVisibility;
         const initialState = condition();
         this.toggleVisibility(initialState);
 
@@ -775,8 +808,7 @@ export default class DOMNodeReference {
 
       // Apply Required & Validation Rule
       if (rule.setRequired) {
-        const [isRequired, isValid, fieldDisplayName, dependencies] =
-          rule.setRequired;
+        const [isRequired, isValid, fieldDisplayName] = rule.setRequired;
 
         if (!fieldDisplayName.trim()) {
           throw new ValidationConfigError(
@@ -814,7 +846,8 @@ export default class DOMNodeReference {
         // Track dependencies
         this._configDependencyTracking(
           () => this.setRequiredLevel(isRequired()),
-          dependencies
+          dependencies,
+          { clearValuesOnHide: false }
         );
       }
 
@@ -824,14 +857,22 @@ export default class DOMNodeReference {
         if (condition()) {
           this.setValue(value);
         }
+
+        if (dependencies.length) {
+          this._configDependencyTracking(
+            () => {
+              this.setValue(value);
+            },
+            dependencies,
+            { clearValuesOnHide: false }
+          );
+        }
       }
 
       // Apply Disabled Rule
       if (rule.setDisabled) {
-        const [condition, dependencies = []] = rule.setDisabled;
+        const [condition] = rule.setDisabled;
         condition() ? this.disable() : this.enable();
-
-        const initialState = condition();
 
         if (dependencies.length) {
           this._configDependencyTracking(
@@ -840,6 +881,7 @@ export default class DOMNodeReference {
             },
             dependencies,
             {
+              clearValuesOnHide: false,
               observeVisibility: true,
               trackInputEvents: true,
               trackRadioButtons: true,
@@ -860,7 +902,7 @@ export default class DOMNodeReference {
   /**
    * Configures conditional rendering for the target element based on a condition
    * and the visibility of one or more trigger elements.
-   * @deprecated Use the new 'applyIBusinessRule Method
+   * @deprecated Use the new 'applyBusinessRule Method
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
@@ -918,7 +960,7 @@ export default class DOMNodeReference {
 
   /**
    * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
-   * @deprecated Use the new 'applyIBusinessRule Method
+   * @deprecated Use the new 'applyBusinessRule Method
    * @param isRequired Function determining if field is required
    * @param isValid Function validating field input
    * @param fieldDisplayName Display name for error messages
@@ -1006,7 +1048,8 @@ export default class DOMNodeReference {
    * @private
    * @param handler The function to execute when dependencies change
    * @param dependencies Array of dependent DOM nodes to track
-   * @param options Additional configuration options
+   * @param options Additional configuration options. clearValuesOnHide defaults to false.
+   * all other options defaults to true
    */
   private _configDependencyTracking(
     handler: () => void,

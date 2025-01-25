@@ -40,6 +40,7 @@ export default async function bindForm<T extends string>(
      * Then, finally, 'enhance' the array, adding custom methods and a custom 'getter'
      * which will allow us to access individual nodes using the syntax `array["logical_name"]`
      */
+
     return enhanceArray<T>(
       <DOMNodeReferenceArray>(
         resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
