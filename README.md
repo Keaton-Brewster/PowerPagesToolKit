@@ -85,10 +85,10 @@ import { createRef } from "powerpagestoolkit";
 Instantiate one, or multiple instances of a DOMNodeReference, and optionally configure advanced options
 
 ```javascript
-// Create a single reference
+// Create a single reference (i.e. 'querySelector')
 const node = await createRef("#myElement");
 
-// Create multiple references
+// Create multiple references (i.e. 'querySelectorAll')
 const nodes = await createRef(".my-class", { multiple: true });
 
 /******************/
@@ -161,7 +161,7 @@ applyBusinessRule(
 ```typescript
 interface IBusinessRule {
   setVisibility?: [
-    condition: () => boolean, 
+    condition: () => boolean,
     clearValuesOnHide?: boolean = true
     ];
   setRequired?: [
@@ -169,7 +169,7 @@ interface IBusinessRule {
     isValid: () => boolean
   ];
   setValue?: [
-    condition: () => boolean, 
+    condition: () => boolean,
     value: () => any | any
     ];
   setDisabled?: () => boolean;
@@ -192,7 +192,7 @@ taxIdField.applyBusinessRule(
   [businessTypeField] // Re-evaluate when businessTypeField changes
 );
 
-// Optionally disable 'clearValuesOnHide:
+// Optionally disable 'clearValuesOnHide':
 taxIdField.applyBusinessRule(
   {
     setVisibility: [
@@ -234,7 +234,10 @@ taxIdField.applyBusinessRule(
 // Set default industry value when 'businessTypeField' is 'Corporation'
 industryField.applyBusinessRule(
   {
-    setValue: [() => businessTypeField.value === "Corporation", "Corporate"],
+    setValue: [
+      () => businessTypeField.value === "Corporation",
+      "Corporate"
+    ],
   },
   [businessTypeField] // Apply value when businessTypeField changes
 );
@@ -246,7 +249,7 @@ industryField.applyBusinessRule(
 // Disable 'taxIdField' when 'businessTypeField' is 'Individual'
 taxIdField.applyBusinessRule(
   {
-    setDisabled: [() => businessTypeField.value === "Individual"],
+    setDisabled: () => businessTypeField.value === "Individual",
   },
   [businessTypeField] // Enable/disable when businessTypeField changes
 );
