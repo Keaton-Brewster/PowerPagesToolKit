@@ -25,24 +25,21 @@ interface IBusinessRule {
   setVisibility?: [condition: () => boolean, clearValuesOnHide?: boolean];
   /**
    * @param isRequired Function determining if field is required
-   * @param isValid Function validating field input. allows access to the invoked expression passed by {@link isRequired}
+   * @param isValid Function validating field input.
    */
-  setRequired?: [
-    isRequired: () => boolean,
-    isValid: (isRequired: () => boolean) => boolean
-  ];
+  setRequired?: [isRequired: () => boolean, isValid: () => boolean];
   /**
    * @param condition A function to determine if the value provided should be applied to this field
    * @param value The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
    */
-  setValue?: [condition: () => boolean, value: any];
+  setValue?: [condition: () => boolean, value: () => any | any];
   /**
    * @param condition A function to determine if this field
    * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
    */
-  setDisabled?: [condition: () => boolean];
+  setDisabled?: () => boolean;
 }
 
 export const _init = Symbol("_I");
@@ -844,11 +841,7 @@ export default class DOMNodeReference {
               window.getComputedStyle(this.visibilityController).display !==
               "none";
 
-            return (
-              !isFieldRequired ||
-              !isFieldVisible ||
-              isValid.bind(this)(isRequired.bind(this))
-            );
+            return !isFieldRequired || !isFieldVisible || isValid.bind(this)();
           },
         });
 
@@ -865,7 +858,8 @@ export default class DOMNodeReference {
 
       // Apply Set Value Rule
       if (rule.setValue) {
-        const [condition, value] = rule.setValue;
+        let [condition, value] = rule.setValue;
+        if (value instanceof Function) value = value();
         if (condition.bind(this)()) {
           this.setValue.bind(this)(value);
         }
@@ -885,7 +879,7 @@ export default class DOMNodeReference {
 
       // Apply Disabled Rule
       if (rule.setDisabled) {
-        const [condition] = rule.setDisabled;
+        const condition = rule.setDisabled;
         condition.bind(this)() ? this.disable() : this.enable();
 
         if (dependencies.length) {

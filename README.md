@@ -142,76 +142,113 @@ node.on("click", function (e) {
 ...
 ```
 
+##### Business Rule Application
+
+This utility provides a flexible way to dynamically control field visibility, requirement status, values, and enabled states based on dependencies within PowerPages forms.
+
+_Method Signature:_
+
+```typescript
+applyBusinessRule(
+  rule: IBusinessRule,
+  dependencies: DOMNodeReference[]
+): DOMNodeReference; /* Instance of this is returned for optional
+ method chaining */
+```
+
+**BusinessRule Definition**
+
+```typescript
+interface IBusinessRule {
+  setVisibility?: [
+    condition: () => boolean, 
+    clearValuesOnHide?: boolean = true
+    ];
+  setRequired?: [
+    isRequired: () => boolean,
+    isValid: () => boolean
+  ];
+  setValue?: [
+    condition: () => boolean, 
+    value: () => any | any
+    ];
+  setDisabled?: () => boolean;
+}
+```
+
 ##### Visibility Control
 
 ```typescript
-// Basic visibility
-node.hide();
-node.show();
-```
-
-**_Advanced conditional rendering_**
-
-Out of the box, Microsoft does not provide PowerPages developers the ability to hide or show fields or form elements based on the value of another field. This method allows such configurations
-
-_Method signature:_
-
-```typescript
-configureConditionalRendering(
-    condition: () => boolean,
-    dependencies?: DOMNodeReference[],
-    clearValuesOnHide: boolean = true
-  ): DOMNodeReference /* Instance of this returned
-  for optional method chaining */
-```
-
-_Example implementation:_
-
-```typescript
-node.configureConditionalRendering(
-  function () // Function to evaluate wether this node should be visible or not
+// Show the 'taxIdField' only when
+// 'businessTypeField' is set to 'Corporation' or 'LLC'
+taxIdField.applyBusinessRule(
   {
-    return otherNode.value === "some value";
+    setVisibility: [
+      () =>
+        businessTypeField.value === "Corporation" ||
+        businessTypeField.value === "LLC",
+    ],
   },
-  [otherNode] /* Dependency array | if the values or visibility of these
-  change, the function is re-evaluated */,
+  [businessTypeField] // Re-evaluate when businessTypeField changes
+);
 
-  true /* should the values in the targeted elements (this.element)
-  be cleared if this node is hidden? Default = true */
+// Optionally disable 'clearValuesOnHide:
+taxIdField.applyBusinessRule(
+  {
+    setVisibility: [
+      () =>
+        businessTypeField.value === "Corporation" ||
+        businessTypeField.value === "LLC",
+      false, // defaults to true. False will prevent the fields from losing it's value if it is hidden
+    ],
+  },
+  [businessTypeField] // Re-evaluate when businessTypeField changes
 );
 ```
 
 ##### Validation and Requirements
 
-This utility enhances PowerPages forms by adding dynamic field validation and conditional requirements based on other field values.
-
-_Method signature:_
-
 ```typescript
-configureValidationAndRequirements(
-  isRequired: () => boolean,
-  isValid: () => boolean,
-  fieldDisplayName: string,
-  dependencies: DOMNodeReference[]
-): DOMNodeReference; /* instance of this is returned for optional
- method chaining */
+// Require 'taxIdField' when 'businessTypeField' is 'Corporation' or 'LLC'
+taxIdField.applyBusinessRule(
+  {
+    setRequired: [
+      function () {
+        return (
+          businessTypeField.value === "Corporation" ||
+          businessTypeField.value === "LLC"
+        );
+      },
+      function () {
+        return this.value != null && this.value !== "";
+      },
+    ],
+  },
+  [businessTypeField] // Revalidate when businessTypeField changes
+);
 ```
 
-_Example implementation:_
+##### Setting Field Values Conditionally
 
 ```typescript
-node.configureValidationAndRequirements(
-  // Make field required only when "Yes" is checked
-  () => dependentNode.yesRadio?.checked ?? false,
-
-  // Basic validation: ensure field isn't empty
-  function () {
-    return this.value != null && this.value !== "";
+// Set default industry value when 'businessTypeField' is 'Corporation'
+industryField.applyBusinessRule(
+  {
+    setValue: [() => businessTypeField.value === "Corporation", "Corporate"],
   },
+  [businessTypeField] // Apply value when businessTypeField changes
+);
+```
 
-  "Contact Phone", // Shows in error message: "Contact Phone is required"
+##### Enabling and Disabling Fields
 
-  [dependentNode] // Revalidate when dependentNode changes
+```typescript
+// Disable 'taxIdField' when 'businessTypeField' is 'Individual'
+taxIdField.applyBusinessRule(
+  {
+    setDisabled: [() => businessTypeField.value === "Individual"],
+  },
+  [businessTypeField] // Enable/disable when businessTypeField changes
 );
 ```
 
@@ -261,7 +298,6 @@ _Enabling/Disabling inputs_
 ```typescript
 node.disable();
 node.enable();
-
 ```
 
 ##### Label and Tooltip Management
@@ -294,6 +330,89 @@ title.addTooltip("This is an Example of a tooltip!", { color: "red" });
 ```
 
 ![Example](./assets//infoIconExample.gif)
+
+Here's an improved markdown documentation with more comprehensive details:
+
+### BindForm Method
+
+The `bindForm` method simplifies form element management in DataVerse by providing a semantic and efficient way to access form controls, sections, and tabs.
+
+##### Key Features
+
+- Retrieves form definition directly from DataVerse
+- Automatically generates references for:
+  - Controls
+  - Sections
+  - Tabs
+
+##### Element Types
+
+| Element Type | Description                                 | Accessibility             |
+| ------------ | ------------------------------------------- | ------------------------- |
+| `control`    | Includes all form fields and sub-grids      | Accessed via logical name |
+| `section`    | Standard PowerApps form sections            | Accessed via logical name |
+| `tab`        | Form tabs corresponding to PowerApps layout | Accessed via logical name |
+
+##### Usage Example
+
+```javascript
+import { bindForm } from "powerpagestoolkit";
+
+// Basic form binding
+bindForm("form-guid").then((form) => {
+  // Access elements by their logical name
+  const nameField = form["name"];
+
+  // execute custom methods
+  nameField.applyBusinessRule(
+    {
+      setVisibility: [() => someNode.value === "desired value"],
+    },
+    [someNode]
+  );
+
+  // Or executes methods immediately upon accessing
+  form["phonenumber"].addTooltip("Example tooltip text");
+});
+```
+
+##### Method Signature
+
+```typescript
+/**
+ * Binds a form by its GUID and returns a collection of form elements
+ * @param formGuid Unique identifier for the form
+ * @returns Promise resolving to form element references
+ */
+function bindForm(formGuid: string): Promise<DOMNodeReferenceArray & Record<string: DOMNodeReference>>;
+```
+
+##### Benefits
+
+- Reduces code complexity
+- Improves readability
+- Provides type-safe access to form elements
+- Supports flexible form interactions
+
+##### Best Practices
+
+- Use logical names consistently
+- Handle async nature of form binding
+- Leverage TypeScript for enhanced type checking
+
+##### Error Handling
+
+Ensure proper error handling for form binding:
+
+```javascript
+bindForm("form-guid")
+  .then((form) => {
+    // Form processing
+  })
+  .catch((error) => {
+    console.error("Form binding failed", error);
+  });
+```
 
 ### DataVerse API
 
