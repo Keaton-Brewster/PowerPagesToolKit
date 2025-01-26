@@ -145,15 +145,18 @@ export default class DOMNodeReference {
       if (this.target instanceof HTMLElement) {
         this.element = this.target;
       } else {
-        this.element = <HTMLElement>(
-          await waitFor(this.target, this.root, false, this[_debounceTime])
-        );
+        this.element = (await waitFor(
+          this.target,
+          this.root,
+          false,
+          this[_debounceTime]
+        )) as HTMLElement;
       }
 
       if (!this.element) {
         throw new DOMNodeNotFoundError(this);
       }
-      if (this.element.classList.contains("boolean-radio")) {
+      if (this.element.querySelectorAll('input[type="radio"]').length > 0) {
         await this[_attachRadioButtons]();
       }
 
@@ -221,7 +224,7 @@ export default class DOMNodeReference {
 
       // push element and handler for event listener cleanup on _destroy()
       this[_boundEventListeners].push({
-        element: <HTMLElement>this.element,
+        element: this.element as HTMLElement,
         handler: this.updateValue,
         event: eventType,
       });
@@ -247,9 +250,12 @@ export default class DOMNodeReference {
       throw new Error("Date input must have a parent element");
     }
 
-    const dateNode = <HTMLElement>(
-      await waitFor("[data-date-format]", parentElement, false, 1500)
-    );
+    const dateNode = (await waitFor(
+      "[data-date-format]",
+      parentElement,
+      false,
+      1500
+    )) as HTMLElement;
     dateNode.addEventListener("select", this.updateValue);
 
     // make sure to push into bound listeners for event cleanup on _destroy()
@@ -267,8 +273,18 @@ export default class DOMNodeReference {
    * @returns Object containing value and optional checked state
    */
   private [_getElementValue](): ElementValue {
-    const input = <HTMLInputElement>this.element;
-    const select = <HTMLSelectElement>this.element;
+    const input = this.element as HTMLInputElement;
+    const select = this.element as HTMLSelectElement;
+
+    if (
+      this.yesRadio instanceof DOMNodeReference &&
+      this.noRadio instanceof DOMNodeReference
+    ) {
+      return {
+        value: Boolean(this.yesRadio.checked),
+        checked: this.yesRadio.checked,
+      };
+    }
 
     switch (input.type) {
       case "checkbox":
@@ -359,14 +375,28 @@ export default class DOMNodeReference {
   }
 
   private async [_attachRadioButtons](): Promise<void> {
-    this.yesRadio = <DOMNodeReference>await createRef(`#${this.element.id}_1`);
-    this.noRadio = <DOMNodeReference>await createRef(`#${this.element.id}_0`);
+    if (!this.element) {
+      console.error(
+        "'this.element' not found: cannot attach radio buttons for ",
+        this.target
+      );
+      return;
+    }
+
+    this.yesRadio = await createRef('input[type="radio"][value="1"]', {
+      root: this.element,
+    });
+    this.noRadio = await createRef('input[type="radio"][value="0"]', {
+      root: this.element,
+    });
   }
 
   private [_bindMethods]() {
     const prototype = Object.getPrototypeOf(this);
 
-    for (const key of <(keyof this)[]>Object.getOwnPropertyNames(prototype)) {
+    for (const key of Object.getOwnPropertyNames(prototype) as Array<
+      keyof this
+    >) {
       const value = this[key];
 
       // Ensure we're binding only functions and skip the constructor
@@ -430,7 +460,7 @@ export default class DOMNodeReference {
     this.element.addEventListener(eventType, eventHandler.bind(this));
 
     // push to bound listeners for cleanup on _destroy()
-    const _element = <HTMLElement>this.element;
+    const _element = this.element as HTMLElement;
     const _handler = eventHandler;
     this[_boundEventListeners].push({
       element: _element,
@@ -587,9 +617,9 @@ export default class DOMNodeReference {
 
         if (childInputs.length > 0) {
           const promises = childInputs.map(async (input) => {
-            const inputRef = <DOMNodeReference>(
-              await createRef(<HTMLElement>input, { multiple: false })
-            );
+            const inputRef = (await createRef(<HTMLElement>input, {
+              multiple: false,
+            })) as DOMNodeReference;
             return inputRef.clearValue();
           });
 
@@ -749,8 +779,8 @@ export default class DOMNodeReference {
     }
 
     for (const _key in options) {
-      const key = _key as keyof Partial<CSSStyleDeclaration>;
-      this.element.style[<any>key] = <string>options[key];
+      const key: any = _key as keyof Partial<CSSStyleDeclaration>;
+      this.element.style[key] = <string>options[key];
     }
     return this;
   }
@@ -1150,7 +1180,7 @@ export default class DOMNodeReference {
       // Handle radio button changes if applicable
       if (trackRadioButtons && dep.yesRadio && dep.noRadio) {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
-          <DOMNodeReference>radio.on("change", handleChange);
+          radio.on("change", handleChange) as DOMNodeReference;
           //make sure to track event listener for _destroy()
           this[_boundEventListeners].push({
             element: radio.element,
@@ -1203,7 +1233,7 @@ export default class DOMNodeReference {
       return;
     }
     const observer = new MutationObserver(() => {
-      if (document.querySelector(<string>this.target)) {
+      if (document.querySelector(this.target as string)) {
         observer.disconnect(); // Stop observing once loaded
         this.isLoaded = true;
         callback(this); // Call the provided callback
