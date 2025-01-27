@@ -1,4 +1,4 @@
-import DOMNodeReference from "./DOMNodeReference.js";
+import DOMNodeReference from "./core/DOMNodeReference.js";
 
 export class DOMNodeInitializationError extends Error {
   constructor(instance: DOMNodeReference, error: string) {

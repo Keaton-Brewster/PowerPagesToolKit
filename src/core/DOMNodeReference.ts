@@ -1,11 +1,11 @@
-import waitFor from "@/waitFor.js";
-import createInfoEl from "@/createInfoElement.js";
+import waitFor from "@/utils/waitFor.js";
+import createInfoEl from "@/utils/createInfoElement.js";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
   ValidationConfigError,
-} from "./errors.js";
+} from "../errors.js";
 import createRef from "./createDOMNodeReferences.js";
 
 const eventMapping: Record<string, keyof HTMLElementEventMap> = {

@@ -1,26 +1,8 @@
-import DOMNodeReference from "./DOMNodeReference.js";
-
-export class DOMNodeReferenceArray extends Array<DOMNodeReference> {
-  /**
-   * Hides all the containers of the DOMNodeReference instances in the array.
-   */
-  hideAll(this: DOMNodeReferenceArray) {
-    this.forEach((instance: DOMNodeReference) => instance.hide());
-    return this;
-  }
-
-  /**
-   * Shows all the containers of the DOMNodeReference instances in the array.
-   */
-
-  showAll(this: DOMNodeReferenceArray) {
-    this.forEach((instance: DOMNodeReference) => instance.show());
-    return this;
-  }
-}
+import DOMNodeReference from "@/core/DOMNodeReference.js";
+import DOMNodeReferenceArray from "@/core/DOMNodeReferenceArray.js";
 
 // Separate array enhancement for cleaner code
-export function enhanceArray<T extends string>(
+export default function enhanceArray<T extends string>(
   array: DOMNodeReference[]
 ): DOMNodeReferenceArray & Record<T, DOMNodeReference> {
   const enhancedArray = new DOMNodeReferenceArray(...array);

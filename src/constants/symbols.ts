@@ -1,0 +1,13 @@
+export const init = Symbol("__I");
+export const destroy = Symbol("__D");
+export const valueSync = Symbol("__VS");
+export const dateSync = Symbol("__DS");
+export const getElementValue = Symbol("__GEV");
+export const attachVisibilityController = Symbol("__AVC");
+export const attachRadioButtons = Symbol("__ARB");
+export const bindMethods = Symbol("__B");
+export const debounceTime = Symbol("__DT");
+export const observers = Symbol("__O");
+export const boundEventListeners = Symbol("__BEV");
+export const isValidFormElement = Symbol("__VFE");
+export const registerEventListener = Symbol("__REV");

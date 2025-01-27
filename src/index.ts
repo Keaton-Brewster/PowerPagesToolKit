@@ -1,8 +1,8 @@
 /// <reference path="../@types/index.d.ts" />
 import "./style.css";
 
-import API from "./API.js";
-import createRef from "./createDOMNodeReferences.js";
-import waitFor from "./waitFor.js";
-import bindForm from "./bindForm.js";
+import API from "./core/API.js";
+import createRef from "./core/createDOMNodeReferences.js";
+import waitFor from "./utils/waitFor.js";
+import bindForm from "./core/bindForm.js";
 export { API, createRef, waitFor, bindForm };

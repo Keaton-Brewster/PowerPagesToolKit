@@ -1,6 +1,7 @@
 //@ts-nocheck
 import { error } from "console";
-import safeAjax from "./safeAjax.js";
+import safeAjax from "@/utils/safeAjax.js";
+
 const API = {
   /**
    * @param tableSetName The dataverse set name for the table that you are updating a record in

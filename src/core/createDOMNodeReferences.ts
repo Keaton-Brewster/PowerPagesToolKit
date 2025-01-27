@@ -1,10 +1,7 @@
-import {
-  DOMNodeReferenceArray,
-  enhanceArray,
-} from "./DOMNodeReferenceArray.js";
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
-import waitFor from "./waitFor.js";
-
+import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
+import enhanceArray from "@/utils/enhanceArray.js";
+import waitFor from "@/utils/waitFor.js";
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference<T extends string>(
   target: Element,
