@@ -5,7 +5,7 @@ import {
   DOMNodeNotFoundError,
   ConditionalRenderingError,
   ValidationConfigError,
-} from "../errors.js";
+} from "../errors/errors.js";
 import createRef from "./createDOMNodeReferences.js";
 
 const eventMapping: Record<string, keyof HTMLElementEventMap> = {
