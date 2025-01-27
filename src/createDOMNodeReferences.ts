@@ -5,29 +5,8 @@ import {
 import DOMNodeReference, { _init } from "./DOMNodeReference.js";
 import waitFor from "./waitFor.js";
 
-interface ICreationOptions {
-  /**
-   * Should this call return an array of instantiated references, or just a single?
-   * Defaults to false, returning a single instance.
-   */
-  multiple?: (() => boolean) | boolean;
-
-  /**
-   * Optionally specify the element within which to search for the element targeted by 'target'.
-   * Defaults to 'document.body'.
-   */
-  root?: HTMLElement;
-
-  /**
-   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
-   * Useful for async DOM loading. Relies on MutationObserver.
-   * WARNING: Implementing multiple references with timeout can result in infinite loading.
-   */
-  timeout?: number;
-}
-
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
-export default async function createDOMNodeReference(
+export default async function createDOMNodeReference<T extends string>(
   target: Element,
   options?: ICreationOptions
 ): Promise<DOMNodeReference>;
@@ -43,7 +22,7 @@ export default async function createDOMNodeReference(
   }
 ): Promise<DOMNodeReference>;
 
-export default async function createDOMNodeReference(
+export default async function createDOMNodeReference<T extends string>(
   target: string,
   options?: Omit<ICreationOptions, "multiple"> & {
     /**
@@ -61,7 +40,7 @@ export default async function createDOMNodeReference(
  * @param options Options for advanced retrieval of elements
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
-export default async function createDOMNodeReference(
+export default async function createDOMNodeReference<T extends string>(
   target: Element | string,
   /**
    * @property multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
@@ -106,7 +85,7 @@ export default async function createDOMNodeReference(
           return new Proxy(instance, createProxyHandler());
         })
       );
-      return enhanceArray(initializedElements);
+      return enhanceArray<T>(initializedElements);
     }
 
     const instance = new DOMNodeReference(target, root, timeout);
@@ -117,7 +96,7 @@ export default async function createDOMNodeReference(
   }
 }
 
-function validateOptions(options: any) {
+export function validateOptions(options: any) {
   const { multiple = false, root = document.body, timeout = 0 } = options;
   if (typeof multiple !== "boolean" && typeof multiple !== "function") {
     throw new Error(
@@ -146,7 +125,7 @@ function validateOptions(options: any) {
 }
 
 // Separate proxy handler for reusability
-function createProxyHandler() {
+export function createProxyHandler() {
   return {
     get: (target: DOMNodeReference, prop: string | symbol) => {
       if (prop.toString().startsWith("_")) return undefined;

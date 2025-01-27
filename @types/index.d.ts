@@ -13,7 +13,7 @@ declare interface ElementValue {
 // Alias for QuerySelector
 declare type QuerySelector = string;
 
-interface ISystemForm extends Object {
+declare interface ISystemForm extends Object {
   "@odata.context": string;
   "@odata.etag": string;
   "overwritetime@OData.Community.Display.V1.FormattedValue": string;
@@ -56,6 +56,70 @@ interface ISystemForm extends Object {
   formid: string;
 }
 
-interface IForm extends Partial<ISystemForm> {
+declare interface IForm extends Partial<ISystemForm> {
   formxml: string;
 }
+
+declare interface IBoundEventListener {
+  element: Element;
+  event: keyof HTMLElementEventMap;
+  handler: (e: Event) => unknown;
+}
+
+declare type FormElement =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement
+  | HTMLSpanElement
+  | HTMLButtonElement
+  | HTMLFieldSetElement;
+
+declare interface IBusinessRule {
+  /**
+   * @param condition A function that returns a boolean to determine
+   * the visibility of the target element. If `condition()` returns true, the element is shown;
+   * otherwise, it is hidden.
+   
+   * @param clearValuesOnHide Should the values in the targeted field be cleared when hidden? Defaults to true
+   */
+  setVisibility?: [condition: () => boolean, clearValuesOnHide?: boolean];
+  /**
+   * @param isRequired Function determining if field is required
+   * @param isValid Function validating field input.
+   */
+  setRequired?: [isRequired: () => boolean, isValid: () => boolean];
+  /**
+   * @param condition A function to determine if the value provided should be applied to this field
+   * @param value The value to set for the HTML element.
+   * for parents of boolean radios, pass true or false as value, or
+   * an expression returning a boolean
+   */
+  setValue?: [condition: () => boolean, value: () => any | any];
+  /**
+   * @param condition A function to determine if this field
+   * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
+   */
+  setDisabled?: () => boolean;
+}
+declare interface ICreationOptions {
+  /**
+   * Should this call return an array of instantiated references, or just a single?
+   * Defaults to false, returning a single instance.
+   */
+  multiple?: (() => boolean) | boolean;
+
+  /**
+   * Optionally specify the element within which to search for the element targeted by 'target'.
+   * Defaults to 'document.body'.
+   */
+  root?: HTMLElement;
+
+  /**
+   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+   * Useful for async DOM loading. Relies on MutationObserver.
+   * WARNING: Implementing multiple references with timeout can result in infinite loading.
+   */
+  timeout?: number;
+}
+
+declare type RadioType = "truthy" | "falsy";
