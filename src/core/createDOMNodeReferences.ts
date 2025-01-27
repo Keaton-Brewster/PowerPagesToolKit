@@ -1,7 +1,8 @@
-import DOMNodeReference, { _init } from "./DOMNodeReference.js";
+import DOMNodeReference from "./DOMNodeReference.js";
 import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
 import enhanceArray from "@/utils/enhanceArray.js";
 import waitFor from "@/utils/waitFor.js";
+import { init } from "@/constants/symbols.js";
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 export default async function createDOMNodeReference<T extends string>(
   target: Element,
@@ -78,7 +79,7 @@ export default async function createDOMNodeReference<T extends string>(
       const initializedElements = <DOMNodeReferenceArray>await Promise.all(
         elements.map(async (element) => {
           const instance = new DOMNodeReference(element, root, timeout);
-          await instance[_init]();
+          await instance[init]();
           return new Proxy(instance, createProxyHandler());
         })
       );
@@ -86,7 +87,7 @@ export default async function createDOMNodeReference<T extends string>(
     }
 
     const instance = new DOMNodeReference(target, root, timeout);
-    await instance[_init]();
+    await instance[init]();
     return new Proxy(instance, createProxyHandler());
   } catch (e) {
     throw new Error(<string>e);

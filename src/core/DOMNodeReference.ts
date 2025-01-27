@@ -1,12 +1,13 @@
 import waitFor from "@/utils/waitFor.js";
 import createInfoEl from "@/utils/createInfoElement.js";
+import createRef from "./createDOMNodeReferences.js";
+import * as s from "@/constants/symbols.js";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
   ValidationConfigError,
-} from "../errors/errors.js";
-import createRef from "./createDOMNodeReferences.js";
+} from "@/errors/errors.js";
 
 const eventMapping: Record<string, keyof HTMLElementEventMap> = {
   checkbox: "click",
@@ -17,30 +18,16 @@ const eventMapping: Record<string, keyof HTMLElementEventMap> = {
   // Add other input types as needed
 };
 
-export const _init = Symbol("__I");
-const _destroy = Symbol("__D");
-const _valueSync = Symbol("__VS");
-const _dateSync = Symbol("__DS");
-const _getElementValue = Symbol("__GEV");
-const _attachVisibilityController = Symbol("__AVC");
-const _attachRadioButtons = Symbol("__ARB");
-const _bindMethods = Symbol("__B");
-const _debounceTime = Symbol("__DT");
-const _observers = Symbol("__O");
-const _boundEventListeners = Symbol("__BEV");
-const _isValidFormElement = Symbol("__VFE");
-const _registerEventListener = Symbol("__REV");
-
 export default class DOMNodeReference {
   // properties initialized in the constructor
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
-  protected [_debounceTime]: number;
+  protected [s.debounceTime]: number;
   protected isLoaded: boolean;
   protected defaultDisplay: string;
-  protected [_observers]: Array<MutationObserver> = [];
-  protected [_boundEventListeners]: Array<IBoundEventListener> = [];
+  protected [s.observers]: Array<MutationObserver> = [];
+  protected [s.boundEventListeners]: Array<IBoundEventListener> = [];
   protected isRadio: boolean = false;
   protected radioType: RadioType | null = null;
   /**
@@ -49,7 +36,7 @@ export default class DOMNodeReference {
    */
   public value: any;
 
-  // other properties made available after async _init
+  // other properties made available after async s.init
 
   /**
    * The element targeted when instantiating DOMNodeReference.
@@ -103,20 +90,20 @@ export default class DOMNodeReference {
       this.logicalName = (lName || target).replace(/[#\[\]]/g, "");
     }
     this.root = root;
-    this[_debounceTime] = debounceTime;
+    this[s.debounceTime] = debounceTime;
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
-    this[_bindMethods]();
+    this[s.bindMethods]();
     // we defer the rest of initialization
   }
 
-  public async [_init](): Promise<void> {
+  public async [s.init](): Promise<void> {
     /**
-     * dynamically define the _init method using our custom symbol
-     * this makes it so that the _init method cannot be accessed outside
+     * dynamically define the s.init method using our custom symbol
+     * this makes it so that the s.init method cannot be accessed outside
      * of this package: i.e. by any consumers of the package
      */
     try {
@@ -127,7 +114,7 @@ export default class DOMNodeReference {
           this.target,
           this.root,
           false,
-          this[_debounceTime]
+          this[s.debounceTime]
         )) as HTMLElement;
       }
 
@@ -141,18 +128,18 @@ export default class DOMNodeReference {
           `#${this.element.id} > input[type="radio"]`
         ).length > 0
       ) {
-        await this[_attachRadioButtons]();
+        await this[s.attachRadioButtons]();
       }
 
-      this[_valueSync]();
-      this[_attachVisibilityController]();
+      this[s.valueSync]();
+      this[s.attachVisibilityController]();
       this.defaultDisplay = this.visibilityController.style.display;
 
       // when the element is removed from the dom, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (Array.from(mutation.removedNodes).includes(this.element)) {
-            this[_destroy]();
+            this[s.destroy]();
             observer.disconnect();
             break;
           }
@@ -176,9 +163,9 @@ export default class DOMNodeReference {
    * Initializes value synchronization with appropriate event listeners
    * based on element type.
    */
-  protected async [_valueSync](): Promise<void> {
+  protected async [s.valueSync](): Promise<void> {
     try {
-      if (!this[_isValidFormElement](this.element)) return;
+      if (!this[s.isValidFormElement](this.element)) return;
       // Initial sync
       this.updateValue();
 
@@ -194,14 +181,14 @@ export default class DOMNodeReference {
         eventType = "input";
       }
 
-      this[_registerEventListener](this.element, eventType, this.updateValue);
+      this[s.registerEventListener](this.element, eventType, this.updateValue);
 
       // Handle date inputs separately
       if (
         this.element instanceof HTMLInputElement &&
         this.element.dataset.type === "date"
       ) {
-        await this[_dateSync](this.element);
+        await this[s.dateSync](this.element);
       }
     } catch (error) {
       throw new DOMNodeInitializationError(
@@ -211,7 +198,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected [_isValidFormElement](element: Element): element is FormElement {
+  protected [s.isValidFormElement](element: Element): element is FormElement {
     return (
       element instanceof HTMLInputElement ||
       element instanceof HTMLSelectElement ||
@@ -222,21 +209,21 @@ export default class DOMNodeReference {
     );
   }
 
-  protected [_registerEventListener](
+  protected [s.registerEventListener](
     element: Element,
     eventType: keyof HTMLElementEventMap,
     handler: (e: Event) => unknown
   ) {
     element.addEventListener(eventType, handler);
 
-    this[_boundEventListeners].push({
+    this[s.boundEventListeners].push({
       element,
       handler,
       event: eventType,
     });
   }
 
-  protected async [_dateSync](element: HTMLInputElement): Promise<void> {
+  protected async [s.dateSync](element: HTMLInputElement): Promise<void> {
     const parentElement = element.parentElement;
     if (!parentElement) {
       throw new Error("Date input must have a parent element");
@@ -249,7 +236,7 @@ export default class DOMNodeReference {
       1500
     )) as HTMLElement;
 
-    this[_registerEventListener](dateNode, "select", this.updateValue);
+    this[s.registerEventListener](dateNode, "select", this.updateValue);
   }
 
   /**
@@ -257,7 +244,7 @@ export default class DOMNodeReference {
    * @protected
    * @returns Object containing value and optional checked state
    */
-  protected [_getElementValue](): ElementValue {
+  protected [s.getElementValue](): ElementValue {
     const input = this.element as HTMLInputElement;
     const select = this.element as HTMLSelectElement;
 
@@ -314,7 +301,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected [_attachVisibilityController](): void {
+  protected [s.attachVisibilityController](): void {
     // Set the default visibility controller to the element itself
     this.visibilityController = this.element;
 
@@ -343,7 +330,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected async [_attachRadioButtons](): Promise<void> {
+  protected async [s.attachRadioButtons](): Promise<void> {
     if (!this.element) {
       console.error(
         "'this.element' not found: cannot attach radio buttons for ",
@@ -364,7 +351,7 @@ export default class DOMNodeReference {
     this.noRadio.radioType = "falsy";
   }
 
-  protected [_bindMethods]() {
+  protected [s.bindMethods]() {
     const prototype = Object.getPrototypeOf(this);
 
     for (const key of Object.getOwnPropertyNames(prototype) as Array<
@@ -379,15 +366,15 @@ export default class DOMNodeReference {
     }
   }
 
-  protected [_destroy](): void {
-    this[_boundEventListeners]?.forEach((binding) => {
+  protected [s.destroy](): void {
+    this[s.boundEventListeners]?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
-    this[_observers]?.forEach((observer) => {
+    this[s.observers]?.forEach((observer) => {
       observer.disconnect();
     });
-    this.yesRadio?.[_destroy]();
-    this.noRadio?.[_destroy]();
+    this.yesRadio?.[s.destroy]();
+    this.noRadio?.[s.destroy]();
     this.yesRadio = null;
     this.noRadio = null;
     this.isLoaded = false;
@@ -408,7 +395,7 @@ export default class DOMNodeReference {
       this.noRadio!.updateValue();
     }
 
-    const elementValue = this[_getElementValue]();
+    const elementValue = this[s.getElementValue]();
     this.value = elementValue.value;
 
     if (elementValue.checked !== undefined) {
@@ -434,7 +421,7 @@ export default class DOMNodeReference {
       );
     }
 
-    this[_registerEventListener](
+    this[s.registerEventListener](
       this.element,
       eventType,
       eventHandler.bind(this)
@@ -1114,10 +1101,10 @@ export default class DOMNodeReference {
         }
       };
 
-      this[_registerEventListener](dep.element, "change", handleChange);
+      this[s.registerEventListener](dep.element, "change", handleChange);
 
       if (trackInputEvents) {
-        this[_registerEventListener](dep.element, "input", handleChange);
+        this[s.registerEventListener](dep.element, "input", handleChange);
       }
 
       // Handle visibility changes
@@ -1137,15 +1124,15 @@ export default class DOMNodeReference {
           subtree: false,
         });
 
-        this[_observers].push(observer);
+        this[s.observers].push(observer);
       }
 
       // Handle radio button changes if applicable
       if (trackRadioButtons && dep.yesRadio && dep.noRadio) {
         [dep.yesRadio, dep.noRadio].forEach((radio) => {
           radio.on("change", handleChange) as DOMNodeReference;
-          //make sure to track event listener for _destroy()
-          this[_boundEventListeners].push({
+          //make sure to track event listener for s.destroy()
+          this[s.boundEventListeners].push({
             element: radio.element,
             event: "change",
             handler: handleChange,
@@ -1208,6 +1195,6 @@ export default class DOMNodeReference {
       childList: true,
     });
 
-    this[_observers].push(observer);
+    this[s.observers].push(observer);
   }
 }
