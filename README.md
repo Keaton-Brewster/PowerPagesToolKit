@@ -35,7 +35,7 @@ createRef(
   options: {
     multiple: (() => boolean) | boolean = false,
     root: HTMLElement,
-    timeout: number
+    timeoutMs:number
   }
 ): Promise<DOMNodeReference | DOMNodeReference[]>;
 ```
@@ -66,7 +66,7 @@ createRef takes two main arguments:
         <pre><code class="language-javascript">{
   multiple: () => boolean | boolean,
   root: HTMLElement,
-  timeout: number
+  timeoutMs:number
 }</code></pre>
       </td>
       <td style="border: 1px solid #ddd; padding: 8px;">
@@ -98,7 +98,7 @@ const nodes = await createRef(".my-class", { multiple: true });
 
 // If the node you are targeting is not available at the initial execution
 // of the script, set a timeout for 2 seconds
-const node2 = await createRef("#target", { timeout: 2000 });
+const node2 = await createRef("#target", { timeoutMs:2000 });
 
 // need to target a node within a specific node? use that node as the root
 const otherElement = document.getElementById("id");
@@ -107,7 +107,7 @@ const node3 = await createRef("#target", { root: otherElement });
 // implement all options:
 const nodes2 = await createRef("#target", {
   multiple: true,
-  timeout: 4000,
+  timeoutMs:4000,
   root: otherElement,
 });
 ```

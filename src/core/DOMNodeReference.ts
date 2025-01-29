@@ -1,4 +1,4 @@
-import waitFor from "@/utils/waitFor.js";
+import waitFor from "@/core/waitFor.js";
 import createInfoEl from "@/utils/createInfoElement.js";
 import createRef from "./createDOMNodeReferences.js";
 import * as s from "@/constants/symbols.js";
@@ -8,6 +8,37 @@ import {
   ConditionalRenderingError,
   ValidationConfigError,
 } from "@/errors/errors.js";
+
+declare type BusinessRule = {
+  /**
+   * @param condition A function that returns a boolean to determine
+   * the visibility of the target element. If `condition()` returns true, the element is shown;
+   * otherwise, it is hidden.
+   
+   * @param clearValuesOnHide Should the values in the targeted field be cleared when hidden? Defaults to true
+   */
+  setVisibility?: [condition: () => boolean, clearValuesOnHide?: boolean];
+  /**
+   * @param isRequired Function determining if field is required
+   * @param isValid Function validating field input.
+   */
+  setRequired?: [
+    isRequired: () => boolean,
+    isValid: (isRequired: boolean) => boolean
+  ];
+  /**
+   * @param condition A function to determine if the value provided should be applied to this field
+   * @param value The value to set for the HTML element.
+   * for parents of boolean radios, pass true or false as value, or
+   * an expression returning a boolean
+   */
+  setValue?: [condition: () => boolean, value: () => any | any];
+  /**
+   * @param condition A function to determine if this field
+   * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
+   */
+  setDisabled?: () => boolean;
+};
 
 const EventTypes = {
   CHECKBOX: "click",
@@ -809,7 +840,11 @@ export default class DOMNodeReference {
               window.getComputedStyle(this.visibilityController).display !==
               "none";
 
-            return !isFieldRequired || !isFieldVisible || isValid.bind(this)();
+            return (
+              !isFieldRequired ||
+              !isFieldVisible ||
+              isValid.bind(this)(isFieldRequired)
+            );
           },
         });
 

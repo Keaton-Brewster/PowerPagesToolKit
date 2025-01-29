@@ -1,7 +1,7 @@
 import DOMNodeReference from "./DOMNodeReference.js";
 import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
 import enhanceArray from "@/utils/enhanceArray.js";
-import waitFor from "@/utils/waitFor.js";
+import waitFor from "@/core/waitFor.js";
 import { init } from "@/constants/symbols.js";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
