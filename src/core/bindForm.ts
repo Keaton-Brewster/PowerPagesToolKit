@@ -4,16 +4,18 @@ import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
 import createRef from "./createDOMNodeReferences.js";
 import enhanceArray from "@/utils/enhanceArray.js";
 
+declare type BoundForm = DOMNodeReferenceArray &
+  Record<string, DOMNodeReference>;
+
 /**
  * Get all controls related to the form for manipulating with the
  * DOMNodeReference class. Rather than having to instantiate each fields that you need manually,
  * you can call this method once with the form ID and gain access to all fields
  * @param formId The string GUID of the form you want to bind to
- * @returns An array of DOMNodeReferences
+ * @returns An array of DOMNodeReferences, accessible as properties of a Record<string, DOMNodeReference> i.e. formProp = form["some_logicalName"]
+ * @see {@link BoundForm}
  */
-export default async function bindForm<T extends string>(
-  formId: string
-): Promise<DOMNodeReferenceArray & Record<T, DOMNodeReference>> {
+export default async function bindForm(formId: string): Promise<BoundForm> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -38,10 +40,8 @@ export default async function bindForm<T extends string>(
      * which will allow us to access individual nodes using the syntax `array["logical_name"]`
      */
 
-    return enhanceArray<T>(
-      <DOMNodeReferenceArray>(
-        resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
-      )
+    return enhanceArray(
+      resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
     );
     /** handle errors */
   } catch (error: unknown) {
