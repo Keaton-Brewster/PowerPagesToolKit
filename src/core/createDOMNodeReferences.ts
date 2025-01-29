@@ -5,6 +5,37 @@ import waitFor from "@/utils/waitFor.js";
 import { init } from "@/constants/symbols.js";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
+/**
+ * Creates and initializes a DOMNodeReference instance.
+ * @see {@link CreationOptions}
+ * @param  target The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
+ * @param options Options for advanced retrieval of elements
+ * @param options.multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
+ * @param options.root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
+ * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
+ * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
+ */
+export default async function createDOMNodeReference(
+  target: string | HTMLElement,
+  options?: {
+    /**
+     * Should this call return an array of instantiated references, or just a single?
+     * Defaults to false, returning a single instance.
+     */
+    multiple?: (() => boolean) | boolean;
+    /**
+     * Optionally specify the element within which to search for the element targeted by 'target'.
+     * Defaults to 'document.body'.
+     */
+    root?: HTMLElement;
+    /**
+     * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+     * Useful for async DOM loading. Relies on MutationObserver.
+     * WARNING: Implementing multiple references with timeout can result in infinite loading.
+     */
+    timeoutMs?: number;
+  }
+): Promise<DOMNodeReference>;
 export default async function createDOMNodeReference(
   target: string,
   options?: {
@@ -66,16 +97,6 @@ export default async function createDOMNodeReference(
   }
 ): Promise<DOMNodeReferenceArray>;
 
-/**
- * Creates and initializes a DOMNodeReference instance.
- * @see {@link CreationOptions}
- * @param  target The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
- * @param options Options for advanced retrieval of elements
- * @param options.multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
- * @param options.root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
- * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
- * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
- */
 export default async function createDOMNodeReference(
   target: Element | string,
 

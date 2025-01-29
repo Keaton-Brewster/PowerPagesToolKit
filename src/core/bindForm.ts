@@ -5,7 +5,6 @@ import createRef from "./createDOMNodeReferences.js";
 import enhanceArray from "@/utils/enhanceArray.js";
 
 /**
- * @function
  * Get all controls related to the form for manipulating with the
  * DOMNodeReference class. Rather than having to instantiate each fields that you need manually,
  * you can call this method once with the form ID and gain access to all fields

@@ -1,15 +1,15 @@
 {
   "name": "powerpagestoolkit",
-  "version": "2.7.103",
+  "version": "2.7.121",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
-  "main": "./dist/index.js",
+  "main": "./dist/bundle.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "typecheck": "tsc",
     "node:build": "node build.js",
     "clean": "rimraf dist",
-    "build:types": "tsc --emitDeclarationOnly --declaration",
-    "build": "npm run clean && npm run typecheck && npm run node:build && npm run build:types",
+    "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist/types",
+    "build": "npm run clean && npm run build:types && npm run node:build",
     "dev": "tsc --watch"
   },
   "devDependencies": {
@@ -59,15 +59,14 @@
   ],
   "files": [
     "dist/bundle.js",
-    "dist/index.js",
     "dist/bundle.css",
-    "dist/**/*.d.ts",
+    "dist/types/**/*.d.ts",
     "assets/**"
   ],
   "exports": {
     ".": {
       "import": "./dist/bundle.js",
-      "types": "./@types/index.d.ts"
+      "types": "./dist/types/index.d.ts"
     },
     "./createDOMNodeReference": {
       "import": "./dist/createDOMNodeReference.js",

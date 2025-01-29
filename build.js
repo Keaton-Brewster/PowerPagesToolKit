@@ -19,6 +19,15 @@ esbuild
         emitDeclarationFile: false,
         namedExports: true,
       }),
+      {
+        name: "preserve-jsdoc",
+        setup(build) {
+          build.onLoad({ filter: /\.ts$/ }, async (args) => {
+            const contents = await fs.readFile(args.path, "utf8");
+            return { contents, loader: "ts" };
+          });
+        },
+      },
     ],
     loader: {
       ".ts": "ts",
