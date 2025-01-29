@@ -150,7 +150,7 @@ _Method Signature:_
 
 ```typescript
 applyBusinessRule(
-  rule: IBusinessRule,
+  rule: BusinessRule,
   dependencies: DOMNodeReference[]
 ): DOMNodeReference; /* Instance of this is returned for optional
  method chaining */
@@ -159,7 +159,7 @@ applyBusinessRule(
 **BusinessRule Definition**
 
 ```typescript
-interface IBusinessRule {
+interface BusinessRule {
   setVisibility?: [
     condition: () => boolean,
     clearValuesOnHide?: boolean = true

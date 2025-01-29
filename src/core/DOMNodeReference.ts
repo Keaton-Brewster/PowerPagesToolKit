@@ -9,14 +9,13 @@ import {
   ValidationConfigError,
 } from "@/errors/errors.js";
 
-const eventMapping: Record<string, keyof HTMLElementEventMap> = {
-  checkbox: "click",
-  radio: "click",
-  select: "change",
-  "select-multiple": "change",
-  textarea: "keyup",
-  // Add other input types as needed
-};
+const EventTypes = {
+  CHECKBOX: "click",
+  RADIO: "click",
+  SELECT: "change",
+  TEXTAREA: "keyup",
+  DEFAULT: "input",
+} as const;
 
 export default class DOMNodeReference {
   // properties initialized in the constructor
@@ -27,7 +26,7 @@ export default class DOMNodeReference {
   protected isLoaded: boolean;
   protected defaultDisplay: string;
   protected [s.observers]: Array<MutationObserver> = [];
-  protected [s.boundEventListeners]: Array<IBoundEventListener> = [];
+  protected [s.boundEventListeners]: Array<BoundEventListener> = [];
   protected isRadio: boolean = false;
   protected radioType: RadioType | null = null;
   /**
@@ -71,24 +70,7 @@ export default class DOMNodeReference {
     debounceTime: number
   ) {
     this.target = target;
-    if (typeof target === "string") {
-      let lName: string | null = null;
-
-      // Extract content inside brackets []
-      const bracketMatch = target.match(/\[([^\]]+)\]/);
-      if (bracketMatch) {
-        lName = bracketMatch[1];
-
-        // Extract content inside quotes (single or double)
-        const quoteMatch = lName.match(/["']([^"']+)["']/);
-        if (quoteMatch) {
-          lName = quoteMatch[1];
-        }
-      }
-
-      // If no match, use target as fallback
-      this.logicalName = (lName || target).replace(/[#\[\]]/g, "");
-    }
+    this.logicalName = this.extractLogicalName(target);
     this.root = root;
     this[s.debounceTime] = debounceTime;
     this.isLoaded = false;
@@ -98,6 +80,17 @@ export default class DOMNodeReference {
     // we want to ensure that all method calls from the consumer have access to 'this'
     this[s.bindMethods]();
     // we defer the rest of initialization
+  }
+
+  private extractLogicalName(target: Element | string): string {
+    if (typeof target !== "string") return "";
+
+    const bracketMatch = target.match(/\[([^\]]+)\]/);
+    if (!bracketMatch) return target.replace(/[#\[\]]/g, "");
+
+    const content = bracketMatch[1];
+    const quoteMatch = content.match(/["']([^"']+)["']/);
+    return (quoteMatch?.[1] || content).replace(/[#\[\]]/g, "");
   }
 
   public async [s.init](): Promise<void> {
@@ -135,7 +128,7 @@ export default class DOMNodeReference {
       this[s.attachVisibilityController]();
       this.defaultDisplay = this.visibilityController.style.display;
 
-      // when the element is removed from the dom, destroy this
+      // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (Array.from(mutation.removedNodes).includes(this.element)) {
@@ -163,39 +156,33 @@ export default class DOMNodeReference {
    * Initializes value synchronization with appropriate event listeners
    * based on element type.
    */
-  protected async [s.valueSync](): Promise<void> {
-    try {
-      if (!this[s.isValidFormElement](this.element)) return;
-      // Initial sync
-      this.updateValue();
+  protected [s.valueSync](): void {
+    if (!this[s.isValidFormElement](this.element)) return;
 
-      // Determine event type based on element
-      let eventType: keyof HTMLElementEventMap;
-      if (this.element instanceof HTMLSelectElement) {
-        eventType = "change";
-      } else if (this.element instanceof HTMLInputElement) {
-        eventType = eventMapping[this.element.type] ?? "input";
-      } else if (this.element instanceof HTMLTextAreaElement) {
-        eventType = eventMapping[this.element.type] ?? "input";
-      } else {
-        eventType = "input";
-      }
+    this.updateValue();
+    const eventType = this.determineEventType();
+    this[s.registerEventListener](this.element, eventType, this.updateValue);
 
-      this[s.registerEventListener](this.element, eventType, this.updateValue);
-
-      // Handle date inputs separately
-      if (
-        this.element instanceof HTMLInputElement &&
-        this.element.dataset.type === "date"
-      ) {
-        await this[s.dateSync](this.element);
-      }
-    } catch (error) {
-      throw new DOMNodeInitializationError(
-        this,
-        `Failed to initialize value sync: ${error}`
-      );
+    if (this.isDateInput()) {
+      this[s.dateSync](this.element as HTMLInputElement);
     }
+  }
+
+  private determineEventType(): keyof HTMLElementEventMap {
+    if (this.element instanceof HTMLSelectElement) return "change";
+    if (!(this.element instanceof HTMLInputElement)) return EventTypes.DEFAULT;
+
+    return (
+      EventTypes[this.element.type.toUpperCase() as keyof typeof EventTypes] ||
+      EventTypes.DEFAULT
+    );
+  }
+
+  private isDateInput(): boolean {
+    return (
+      this.element instanceof HTMLInputElement &&
+      this.element.dataset.type === "date"
+    );
   }
 
   protected [s.isValidFormElement](element: Element): element is FormElement {
@@ -476,19 +463,8 @@ export default class DOMNodeReference {
     if (value instanceof Function) {
       value = value();
     }
-    // when the value of one of these things is updated, we need to propagate an event to trigger
-    // the update of any bound elements
-    // Determine event type based on element
-    let eventType: keyof HTMLElementEventMap;
-    if (this.element instanceof HTMLSelectElement) {
-      eventType = "change";
-    } else if (this.element instanceof HTMLInputElement) {
-      eventType = eventMapping[this.element.type] ?? "input";
-    } else if (this.element instanceof HTMLTextAreaElement) {
-      eventType = eventMapping[this.element.type] ?? "input";
-    } else {
-      eventType = "input";
-    }
+
+    const eventType = this.determineEventType();
     this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
 
     if (
@@ -576,9 +552,9 @@ export default class DOMNodeReference {
 
         if (childInputs.length > 0) {
           const promises = childInputs.map(async (input) => {
-            const inputRef = (await createRef(<HTMLElement>input, {
-              multiple: false,
-            })) as DOMNodeReference;
+            const inputRef = (await createRef(
+              <HTMLElement>input
+            )) as DOMNodeReference;
             return inputRef.clearValue();
           });
 
@@ -765,13 +741,13 @@ export default class DOMNodeReference {
 
   /**
    * Applies a business rule to manage visibility, required state, value, and disabled state dynamically.
-   *
+   * @see {@link BusinessRule}
    * @param rule The business rule containing conditions for various actions.
    * @param dependencies For re-evaluation conditions when the state of the dependencies change
    * @returns Instance of this for method chaining.
    */
   public applyBusinessRule(
-    rule: IBusinessRule,
+    rule: BusinessRule,
     dependencies: DOMNodeReference[]
   ): DOMNodeReference {
     try {

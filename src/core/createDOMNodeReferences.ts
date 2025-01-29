@@ -3,52 +3,86 @@ import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
 import enhanceArray from "@/utils/enhanceArray.js";
 import waitFor from "@/utils/waitFor.js";
 import { init } from "@/constants/symbols.js";
+
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
-export default async function createDOMNodeReference<T extends string>(
+export default async function createDOMNodeReference(
+  target: string,
+  options?: {
+    /**
+     * Should this call return an array of instantiated references, or just a single?
+     * Defaults to false, returning a single instance.
+     */
+    multiple?: false;
+    /**
+     * Optionally specify the element within which to search for the element targeted by 'target'.
+     * Defaults to 'document.body'.
+     */
+    root?: HTMLElement;
+    /**
+     * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+     * Useful for async DOM loading. Relies on MutationObserver.
+     * WARNING: Implementing multiple references with timeout can result in infinite loading.
+     */
+    timeoutMs?: number;
+  }
+): Promise<DOMNodeReference>;
+
+export default async function createDOMNodeReference(
   target: Element,
-  options?: ICreationOptions
+  options?: {
+    /**
+     * Optionally specify the element within which to search for the element targeted by 'target'.
+     * Defaults to 'document.body'.
+     */
+    root?: HTMLElement;
+    /**
+     * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+     * Useful for async DOM loading. Relies on MutationObserver.
+     * WARNING: Implementing multiple references with timeout can result in infinite loading.
+     */
+    timeoutMs?: number;
+  }
 ): Promise<DOMNodeReference>;
 
 export default async function createDOMNodeReference(
   target: string,
-  options?: Omit<ICreationOptions, "multiple"> & {
+  options?: {
     /**
-     * Should this call return an array of instantiated references, or just a single instance?
-     * Defaults to false, returning a single instance.
-     */
-    multiple?: false;
-  }
-): Promise<DOMNodeReference>;
-
-export default async function createDOMNodeReference<T extends string>(
-  target: string,
-  options?: Omit<ICreationOptions, "multiple"> & {
-    /**
-     * Should this call return an array of instantiated references, or just a single instance?
+     * Should this call return an array of instantiated references, or just a single?
      * Defaults to false, returning a single instance.
      */
     multiple?: true;
+    /**
+     * Optionally specify the element within which to search for the element targeted by 'target'.
+     * Defaults to 'document.body'.
+     */
+    root?: HTMLElement;
+    /**
+     * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+     * Useful for async DOM loading. Relies on MutationObserver.
+     * WARNING: Implementing multiple references with timeout can result in infinite loading.
+     */
+    timeoutMs?: number;
   }
 ): Promise<DOMNodeReferenceArray>;
 
 /**
  * Creates and initializes a DOMNodeReference instance.
- * @async
+ * @see {@link CreationOptions}
  * @param  target The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
  * @param options Options for advanced retrieval of elements
+ * @param options.multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
+ * @param options.root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
+ * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
-export default async function createDOMNodeReference<T extends string>(
+export default async function createDOMNodeReference(
   target: Element | string,
-  /**
-   * @property multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
-   * @property root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
-   * @property timeout - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
-   */
-  options: ICreationOptions = {
+
+  options: CreationOptions = {
     multiple: false,
     root: document.body,
-    timeout: 0,
+    timeoutMs: 0,
   }
 ): Promise<DOMNodeReference | DOMNodeReferenceArray> {
   try {
@@ -59,7 +93,7 @@ export default async function createDOMNodeReference<T extends string>(
     }
 
     validateOptions(options);
-    const { multiple = false, root = document.body, timeout = 0 } = options;
+    const { multiple = false, root = document.body, timeoutMs = 0 } = options;
 
     // Evaluate multiple parameter once at the start
     const isMultiple = typeof multiple === "function" ? multiple() : multiple;
@@ -72,21 +106,21 @@ export default async function createDOMNodeReference<T extends string>(
       }
 
       const elements = <HTMLElement[]>(
-        await waitFor(target, root, true, timeout)
+        await waitFor(target, root, true, timeoutMs)
       );
 
       // Avoid recursive call with multiple flag for better performance
       const initializedElements = <DOMNodeReferenceArray>await Promise.all(
         elements.map(async (element) => {
-          const instance = new DOMNodeReference(element, root, timeout);
+          const instance = new DOMNodeReference(element, root, timeoutMs);
           await instance[init]();
           return new Proxy(instance, createProxyHandler());
         })
       );
-      return enhanceArray<T>(initializedElements);
+      return enhanceArray(initializedElements);
     }
 
-    const instance = new DOMNodeReference(target, root, timeout);
+    const instance = new DOMNodeReference(target, root, timeoutMs);
     await instance[init]();
     return new Proxy(instance, createProxyHandler());
   } catch (e) {
@@ -94,8 +128,8 @@ export default async function createDOMNodeReference<T extends string>(
   }
 }
 
-export function validateOptions(options: any) {
-  const { multiple = false, root = document.body, timeout = 0 } = options;
+export function validateOptions(options: Partial<CreationOptions>) {
+  const { multiple = false, root = document.body, timeoutMs = 0 } = options;
   if (typeof multiple !== "boolean" && typeof multiple !== "function") {
     throw new Error(
       `'multiple' must be of type 'boolean' or 'function'. Received type: '${typeof multiple}'`
@@ -114,9 +148,9 @@ export function validateOptions(options: any) {
       `'root' must be of type 'HTMLElement'. Received type: '${typeof root}'`
     );
   }
-  if (typeof timeout !== "number") {
+  if (typeof timeoutMs !== "number") {
     throw new Error(
-      `'timeout' must be of type 'number'. Received type: '${typeof timeout}'`
+      `'timeout' must be of type 'number'. Received type: '${typeof timeoutMs}'`
     );
   }
   return;

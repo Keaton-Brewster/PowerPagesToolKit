@@ -16,7 +16,7 @@ export default async function bindForm<T extends string>(
   formId: string
 ): Promise<DOMNodeReferenceArray & Record<T, DOMNodeReference>> {
   try {
-    const form = await API.getRecord<IForm>("systemforms", formId);
+    const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
 
     /**

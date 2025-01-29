@@ -13,7 +13,7 @@ declare interface ElementValue {
 // Alias for QuerySelector
 declare type QuerySelector = string;
 
-declare interface ISystemForm extends Object {
+declare interface SystemForm extends Object {
   "@odata.context": string;
   "@odata.etag": string;
   "overwritetime@OData.Community.Display.V1.FormattedValue": string;
@@ -56,11 +56,11 @@ declare interface ISystemForm extends Object {
   formid: string;
 }
 
-declare interface IForm extends Partial<ISystemForm> {
+declare interface Form extends Partial<SystemForm> {
   formxml: string;
 }
 
-declare interface IBoundEventListener {
+declare interface BoundEventListener {
   element: Element;
   event: keyof HTMLElementEventMap;
   handler: (e: Event) => unknown;
@@ -74,7 +74,7 @@ declare type FormElement =
   | HTMLButtonElement
   | HTMLFieldSetElement;
 
-declare interface IBusinessRule {
+declare interface BusinessRule {
   /**
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
@@ -101,7 +101,8 @@ declare interface IBusinessRule {
    */
   setDisabled?: () => boolean;
 }
-declare interface ICreationOptions {
+
+declare interface CreationOptions {
   /**
    * Should this call return an array of instantiated references, or just a single?
    * Defaults to false, returning a single instance.
@@ -119,7 +120,7 @@ declare interface ICreationOptions {
    * Useful for async DOM loading. Relies on MutationObserver.
    * WARNING: Implementing multiple references with timeout can result in infinite loading.
    */
-  timeout?: number;
+  timeoutMs?: number;
 }
 
 declare type RadioType = "truthy" | "falsy";
