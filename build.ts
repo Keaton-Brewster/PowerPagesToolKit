@@ -59,18 +59,16 @@ esbuild
         document.head.appendChild(style);
       }
     `;
+      // write import string for JSR type creation
+      const importString = `/* @ts-self-types="./index.d.ts" */`;
 
-      // Update both ESM and CJS bundles
-      const updateBundles = ["index.js"].map(async (file) => {
-        const bundlePath = `./dist/src/${file}`;
-        const originalContent = await Deno.readTextFile(bundlePath);
-        await Deno.writeTextFile(
-          bundlePath,
-          `${originalContent}\n${cssInjectionCode}`
-        );
-      });
+      const bundlePath = `./dist/src/index.js`;
+      const originalContent = await Deno.readTextFile(bundlePath);
+      await Deno.writeTextFile(
+        bundlePath,
+        `${importString}\n${originalContent}\n${cssInjectionCode}`
+      );
 
-      await Promise.all(updateBundles);
       console.log("CSS injected successfully across all bundles!");
 
       // Generate JSR metadata
