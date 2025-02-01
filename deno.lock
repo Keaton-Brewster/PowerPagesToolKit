@@ -13,7 +13,6 @@
     "npm:esbuild@~0.24.2": "0.24.2",
     "npm:eslint-plugin-import@^2.31.0": "2.31.0_eslint@8.57.1",
     "npm:eslint@^8.57.1": "8.57.1",
-    "npm:fs@^0.0.1-security": "0.0.1-security",
     "npm:globals@^15.14.0": "15.14.0",
     "npm:rimraf@^6.0.1": "6.0.1",
     "npm:ts-loader@^9.5.1": "9.5.2_typescript@5.7.3_webpack@5.97.1",
@@ -1972,9 +1971,6 @@
     "fs.realpath@1.0.0": {
       "integrity": "sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw=="
     },
-    "fs@0.0.1-security": {
-      "integrity": "sha512-3XY9e1pP0CVEUCdj5BmfIZxRBTSDycnbqhIOGec9QYtmVH2fbLpj86CFWkrNOkt/Fvty4KZG5lTglL9j/gJ87w=="
-    },
     "fsevents@2.3.3": {
       "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="
     },
@@ -3381,7 +3377,6 @@
         "npm:esbuild@~0.24.2",
         "npm:eslint-plugin-import@^2.31.0",
         "npm:eslint@^8.57.1",
-        "npm:fs@^0.0.1-security",
         "npm:globals@^15.14.0",
         "npm:rimraf@^6.0.1",
         "npm:ts-loader@^9.5.1",
