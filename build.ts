@@ -3,6 +3,7 @@
 import * as esbuild from "esbuild";
 import cssModulesPlugin from "esbuild-css-modules-plugin";
 import process from "node:process";
+import { copyFile } from "node:fs";
 import { updateImports } from "./import-update.ts";
 
 console.log("Bundling JSR module...");
@@ -69,6 +70,11 @@ esbuild
         bundlePath,
         `${importString}\n${originalContent}\n${cssInjectionCode}`
       );
+
+      // copy our readme to the JSR src
+      copyFile("./README.md", "./dist/README.md", () => {
+        console.log("succesfully copied README.md");
+      });
 
       // update '.ts' imports in declaration files to '.d.ts'
       updateImports("./dist/src");
