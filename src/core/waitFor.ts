@@ -29,7 +29,7 @@ export default function waitFor(
     //
     if (multiple) {
       //
-      let timeout: NodeJS.Timeout;
+      let timeout: any;
       const observedElements: HTMLElement[] = [];
       const observedSet: Set<HTMLElement> = new Set();
 
