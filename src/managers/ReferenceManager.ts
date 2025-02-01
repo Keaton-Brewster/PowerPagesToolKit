@@ -1,4 +1,4 @@
-import DOMNodeReference from "@/core/DOMNodeReference.js";
+import type DOMNodeReference from "../core/DOMNodeReference.ts";
 
 export default abstract class ReferenceManager {
   static instances: Set<DOMNodeReference> = new Set();

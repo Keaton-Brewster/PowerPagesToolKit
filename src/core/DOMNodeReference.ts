@@ -1,13 +1,13 @@
-import waitFor from "@/core/waitFor.js";
-import createInfoEl from "@/utils/createInfoElement.js";
-import createRef from "./createDOMNodeReferences.js";
-import * as s from "@/constants/symbols.js";
+import waitFor from "./waitFor.ts";
+import createInfoEl from "../utils/createInfoElement.ts";
+import createRef from "./createDOMNodeReferences.ts";
+import * as s from "../constants/symbols.ts";
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ConditionalRenderingError,
   ValidationConfigError,
-} from "@/errors/errors.js";
+} from "../errors/errors.ts";
 
 declare type BusinessRule = {
   /**

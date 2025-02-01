@@ -29,7 +29,7 @@ export default function waitFor(
     //
     if (multiple) {
       //
-      let timeoutMs: NodeJS.Timeout;
+      let timeout: NodeJS.Timeout;
       const observedElements: HTMLElement[] = [];
       const observedSet: Set<HTMLElement> = new Set();
 
@@ -52,8 +52,8 @@ export default function waitFor(
         });
 
         // Clear the previous timeout and set a new one
-        clearTimeout(timeoutMs);
-        timeoutMs = setTimeout(() => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
           // Resolve the promise after debounce period if no more mutations
           if (observedElements.length > 0) {
             observer.disconnect();

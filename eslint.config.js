@@ -11,6 +11,7 @@ const config = {
     "no-undef": "error",
     "no-unused-vars": "warn",
   },
+  ignores: ["./dist"],
 };
 
 export default config;

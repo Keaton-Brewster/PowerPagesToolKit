@@ -1,5 +1,5 @@
-import DOMNodeReference from "@/core/DOMNodeReference.js";
-import DOMNodeReferenceArray from "@/core/DOMNodeReferenceArray.js";
+import DOMNodeReferenceArray from "../core/DOMNodeReferenceArray.ts";
+import type DOMNodeReference from "../core/DOMNodeReference.ts";
 
 // Separate array enhancement for cleaner code
 export default function enhanceArray<T extends string>(

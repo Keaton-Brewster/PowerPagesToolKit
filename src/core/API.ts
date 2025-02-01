@@ -1,6 +1,5 @@
 //@ts-nocheck
-import { error } from "console";
-import safeAjax from "@/utils/safeAjax.js";
+import safeAjax from "../utils/safeAjax.ts";
 
 const API = {
   /**

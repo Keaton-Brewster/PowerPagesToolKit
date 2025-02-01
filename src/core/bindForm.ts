@@ -1,8 +1,8 @@
-import API from "./API.js";
-import DOMNodeReference from "./DOMNodeReference.js";
-import DOMNodeReferenceArray from "./DOMNodeReferenceArray.js";
-import createRef from "./createDOMNodeReferences.js";
-import enhanceArray from "@/utils/enhanceArray.js";
+import API from "./API.ts";
+import createRef from "./createDOMNodeReferences.ts";
+import enhanceArray from "../utils/enhanceArray.ts";
+import type DOMNodeReference from "./DOMNodeReference.ts";
+import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
 
 declare type BoundForm = DOMNodeReferenceArray &
   Record<string, DOMNodeReference>;

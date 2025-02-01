@@ -1,4 +1,4 @@
-import DOMNodeReference from "./DOMNodeReference.js";
+import type DOMNodeReference from "./DOMNodeReference.ts";
 
 export default class DOMNodeReferenceArray extends Array<DOMNodeReference> {
   /**
