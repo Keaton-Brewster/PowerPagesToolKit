@@ -3,6 +3,7 @@
 import * as esbuild from "esbuild";
 import cssModulesPlugin from "esbuild-css-modules-plugin";
 import process from "node:process";
+import { updateImports } from "./import-update.ts";
 
 console.log("Bundling JSR module...");
 
@@ -69,7 +70,8 @@ esbuild
         `${importString}\n${originalContent}\n${cssInjectionCode}`
       );
 
-      console.log("CSS injected successfully across all bundles!");
+      // update '.ts' imports in declaration files to '.d.ts'
+      updateImports("./dist/src");
 
       // Generate JSR metadata
       await Deno.writeTextFile(
