@@ -1,24 +1,4 @@
 // dist/types/index.d.ts
-declare module "powerpagestoolkit" {
-  import { API } from "./core/API";
-  import { createRef } from "./core/createDOMNodeReferences";
-  import { waitFor } from "./core/waitFor";
-  import { bindForm } from "./core/bindForm";
-
-  export { API, createRef, waitFor, bindForm };
-}
-
-declare type Schema = {
-  logicalName(): string;
-  value(): object; // Adjust this type based on the structure of your schema values
-};
-
-declare const Page_Validators: any[];
-
-declare interface ElementValue {
-  value: any;
-  checked?: boolean;
-}
 
 // Alias for QuerySelector
 declare type QuerySelector = string;
@@ -70,20 +50,6 @@ declare interface Form extends Partial<SystemForm> {
   formxml: string;
 }
 
-declare interface BoundEventListener {
-  element: Element;
-  event: keyof HTMLElementEventMap;
-  handler: (e: Event) => unknown;
-}
-
-declare type FormElement =
-  | HTMLInputElement
-  | HTMLSelectElement
-  | HTMLTextAreaElement
-  | HTMLSpanElement
-  | HTMLButtonElement
-  | HTMLFieldSetElement;
-
 declare interface BusinessRule {
   /**
    * @param condition A function that returns a boolean to determine
@@ -111,26 +77,3 @@ declare interface BusinessRule {
    */
   setDisabled?: () => boolean;
 }
-
-declare interface CreationOptions {
-  /**
-   * Should this call return an array of instantiated references, or just a single?
-   * Defaults to false, returning a single instance.
-   */
-  multiple?: (() => boolean) | boolean;
-
-  /**
-   * Optionally specify the element within which to search for the element targeted by 'target'.
-   * Defaults to 'document.body'.
-   */
-  root?: HTMLElement;
-
-  /**
-   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
-   * Useful for async DOM loading. Relies on MutationObserver.
-   * WARNING: Implementing multiple references with timeout can result in infinite loading.
-   */
-  timeoutMs?: number;
-}
-
-declare type RadioType = "truthy" | "falsy";

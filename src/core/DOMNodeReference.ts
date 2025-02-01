@@ -9,6 +9,50 @@ import {
   ValidationConfigError,
 } from "../errors/errors.ts";
 
+declare interface CreationOptions {
+  /**
+   * Should this call return an array of instantiated references, or just a single?
+   * Defaults to false, returning a single instance.
+   */
+  multiple?: (() => boolean) | boolean;
+
+  /**
+   * Optionally specify the element within which to search for the element targeted by 'target'.
+   * Defaults to 'document.body'.
+   */
+  root?: HTMLElement;
+
+  /**
+   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
+   * Useful for async DOM loading. Relies on MutationObserver.
+   * WARNING: Implementing multiple references with timeout can result in infinite loading.
+   */
+  timeoutMs?: number;
+}
+
+declare const Page_Validators: any[];
+
+declare interface ElementValue {
+  value: any;
+  checked?: boolean;
+}
+
+declare type RadioType = "truthy" | "falsy";
+
+declare interface BoundEventListener {
+  element: Element;
+  event: keyof HTMLElementEventMap;
+  handler: (e: Event) => unknown;
+}
+
+declare type FormElement =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement
+  | HTMLSpanElement
+  | HTMLButtonElement
+  | HTMLFieldSetElement;
+
 declare type BusinessRule = {
   /**
    * @param condition A function that returns a boolean to determine
