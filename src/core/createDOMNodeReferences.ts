@@ -12,7 +12,7 @@ import { init } from "@/constants/symbols.js";
  * @param options Options for advanced retrieval of elements
  * @param options.multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
  * @param options.root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
- * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  WARNING: Implementing multiple references with timeout can results in infinite loading.
+ * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  ***WARNING***: Implementing multiple references with timeout can result in infinite loading.
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(

@@ -1,3 +1,13 @@
+// dist/types/index.d.ts
+declare module "powerpagestoolkit" {
+  import { API } from "./core/API";
+  import { createRef } from "./core/createDOMNodeReferences";
+  import { waitFor } from "./core/waitFor";
+  import { bindForm } from "./core/bindForm";
+
+  export { API, createRef, waitFor, bindForm };
+}
+
 declare type Schema = {
   logicalName(): string;
   value(): object; // Adjust this type based on the structure of your schema values

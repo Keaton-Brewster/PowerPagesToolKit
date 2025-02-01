@@ -1,10 +1,14 @@
 import esbuild from "esbuild";
 import CssModulesPlugin from "esbuild-css-modules-plugin";
 import fs from "fs/promises";
+import { Buffer } from "buffer";
+
+console.log("Bundling ESM Module...");
 
 esbuild
   .build({
     entryPoints: ["src/index.ts"],
+    globalName: "powerpagestoolkit",
     outfile: "dist/bundle.js",
     format: "esm",
     tsconfig: "./tsconfig.json",
@@ -25,6 +29,19 @@ esbuild
           build.onLoad({ filter: /\.ts$/ }, async (args) => {
             const contents = await fs.readFile(args.path, "utf8");
             return { contents, loader: "ts" };
+          });
+        },
+      },
+      {
+        name: "export-cleanup",
+        setup(build) {
+          build.onEnd((result) => {
+            result.outputFiles?.forEach((file) => {
+              let contents = file.text;
+              // Remove duplicate export declarations
+              contents = contents.replace(/export { .*? }\n/g, "");
+              file.contents = Buffer.from(contents);
+            });
           });
         },
       },
@@ -59,4 +76,10 @@ esbuild
       console.error("Error injecting CSS:", error);
     }
   })
-  .catch(() => process.exit(1));
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(() => {
+    console.log("ESM Module bundled");
+  });

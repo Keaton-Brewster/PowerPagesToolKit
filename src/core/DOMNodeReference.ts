@@ -499,13 +499,20 @@ export default class DOMNodeReference {
     this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
 
     if (
-      this.element.classList.contains("boolean-radio") &&
       this.yesRadio instanceof DOMNodeReference &&
       this.noRadio instanceof DOMNodeReference
     ) {
       (this.yesRadio.element as HTMLInputElement).checked = value;
       (this.noRadio.element as HTMLInputElement).checked = !value;
       this.value = value;
+      this.checked = value;
+      (this.element as HTMLInputElement).checked = value;
+    } else if (
+      this.isRadio ||
+      (this.element as HTMLInputElement).type === "radio"
+    ) {
+      this.checked = value;
+      (this.element as HTMLInputElement).checked = value;
     } else {
       (this.element as HTMLInputElement).value = value;
     }
