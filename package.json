@@ -2,19 +2,19 @@
   "name": "powerpagestoolkit",
   "version": "2.7.1402",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
-  "main": "./dist/bundle.js",
-  "module": "./dist/bundle.js",
-  "types": "./dist/types/index.d.ts",
+  "main": "./dist_n/bundle.js",
+  "module": "./dist_n/bundle.js",
+  "types": "./dist_n/types/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [
-        "./dist/types/*"
+        "./dist_n/types/*"
       ]
     }
   },
-  "unpkg": "./dist/bundle.js",
-  "jsdelivr": "./dist/bundle.js",
-  "browser": "./dist/bundle.js",
+  "unpkg": "./dist_n/bundle.js",
+  "jsdelivr": "./dist_n/bundle.js",
+  "browser": "./dist_n/bundle.js",
   "author": "KeatonBrewster",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -23,36 +23,31 @@
     "url": "https://github.com/Keaton-Brewster/PowerPagesToolKit"
   },
   "files": [
-    "dist/bundle.js",
-    "dist/bundle.css",
-    "dist/types/**/*.d.ts",
-    "assets/**"
+    "dist_n"
   ],
   "exports": {
     ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/bundle.js"
-    },
-    "./createDOMNodeReference": {
-      "import": "./dist/createDOMNodeReference.js",
-      "types": "./dist/createDOMNodeReference.d.ts"
-    },
-    "./style.css": {
-      "import": "./dist/bundle.css"
+      "types": "./dist_n/types/index.d.ts",
+      "import": "./dist_n/bundle.js"
     }
   },
   "scripts": {
     "typecheck": "tsc",
     "node:build": "node build.js",
-    "clean": "rimraf dist",
-    "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist/types",
+    "clean": "rimraf dist_n && rimraf dist",
+    "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist_n/types",
     "build": "npm run clean && npm run build:types && npm run node:build",
+    "build:all": "npm run build && deno run build:all",
     "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "esbuild-plugin-copy": "^2.1.1"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.25.8",
     "@types/node": "^22.8.6",
     "@typescript-eslint/parser": "^8.20.0",
+    "buffer": "^6.0.3",
     "css-loader": "^7.1.2",
     "esbuild": "^0.24.2",
     "esbuild-css-modules-plugin": "^3.1.2",

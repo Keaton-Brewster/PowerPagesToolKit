@@ -1,0 +1,29 @@
+{
+  "name": "@jsr/powerpagestoolkit",
+  "version": "2.7.1402",
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
+  "tasks": {
+    "dev": "deno run --watch main.ts",
+    "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist/src",
+    "bundle": "deno run --allow-all build.ts",
+    "build:all": "deno run build:types && deno run bundle"
+  },
+  "publish": {
+    "include": ["dist"]
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["DOM", "ES2016"]
+  },
+  "unstable": ["sloppy-imports"],
+  "jsr": {
+    "name": "@keatonbrewster/powerpagestoolkit",
+    "description": "Power Pages DOM manipulation toolkit",
+    "keywords": ["powerpages", "dom", "dynamics365"]
+  }
+}

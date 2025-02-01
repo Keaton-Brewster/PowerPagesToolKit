@@ -1,15 +1,16 @@
 import esbuild from "esbuild";
 import CssModulesPlugin from "esbuild-css-modules-plugin";
-import fs from "fs/promises";
-import { Buffer } from "buffer";
+import fs from "node:fs/promises";
+import { Buffer } from "node:buffer";
 
-console.log("Bundling ESM Module...");
+console.log("Bundling NPM module...");
 
+// build for NPM
 esbuild
   .build({
     entryPoints: ["src/index.ts"],
     globalName: "powerpagestoolkit",
-    outfile: "dist/bundle.js",
+    outfile: "dist_n/bundle.js",
     format: "esm",
     tsconfig: "./tsconfig.json",
     sourcemap: false,
@@ -19,6 +20,7 @@ esbuild
     minify: false,
     plugins: [
       CssModulesPlugin({
+        inject: false,
         force: true,
         emitDeclarationFile: false,
         namedExports: true,
@@ -53,7 +55,7 @@ esbuild
   })
   .then(async () => {
     try {
-      const cssOutputPath = "./dist/bundle.css";
+      const cssOutputPath = "./src/index.css";
       // Read the generated CSS file content
       const cssContent = await fs.readFile(cssOutputPath, "utf-8");
 
@@ -67,7 +69,7 @@ esbuild
         `;
 
       // Append the injection code to the end of the bundle.js
-      const bundlePath = "./dist/bundle.js";
+      const bundlePath = "./dist_n/bundle.js";
       const bundleContent = await fs.readFile(bundlePath, "utf-8");
       await fs.writeFile(bundlePath, `${bundleContent}\n${cssInjectionCode}`);
 
@@ -81,5 +83,5 @@ esbuild
     process.exit(1);
   })
   .finally(() => {
-    console.log("ESM Module bundled");
+    console.log("NPM module bundling complete");
   });

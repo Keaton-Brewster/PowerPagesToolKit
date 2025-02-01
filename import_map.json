@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "powerpagestoolkit/": "./dist/",
+    "powerpagestoolkit": "./dist/deno/bundle.js"
+  }
+}

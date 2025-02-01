@@ -1,5 +1,4 @@
 /// <reference path="../@types/index.d.ts" />
-import "./style.css";
 
 import API from "./core/API.js";
 import createRef from "./core/createDOMNodeReferences.js";
