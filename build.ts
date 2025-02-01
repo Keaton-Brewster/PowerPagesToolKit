@@ -17,7 +17,6 @@ esbuild
     platform: "neutral", // Best for cross-platform compatibility
     mainFields: ["module", "main"], // Deno prioritizes module field
     conditions: ["import", "module"], // Ensures ESM resolution
-    outExtension: { ".js": ".js" }, // Critical for Deno imports
     plugins: [
       cssModulesPlugin({
         inject: true, // We'll handle CSS injection separately
@@ -36,6 +35,9 @@ esbuild
         },
       },
     ],
+    loader: {
+      ".ts": "ts",
+    },
     tsconfig: "./tsconfig.json",
     packages: "external",
     legalComments: "linked", // Required for JSR compliance

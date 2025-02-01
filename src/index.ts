@@ -1,5 +1,5 @@
 /// <reference path="../@types/index.d.ts" />
-
+/* @ts-self-types="./index.d.ts" */
 import API from "./core/API.js";
 import createRef from "./core/createDOMNodeReferences.js";
 import waitFor from "./core/waitFor.js";
