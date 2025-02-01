@@ -1,6 +1,6 @@
 {
   "name": "@keatonbrewster/powerpagestoolkit",
-  "version": "2.7.1403",
+  "version": "2.7.1404",
   "exports": {
     ".": "./dist/src/index.js"
   },
@@ -11,7 +11,7 @@
     "build:all": "deno run build:types && deno run bundle"
   },
   "publish": {
-    "include": ["dist"]
+    "include": ["dist", "README.md"]
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
