@@ -19,6 +19,10 @@ import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
  * @param **options.root** - Optionally specify the element within to search for the element targeted by 'target'. Defaults to `document.body`
  * @param **options.timeoutMs** - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  ***WARNING***: Implementing multiple references with timeout can result in infinite loading.
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
+ *
+ * @see {@link DOMNodeReference}
+ * @see {@link DOMNodeReferenceArray}
+ * @see {@link enhanceArray}
  */
 export default async function createDOMNodeReference(
   target: string | HTMLElement,

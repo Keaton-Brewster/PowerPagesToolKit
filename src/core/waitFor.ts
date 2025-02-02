@@ -1,30 +1,29 @@
 /**
  * @module waitFor
- * Provides an async way to capture DOM elements; for when querySelector cannot capture the target due to async DOM content loading
  */
 
+/**
+ * Provides an async way to capture DOM elements; for when querySelector cannot capture the target due to async DOM content loading
+ * @param **target** - basic querySelector syntax to select an element
+ * @param **root** - optional parameter to replace document as the root from which to perform the node search
+ * @returns the element(s) targeted by the `querySelector` string
+ */
 export default function waitFor(
-  target: Element | string,
+  target: string,
   root: Element | Document,
   multiple: false,
   debounceTime: number
 ): Promise<HTMLElement>;
 
 export default function waitFor(
-  target: Element | string,
+  target: string,
   root: Element | Document,
   multiple: true,
   debounceTime: number
 ): Promise<HTMLElement[]>;
 
-/**
- *
- * @param target basic querySelector syntax to select an element
- * @param root optional parameter to replace document as the root from which to perform the node search
- * @returns
- */
 export default function waitFor(
-  target: Element | string,
+  target: string,
   root: Element | Document = document,
   multiple: boolean = false,
   debounceTime: number
@@ -102,11 +101,6 @@ export default function waitFor(
         );
       }, debounceTime);
 
-      // Check if target is already in DOM
-      if (target instanceof HTMLElement) {
-        clearTimeout(timeout);
-        return resolve(target);
-      }
       const element = <HTMLElement>root.querySelector(<string>target);
       if (element) {
         clearTimeout(timeout);

@@ -1,12 +1,16 @@
-/**
- * @module API
- * Provides an abstract class API that allows basic create, read, and update operations
- * via the PowerPages API
- */
-
 //@ts-nocheck
 import safeAjax from "../utils/safeAjax.ts";
 
+/**
+ * @abstract
+ * @class API
+ * Provides an abstract class API that allows basic create, read, and update operations
+ * via the PowerPages API
+ * @method `createRecord` - Create a record in DataVerse
+ * @method `getRecord<T>` - Get a record by ID from DataVerse
+ * @method `getMultiple` - Get multiple records from DataVerse; with optional OData filtering
+ * @method `updateRecord` - Update a record by ID in DataVerse
+ */
 abstract class API {
   /**
    * @param tableSetName The dataverse set name for the table that you are updating a record in
@@ -20,7 +24,7 @@ abstract class API {
         url: `/_api/${tableSetName}`,
         data: JSON.stringify(data),
         contentType: "application/json",
-        success: function (response, status, xhr) {
+        success: function (_response, _status, xhr) {
           resolve(xhr.getResponseHeader("entityid"));
         },
         error: (error) => {
