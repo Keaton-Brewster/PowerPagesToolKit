@@ -1,3 +1,8 @@
+/**
+ * @module waitFor
+ * Provides an async way to capture DOM elements; for when querySelector cannot capture the target due to async DOM content loading
+ */
+
 export default function waitFor(
   target: Element | string,
   root: Element | Document,

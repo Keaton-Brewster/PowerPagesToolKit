@@ -2,19 +2,19 @@
   "name": "powerpagestoolkit",
   "version": "2.7.1403",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
-  "main": "./dist_n/bundle.js",
-  "module": "./dist_n/bundle.js",
-  "types": "./dist_n/types/index.d.ts",
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "typesVersions": {
     "*": {
       "*": [
-        "./dist_n/types/*"
+        "./dist/src/*"
       ]
     }
   },
-  "unpkg": "./dist_n/bundle.js",
-  "jsdelivr": "./dist_n/bundle.js",
-  "browser": "./dist_n/bundle.js",
+  "unpkg": "./dist/src/index.js",
+  "jsdelivr": "./dist/src/index.js",
+  "browser": "./dist/src/index.js",
   "author": "KeatonBrewster",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -23,12 +23,12 @@
     "url": "https://github.com/Keaton-Brewster/PowerPagesToolKit"
   },
   "files": [
-    "dist_n"
+    "dist"
   ],
   "exports": {
     ".": {
-      "types": "./dist_n/types/index.d.ts",
-      "import": "./dist_n/bundle.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
     }
   },
   "scripts": {

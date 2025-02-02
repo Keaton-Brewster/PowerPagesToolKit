@@ -11,9 +11,7 @@
     "removeComments": false,
     "emitDeclarationOnly": true,
     "declaration": true,
-    "declarationDir": "./dist",
     "rootDir": "./src",
-    "outDir": "./dist/types",
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
@@ -23,7 +21,7 @@
     },
     "typeRoots": [
       "./node_modules/@types",
-      "./@types"
+      "./src/globals.d.ts"
     ],
     "lib": [
       "DOM",
@@ -32,10 +30,10 @@
   },
   "include": [
     "src/**/*",
-    "@types/**/*",
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "dist_n"
   ]
 }

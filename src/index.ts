@@ -1,5 +1,5 @@
-/// <reference path="../@types/index.d.ts" />
-/* @ts-self-types="./index.d.ts" */
+/// <reference path="./globals.d.ts" />
+
 import API from "./core/API.ts";
 import createRef from "./core/createDOMNodeReferences.ts";
 import waitFor from "./core/waitFor.ts";

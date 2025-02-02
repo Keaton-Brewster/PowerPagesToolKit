@@ -36,6 +36,22 @@ esbuild
           });
         },
       },
+      {
+        name: "inject-global-types",
+        setup(build) {
+          build.onEnd(async () => {
+            await copyFile(
+              "./src/globals.d.ts",
+              "./dist/src/globals.d.ts",
+              () => {
+                console.log(
+                  "✅ Copied globals.d.ts to ./dist/src/globals.d.ts"
+                );
+              }
+            );
+          });
+        },
+      },
     ],
     loader: {
       ".ts": "ts",
@@ -94,7 +110,7 @@ esbuild
         )
       );
     } catch (error) {
-      console.error("Build error:", error);
+      console.error("Error during post build", error);
       Deno.exit(1);
     }
   })

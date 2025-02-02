@@ -1,29 +1,14 @@
+/**
+ * @module createRef
+ * Provides a factory function for creating new DOMNodeReferences
+ * @see {@link DOMNodeReference}
+ */
 import DOMNodeReference from "./DOMNodeReference.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import waitFor from "./waitFor.ts";
 import { init } from "../constants/symbols.ts";
 import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
 
-declare interface CreationOptions {
-  /**
-   * Should this call return an array of instantiated references, or just a single?
-   * Defaults to false, returning a single instance.
-   */
-  multiple?: (() => boolean) | boolean;
-
-  /**
-   * Optionally specify the element within which to search for the element targeted by 'target'.
-   * Defaults to 'document.body'.
-   */
-  root?: HTMLElement;
-
-  /**
-   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
-   * Useful for async DOM loading. Relies on MutationObserver.
-   * WARNING: Implementing multiple references with timeout can result in infinite loading.
-   */
-  timeoutMs?: number;
-}
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 /**

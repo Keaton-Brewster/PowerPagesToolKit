@@ -1,21 +1,31 @@
+/**
+ * @module
+ * This module provides the bindForm function. When loading into a page in PowerPages that has a form,
+ * you can use this function by passing in the GUID of the form, and you will receive an array/record
+ * of DOMNodeReferences that represent all fields, sections, sub-grids, and tabs of the given form.
+ * @see {@link DOMNodeReference}
+ * Access these properties of the BoundForm {@link BoundForm} using the logical name of the control you need to access: form['logical_name']
+ * you can then execute all the methods available from DOMNodeReference
+ */
+
 import API from "./API.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
-import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
-
-declare type BoundForm = DOMNodeReferenceArray &
-  Record<string, DOMNodeReference>;
 
 /**
  * Get all controls related to the form for manipulating with the
  * DOMNodeReference class. Rather than having to instantiate each fields that you need manually,
  * you can call this method once with the form ID and gain access to all fields
  * @param formId The string GUID of the form you want to bind to
+ * @param callbackFn Function to execute after the form has been retrieved and bound; the form itself is provided as the argument
  * @returns An array of DOMNodeReferences, accessible as properties of a Record<string, DOMNodeReference> i.e. formProp = form["some_logicalName"]
  * @see {@link BoundForm}
  */
-export default async function bindForm(formId: string): Promise<BoundForm> {
+export default async function bindForm(
+  formId: string,
+  callbackFn: (boundForm: BoundForm) => void
+): Promise<BoundForm> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -40,6 +50,11 @@ export default async function bindForm(formId: string): Promise<BoundForm> {
      * which will allow us to access individual nodes using the syntax `array["logical_name"]`
      */
 
+    callbackFn(
+      enhanceArray(
+        resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
+      )
+    );
     return enhanceArray(
       resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
     );
