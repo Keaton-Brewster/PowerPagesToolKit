@@ -104,7 +104,7 @@ export default class DOMNodeReference {
         this.element = this.target;
       } else {
         this.element = (await waitFor(
-          this.target,
+          this.target as string,
           this.root,
           false,
           this[s.debounceTime]
@@ -270,7 +270,7 @@ export default class DOMNodeReference {
           value: input.value !== "" ? Number(input.value) : null,
         };
 
-      default:
+      default: {
         let cleanValue: string = input.value;
         if (
           this.element.classList.contains("decimal") ||
@@ -285,6 +285,7 @@ export default class DOMNodeReference {
               ? parseFloat(cleanValue)
               : cleanValue,
         };
+      }
     }
   }
 
@@ -603,7 +604,7 @@ export default class DOMNodeReference {
   public enable(): DOMNodeReference {
     try {
       (this.element as HTMLInputElement).disabled = false;
-    } catch (e) {
+    } catch (_error) {
       throw new Error(
         `There was an error trying to disable the target: ${this.target}`
       );
