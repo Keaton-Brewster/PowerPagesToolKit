@@ -17,14 +17,23 @@ import type DOMNodeReference from "./DOMNodeReference.ts";
  * Get all controls related to the form for manipulating with the
  * DOMNodeReference class. Rather than having to instantiate each fields that you need manually,
  * you can call this method once with the form ID and gain access to all fields
- * @param formId The string GUID of the form you want to bind to
- * @param callbackFn Function to execute after the form has been retrieved and bound; the form itself is provided as the argument
+ * @param formId - The string GUID of the form you want to bind to
+ * @callback `callbackFn` - Function to execute after the form has been retrieved and bound; the form itself is provided as the argument
  * @returns An array of DOMNodeReferences, accessible as properties of a Record<string, DOMNodeReference> i.e. formProp = form["some_logicalName"]
- * @see {@link BoundForm}
+ * @example
+ * ```js
+ * bindForm("some-guid-0000", (form) => {
+ *    //...use the form
+ *    const field = form["field_logical_name"]
+ *    // or
+ *    form["other_logical_name"].someMethod()
+ * })
+ * ```
+ *  @see {@link BoundForm}
  */
 export default async function bindForm(
   formId: string,
-  callbackFn: (boundForm: BoundForm) => void
+  callbackFn: (form: BoundForm) => void
 ): Promise<BoundForm> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);

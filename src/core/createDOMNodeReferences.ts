@@ -9,16 +9,15 @@ import waitFor from "./waitFor.ts";
 import { init } from "../constants/symbols.ts";
 import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
 
-
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 /**
  * Creates and initializes a DOMNodeReference instance.
  * @see {@link CreationOptions}
- * @param  target The CSS selector for the desired DOM element, or, optionally, the element itself for which to create a DOMNodeReference.
- * @param options Options for advanced retrieval of elements
- * @param options.multiple - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
- * @param options.root - Optionally specify the element within to search for the element targeted by 'target'. Defaults to 'document.body'
- * @param options.timeoutMs - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  ***WARNING***: Implementing multiple references with timeout can result in infinite loading.
+ * @param  **target** - The selector, using `querySelector` syntax, for the desired DOM element. Or, the `HTMLElement` itself for which to create a DOMNodeReference.
+ * @param **options** - Options for advanced retrieval of elements
+ * @param **options.multiple** - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
+ * @param **options.root** - Optionally specify the element within to search for the element targeted by 'target'. Defaults to `document.body`
+ * @param **options.timeoutMs** - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  ***WARNING***: Implementing multiple references with timeout can result in infinite loading.
  * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
  */
 export default async function createDOMNodeReference(
