@@ -7,6 +7,7 @@ import API from "./API.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
+import DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
 
 /**
  * When loading into a page in PowerPages that has a form,
@@ -15,24 +16,26 @@ import type DOMNodeReference from "./DOMNodeReference.ts";
  * Access these properties of the {@link BoundForm} using the logical name of the control you need to access: form['logical_name']
  * you can then execute all the methods available from DOMNodeReference
  * @param formId - The string GUID of the form you want to bind to
- * @callback `callbackFn` - Function to execute after the form has been retrieved and bound; the form itself is provided as the argument
  * @returns An array of DOMNodeReferences, accessible as properties of a Record<string, DOMNodeReference> i.e. formProp = form["some_logicalName"]
  * @example
  * ```js
- * bindForm("some-guid-0000", (form) => {
+ * bindForm("form-guid-0000").then((form) => {
  *    //...use the form
  *    const field = form["field_logical_name"]
  *    // or
  *    form["other_logical_name"].someMethod()
  * })
+ * 
+ * // or
+ * 
+ * const form = await bindForm("form-guid-0000")
  * ```
  *  @see {@link BoundForm}
  *  @see {@link DOMNodeReference}
  */
 export default async function bindForm(
-  formId: string,
-  callbackFn: (form: BoundForm) => void
-): Promise<BoundForm> {
+  formId: string
+): Promise<DOMNodeReferenceArray & Record<string, DOMNodeReference>> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -57,11 +60,6 @@ export default async function bindForm(
      * which will allow us to access individual nodes using the syntax `array["logical_name"]`
      */
 
-    callbackFn(
-      enhanceArray(
-        resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
-      )
-    );
     return enhanceArray(
       resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
     );

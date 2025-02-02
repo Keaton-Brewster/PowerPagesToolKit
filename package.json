@@ -1,6 +1,6 @@
 {
   "name": "powerpagestoolkit",
-  "version": "2.7.1414",
+  "version": "2.7.1420",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
@@ -40,10 +40,8 @@
     "build:all": "npm run build && deno run build:all",
     "dev": "tsc --watch"
   },
-  "dependencies": {
-    "esbuild-plugin-copy": "^2.1.1"
-  },
   "devDependencies": {
+    "esbuild-plugin-copy": "^2.1.1",
     "@babel/preset-env": "^7.25.8",
     "@types/node": "^22.8.6",
     "@typescript-eslint/parser": "^8.20.0",

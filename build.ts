@@ -6,7 +6,7 @@ import process from "node:process";
 import { copyFile } from "node:fs";
 import { updateImports } from "./import-update.ts";
 
-console.log("Bundling JSR module...");
+console.log("Bundling module...");
 
 // Deno-specific build configuration
 esbuild

@@ -1,6 +1,6 @@
 {
   "name": "@keatonbrewster/powerpagestoolkit",
-  "version": "2.7.1414",
+  "version": "2.7.1415",
   "exports": {
     ".": "./dist/src/index.js"
   },
