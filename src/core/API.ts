@@ -2,8 +2,7 @@
 import safeAjax from "../utils/safeAjax.ts";
 
 /**
- * Provides an abstract class API that allows basic create, read, and update operations
- * via the PowerPages API
+ * Provides abstract class `API` that allows basic create, read, and update operations in DataVerse via the PowerPages API
  * @method `createRecord` - Create a record in DataVerse
  * @method `getRecord<T>` - Get a record by ID from DataVerse
  * @method `getMultiple` - Get multiple records from DataVerse; with optional OData filtering
