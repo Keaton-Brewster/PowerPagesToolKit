@@ -2,8 +2,6 @@
 import safeAjax from "../utils/safeAjax.ts";
 
 /**
- * @abstract
- * @class API
  * Provides an abstract class API that allows basic create, read, and update operations
  * via the PowerPages API
  * @method `createRecord` - Create a record in DataVerse
