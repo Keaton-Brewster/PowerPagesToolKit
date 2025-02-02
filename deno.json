@@ -21,7 +21,7 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["DOM", "ES2016"],
-    "types": ["./src/globals.d.ts"]
+    "types": ["./dist/src/globals.d.ts"]
   },
   "unstable": ["sloppy-imports"],
   "jsr": {
