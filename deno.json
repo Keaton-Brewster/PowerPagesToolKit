@@ -13,7 +13,7 @@
     "build:all": "deno run build:types && deno run bundle"
   },
   "publish": {
-    "include": ["dist", "README.md"]
+    "include": ["dist"]
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
