@@ -17,6 +17,7 @@
     "include": ["dist", "README.md"]
   },
   "imports": {
+    "@keatonbrewster/powerpagestoolkit": "jsr:@keatonbrewster/powerpagestoolkit@^2.7.1422",
     "@std/assert": "jsr:@std/assert@1"
   },
   "compilerOptions": {

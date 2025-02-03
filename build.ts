@@ -61,7 +61,7 @@ esbuild
     legalComments: "linked", // Required for JSR compliance
     sourcemap: "linked",
     metafile: true,
-    minify: process.env.NODE_ENV === "production",
+    minify: true,
   })
   .then(async () => {
     // Handle CSS injection for browser environments

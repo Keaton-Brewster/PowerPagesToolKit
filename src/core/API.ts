@@ -14,7 +14,7 @@ abstract class API {
    * @param data The JSON of the fields and data that are to be updated on the targeted record
    * @returns a Promise resolving the successful results *[record id]* of the POST request, or rejecting the failed results *[error]* of the POST request.
    */
-  static createRecord(tableSetName: string, data: object): Promise<string> {
+  static createRecord(tableSetName: string, data: JSON): Promise<string> {
     return new Promise((resolve, reject) => {
       safeAjax({
         type: "POST",

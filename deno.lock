@@ -1,6 +1,7 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@keatonbrewster/powerpagestoolkit@^2.7.1422": "2.7.1422",
     "jsr:@std/assert@1": "1.0.11",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "npm:@babel/preset-env@^7.25.8": "7.26.7_@babel+core@7.26.7",
@@ -20,6 +21,9 @@
     "npm:typescript@^5.6.3": "5.7.3"
   },
   "jsr": {
+    "@keatonbrewster/powerpagestoolkit@2.7.1422": {
+      "integrity": "3c9b6613ee2312322348c3080e6dc9dba20e0822d9629c43c3fcb4be652421b4"
+    },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1",
       "dependencies": [
@@ -3363,6 +3367,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@keatonbrewster/powerpagestoolkit@^2.7.1422",
       "jsr:@std/assert@1"
     ],
     "packageJson": {
