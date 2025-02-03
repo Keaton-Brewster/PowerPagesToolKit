@@ -2,7 +2,6 @@
 
 import * as esbuild from "esbuild";
 import cssModulesPlugin from "esbuild-css-modules-plugin";
-import process from "node:process";
 import { copyFile } from "node:fs";
 import { updateImports } from "./import-update.ts";
 
@@ -45,9 +44,9 @@ esbuild
               "./dist/src/globals.d.ts",
               () => {
                 console.log(
-                  "✅ Copied globals.d.ts to ./dist/src/globals.d.ts"
+                  "✅ Copied globals.d.ts to ./dist/src/globals.d.ts",
                 );
-              }
+              },
             );
           });
         },
@@ -61,7 +60,7 @@ esbuild
     legalComments: "linked", // Required for JSR compliance
     sourcemap: "linked",
     metafile: true,
-    minify: true,
+    minify: false,
   })
   .then(async () => {
     // Handle CSS injection for browser environments
@@ -71,10 +70,10 @@ esbuild
 
       // Create platform-safe CSS injection
       const cssInjectionCode = `
-      if (typeof document !== 'undefined') {
-        const style = document.createElement('style');
+      if (typeof resolvedDocument !== 'undefined') {
+        const style = resolvedDocument.createElement('style');
         style.textContent = ${JSON.stringify(cssContent)};
-        document.head.appendChild(style);
+        resolvedDocument.head.appendChild(style);
       }
     `;
       // write import string for JSR type creation
@@ -84,7 +83,7 @@ esbuild
       const originalContent = await Deno.readTextFile(bundlePath);
       await Deno.writeTextFile(
         bundlePath,
-        `${importString}\n${originalContent}\n${cssInjectionCode}`
+        `${importString}\n${originalContent}\n${cssInjectionCode}`,
       );
 
       // update '.ts' imports in declaration files to '.d.ts'
@@ -101,8 +100,8 @@ esbuild
             },
           },
           null,
-          2
-        )
+          2,
+        ),
       );
     } catch (error) {
       console.error("Error during post build", error);

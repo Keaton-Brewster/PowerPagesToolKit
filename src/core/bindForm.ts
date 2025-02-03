@@ -7,7 +7,7 @@ import API from "./API.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
-import DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
+import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
 
 /**
  * When loading into a page in PowerPages that has a form,
