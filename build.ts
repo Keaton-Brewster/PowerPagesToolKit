@@ -70,10 +70,10 @@ esbuild
 
       // Create platform-safe CSS injection
       const cssInjectionCode = `
-      if (typeof resolvedDocument !== 'undefined') {
-        const style = resolvedDocument.createElement('style');
+      if (typeof document !== 'undefined') {
+        const style = document.createElement('style');
         style.textContent = ${JSON.stringify(cssContent)};
-        resolvedDocument.head.appendChild(style);
+        document.head.appendChild(style);
       }
     `;
       // write import string for JSR type creation

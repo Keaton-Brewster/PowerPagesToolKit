@@ -40,9 +40,6 @@
     "build:all": "npm run build && deno run build:all",
     "dev": "tsc --watch"
   },
-  "dependencies": {
-    "linkedom": "^0.18.7"
-  },
   "devDependencies": {
     "esbuild-plugin-copy": "^2.1.1",
     "@babel/preset-env": "^7.25.8",

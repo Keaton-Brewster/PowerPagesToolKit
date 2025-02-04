@@ -1,6 +1,4 @@
 /// <reference path="./globals.d.ts" />
-import { createDocument } from "./dom-shim.ts";
-const resolvedDocument = createDocument();
 
 import API from "./core/API.ts";
 import createRef from "./core/createDOMNodeReferences.ts";
