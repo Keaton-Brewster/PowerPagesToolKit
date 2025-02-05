@@ -22,7 +22,11 @@ export async function updateImports(
     try {
       const original = await Deno.readTextFile(filePath);
       let modified = original.replace(importRegex, "$1$2.d.ts$4");
-      modified = `/// <reference path="../globals.d.ts" />\n` + modified;
+      if (
+        filePath !== "./dist/src/globals.d.ts" &&
+        filePath !== "./dist/src/index.d.ts"
+      )
+        modified = `/// <reference path="../globals.d.ts" />\n` + modified;
 
       if (original === modified) return;
 
