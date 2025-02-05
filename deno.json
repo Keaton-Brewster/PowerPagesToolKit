@@ -1,6 +1,6 @@
 {
   "name": "@keatonbrewster/powerpagestoolkit",
-  "version": "2.7.1436",
+  "version": "2.7.1437",
   "exports": {
     ".": "./dist/src/index.js"
   },
@@ -11,7 +11,8 @@
     "dev": "deno run --watch main.ts",
     "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist/src",
     "bundle": "deno run --allow-all build.ts",
-    "build:all": "deno run clean && deno run build:types && deno run bundle"
+    "build:all": "deno run clean && deno run build:types && deno run bundle",
+    "build:no-types": "deno run clean && deno run bundle"
   },
   "publish": {
     "include": ["dist", "README.md"]

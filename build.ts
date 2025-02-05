@@ -40,7 +40,7 @@ esbuild
         setup(build) {
           build.onEnd(async () => {
             await copyFile(
-              "./src/globals.d.ts",
+              "./src/@types/globals.d.ts",
               "./dist/src/globals.d.ts",
               () => {
                 console.log(

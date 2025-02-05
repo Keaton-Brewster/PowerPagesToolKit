@@ -16,12 +16,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./src/*"
+        "./src/*",
       ],
     },
     "typeRoots": [
       "./node_modules/@types",
-      "./src/globals.d.ts"
+      "./src/@types"
     ],
     "lib": [
       "DOM",
@@ -33,7 +33,6 @@
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "dist_n"
+    "dist/**",
   ]
 }

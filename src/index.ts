@@ -1,4 +1,4 @@
-/// <reference path="./globals.d.ts" />
+/// <reference path="./@types/globals.d.ts" />
 
 import API from "./core/API.ts";
 import createRef from "./core/createDOMNodeReferences.ts";

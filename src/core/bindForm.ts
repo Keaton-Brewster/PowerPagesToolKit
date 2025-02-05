@@ -1,7 +1,3 @@
-/**
- * @module
- */
-
 import API from "./API.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
@@ -33,7 +29,7 @@ import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
  *  @see {@link DOMNodeReference}
  */
 export default async function bindForm(
-  formId: string,
+  formId: string
 ): Promise<DOMNodeReferenceArray & Record<string, DOMNodeReference>> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
@@ -60,7 +56,7 @@ export default async function bindForm(
      */
 
     return enhanceArray(
-      resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null),
+      resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
     );
     /** handle errors */
   } catch (error: unknown) {
@@ -85,14 +81,14 @@ function processElements(element: HTMLCollectionOf<Element>) {
 
       const referenceString: string | null = createReferenceString(
         element.tagName,
-        datafieldname,
+        datafieldname
       );
       if (!referenceString) return null;
 
       return createRef(referenceString).catch((error) => {
         console.warn(
           `Failed to create a reference to the form field: ${datafieldname}`,
-          error,
+          error
         );
         return null;
       });
@@ -110,7 +106,7 @@ function getIdentifyingAttribute(tagName: string): string {
 
 function createReferenceString(
   tagName: string,
-  datafieldname: string,
+  datafieldname: string
 ): string | null {
   if (tagName === "control") return `#${datafieldname}`;
   if (tagName === "tab" || tagName === "section") {
