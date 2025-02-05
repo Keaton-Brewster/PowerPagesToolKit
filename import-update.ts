@@ -21,7 +21,8 @@ export async function updateImports(
   async function processFile(filePath: string): Promise<void> {
     try {
       const original = await Deno.readTextFile(filePath);
-      const modified = original.replace(importRegex, "$1$2.d.ts$4");
+      let modified = original.replace(importRegex, "$1$2.d.ts$4");
+      modified = `/// <reference path="../globals.d.ts" />\n` + modified;
 
       if (original === modified) return;
 
