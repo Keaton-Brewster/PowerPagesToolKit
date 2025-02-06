@@ -245,6 +245,7 @@ export default class DOMNodeReference {
       };
     }
 
+    let returnValue: ElementValue;
     switch (input.type) {
       case "checkbox":
       case "radio":
@@ -279,7 +280,7 @@ export default class DOMNodeReference {
           cleanValue = input.value.replace(/[$,]/g, "");
         }
 
-        return {
+        returnValue = {
           value:
             this.element.classList.contains("decimal") ||
             this.element.classList.contains("money")
@@ -288,6 +289,13 @@ export default class DOMNodeReference {
         };
       }
     }
+
+    returnValue = {
+      ...returnValue,
+      value: this.validateValue(returnValue.value),
+    };
+
+    return returnValue;
   }
 
   protected [s.attachVisibilityController](): void {
@@ -375,21 +383,36 @@ export default class DOMNodeReference {
    * @public
    */
   public updateValue(e?: Event): void {
+    if (e && !e.isTrusted) return;
+
     if (e) {
+      console.log("event triggering update: ", e);
       e.stopPropagation();
     }
+
+    const elementValue = this[s.getElementValue]();
+    this.value = elementValue.value;
 
     if (this.yesRadio && this.noRadio) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
     }
 
-    const elementValue = this[s.getElementValue]();
-    this.value = elementValue.value;
-
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
     }
+  }
+
+  protected validateValue(value: any): any {
+    if (value === null || value === "") {
+      return value; // Preserve null or empty string
+    }
+
+    if (!isNaN(Number(value))) {
+      return Number(value);
+    }
+
+    return value;
   }
 
   /**
@@ -465,8 +488,8 @@ export default class DOMNodeReference {
       value = value();
     }
 
-    const eventType = this.determineEventType();
-    this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
+    // const eventType = this.determineEventType();
+    // this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
 
     if (
       this.yesRadio instanceof DOMNodeReference &&
@@ -486,6 +509,8 @@ export default class DOMNodeReference {
     } else {
       (this.element as HTMLInputElement).value = value;
     }
+
+    this.value = this.validateValue(value);
     return this;
   }
 

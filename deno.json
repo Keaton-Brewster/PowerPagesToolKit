@@ -10,9 +10,8 @@
     "clean": "rimraf dist",
     "dev": "deno run --watch main.ts",
     "build:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./dist/src",
-    "generate:types": "tsc --emitDeclarationOnly --declaration --declarationDir ./@PowerPagesToolKit@Types/src && cd ./@PowerPagesToolKit@types && npm run build:all",
     "bundle": "deno run --allow-all build.ts",
-    "build:all": "deno run clean && deno run build:types && deno run bundle && deno run generate:types",
+    "build:all": "deno run clean && deno run build:types && deno run bundle",
     "build:no-types": "deno run clean && deno run bundle"
   },
   "publish": {

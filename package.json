@@ -1,6 +1,6 @@
 {
   "name": "powerpagestoolkit",
-  "version": "2.7.2",
+  "version": "2.7.202",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
