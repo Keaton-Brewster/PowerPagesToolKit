@@ -1,5 +1,7 @@
 /// <reference path="../core/DOMNodeReference.ts"/>
 
+declare type EventCallback = () => any;
+
 declare interface CreationOptions {
   /**
    * Should this call return an array of instantiated references, or just a single?

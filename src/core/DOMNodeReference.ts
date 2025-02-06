@@ -386,21 +386,22 @@ export default class DOMNodeReference {
     if (e && !e.isTrusted) return;
 
     if (e) {
-      console.log("event triggering update: ", e);
       e.stopPropagation();
     }
-
-    const elementValue = this[s.getElementValue]();
-    this.value = elementValue.value;
-
+    
     if (this.yesRadio && this.noRadio) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
     }
 
+    const elementValue = this[s.getElementValue]();
+    this.value = elementValue.value;
+
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
     }
+
+    console.log("updated this element: ", this);
   }
 
   protected validateValue(value: any): any {
@@ -784,22 +785,9 @@ export default class DOMNodeReference {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
-        const [condition, clearValuesOnHide = true] = rule.setVisibility;
+        const [condition] = rule.setVisibility;
         const initialState = condition.call(this);
         this.toggleVisibility(initialState);
-
-        if (dependencies.length) {
-          this._configDependencyTracking(
-            () => this.toggleVisibility(condition.call(this)),
-            dependencies,
-            {
-              clearValuesOnHide,
-              observeVisibility: true,
-              trackInputEvents: false,
-              trackRadioButtons: false,
-            }
-          );
-        }
       }
 
       // Apply Required & Validation Rule
@@ -851,13 +839,6 @@ export default class DOMNodeReference {
 
         Page_Validators.push(newValidator);
         this.setRequiredLevel(isRequired.call(this));
-
-        // Track dependencies
-        this._configDependencyTracking(
-          () => this.setRequiredLevel(isRequired.call(this)),
-          dependencies,
-          { clearValuesOnHide: false }
-        );
       }
 
       // Apply Set Value Rule
@@ -867,39 +848,51 @@ export default class DOMNodeReference {
         if (condition.call(this)) {
           this.setValue.call(this, value);
         }
-
-        if (dependencies.length) {
-          this._configDependencyTracking(
-            () => {
-              if (condition.call(this)) {
-                this.setValue.call(this, value);
-              }
-            },
-            dependencies,
-            { clearValuesOnHide: false }
-          );
-        }
       }
 
       // Apply Disabled Rule
       if (rule.setDisabled) {
         const condition = rule.setDisabled;
         condition.call(this) ? this.disable() : this.enable();
+      }
 
-        if (dependencies.length) {
-          this._configDependencyTracking(
-            () => {
-              condition.call(this) ? this.enable() : this.disable();
-            },
-            dependencies,
-            {
-              clearValuesOnHide: false,
-              observeVisibility: true,
-              trackInputEvents: true,
-              trackRadioButtons: true,
-            }
-          );
-        }
+      // setup dep tracking
+      if (dependencies.length) {
+        let visibilityCondition,
+          clearValuesOnHide,
+          isRequired,
+          valueCondition,
+          value,
+          disabledCondition;
+        const aggregateHandler = (rule: BusinessRule) => {
+          if (rule.setVisibility) {
+            [visibilityCondition, clearValuesOnHide = true] =
+              rule.setVisibility;
+            this.toggleVisibility(visibilityCondition.call(this));
+          }
+          if (rule.setRequired) {
+            [isRequired] = rule.setRequired;
+            this.setRequiredLevel(isRequired.call(this));
+          }
+          if (rule.setValue) {
+            [valueCondition, value] = rule.setValue;
+            if (valueCondition.call(this)) this.setValue.call(this, value);
+          }
+          if (rule.setDisabled) {
+            disabledCondition = rule.setDisabled;
+            disabledCondition.call(this) ? this.disable() : this.enable;
+          }
+        };
+        this._configDependencyTracking(
+          () => aggregateHandler(rule),
+          dependencies,
+          {
+            clearValuesOnHide,
+            observeVisibility: true,
+            trackInputEvents: false,
+            trackRadioButtons: false,
+          }
+        );
       }
 
       return this;
@@ -909,150 +902,6 @@ export default class DOMNodeReference {
         `Failed to apply business rule: ${error}`
       );
     }
-  }
-
-  /**
-   * Configures conditional rendering for the target element based on a condition
-   * and the visibility of one or more trigger elements.
-   * @deprecated Use the new 'applyBusinessRule Method
-   * @param condition A function that returns a boolean to determine
-   * the visibility of the target element. If `condition()` returns true, the element is shown;
-   * otherwise, it is hidden.
-   * @param dependencies - An array of `DOMNodeReference` instances. Event listeners are
-   * registered on each to toggle the visibility of the target element based on the `condition` and the visibility of
-   * the target node.
-   * @throws When there's an error in setting up conditional rendering
-   * @returns Instance of this [provides option to method chain]
-   */
-  public configureConditionalRendering(
-    condition: () => boolean,
-    dependencies?: Array<DOMNodeReference>,
-    clearValuesOnHide: boolean = true
-  ): DOMNodeReference {
-    try {
-      // Validate inputs
-      if (typeof condition !== "function") {
-        throw new TypeError("Condition must be a function");
-      }
-
-      // bind this to the condition function
-      condition = condition.bind(this);
-
-      // Initialize state
-      const initialState = condition();
-      this.toggleVisibility(initialState);
-
-      // Early return if no dependencies
-      if (!dependencies?.length) {
-        console.warn(
-          `powerpagestoolkit: No dependencies provided for conditional rendering of ${this}. ` +
-            "Include referenced nodes in the dependency array if using them in rendering logic."
-        );
-        return this;
-      }
-
-      this._configDependencyTracking(
-        () => this.toggleVisibility(condition()),
-        dependencies,
-        {
-          clearValuesOnHide,
-          observeVisibility: true,
-          trackInputEvents: false,
-          trackRadioButtons: false,
-        }
-      );
-
-      return this;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new ConditionalRenderingError(this, errorMessage);
-    }
-  }
-
-  /**
-   * Sets up validation and requirement rules for the field with enhanced error handling and dynamic updates.
-   * @deprecated Use the new 'applyBusinessRule Method
-   * @param isRequired Function determining if field is required
-   * @param isValid Function validating field input
-   * @param fieldDisplayName Display name for error messages
-   * @param dependencies Fields that trigger requirement/validation updates
-   * @returns Instance of this
-   * @throws If validation setup fails
-   */
-  public configureValidationAndRequirements(
-    isRequired: () => boolean,
-    isValid: () => boolean,
-    fieldDisplayName: string,
-    dependencies: Array<DOMNodeReference>
-  ): DOMNodeReference {
-    // Input validation
-    if (!fieldDisplayName?.trim()) {
-      throw new ValidationConfigError(this, "Field display name is required");
-    }
-
-    if (!Array.isArray(dependencies)) {
-      throw new ValidationConfigError(this, "Dependencies must be an array");
-    }
-
-    // Create and configure validator
-    try {
-      //make sure to bind 'this' to the methods for proper access to consumer
-      isRequired = isRequired.bind(this);
-      isValid = isValid.bind(this);
-
-      if (typeof Page_Validators === "undefined") {
-        throw new ValidationConfigError(this, "Page_Validators not found");
-      }
-
-      const validatorId = `${this.element.id}Validator`;
-
-      // Create new validator
-      const newValidator = document.createElement("span");
-      newValidator.style.display = "none";
-      newValidator.id = validatorId;
-
-      // Configure validator properties
-      const validatorConfig = {
-        controltovalidate: this.element.id,
-        errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
-        evaluationfunction: () => {
-          // Only validate if the field is required and visible
-          const isFieldRequired = isRequired();
-          const isFieldVisible =
-            window.getComputedStyle(this.visibilityController).display !==
-            "none";
-
-          if (!isFieldRequired || !isFieldVisible) {
-            return true;
-          }
-
-          return isValid();
-        },
-      };
-
-      // Apply configuration
-      Object.assign(newValidator, validatorConfig);
-
-      // Add to page validators
-      Page_Validators.push(newValidator);
-
-      // Initial required state
-      this.setRequiredLevel(isRequired());
-
-      // Set up dependency tracking
-      this._configDependencyTracking(
-        () => this.setRequiredLevel(isRequired()),
-        dependencies
-      );
-    } catch (error: any) {
-      throw new ValidationConfigError(
-        this,
-        `Failed to configure validation: ${error}`
-      );
-    }
-
-    return this;
   }
 
   /**
