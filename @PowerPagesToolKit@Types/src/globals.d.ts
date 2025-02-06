@@ -1,3 +1,4 @@
+/// <reference path="../globals.d.ts" />
 /// <reference path="../core/DOMNodeReference.ts"/>
 
 declare interface CreationOptions {

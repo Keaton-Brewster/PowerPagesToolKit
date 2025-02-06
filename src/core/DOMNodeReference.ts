@@ -42,21 +42,21 @@ export default class DOMNodeReference {
    * Made available in order to perform normal DOM traversal,
    * or access properties not available through this class.
    */
-  declare public element: HTMLElement;
-  declare protected visibilityController: HTMLElement;
-  declare public checked: boolean;
+  public declare element: HTMLElement;
+  protected declare visibilityController: HTMLElement;
+  public declare checked: boolean;
   /**
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  declare public yesRadio: DOMNodeReference | null;
+  public declare yesRadio: DOMNodeReference | null;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  declare public noRadio: DOMNodeReference | null;
+  public declare noRadio: DOMNodeReference | null;
 
   /**
    * Creates an instance of DOMNodeReference.
@@ -67,7 +67,7 @@ export default class DOMNodeReference {
   /******/ /******/ constructor(
     target: Element | string,
     root: Element = document.body,
-    debounceTime: number,
+    debounceTime: number
   ) {
     this.target = target;
     this.logicalName = this.extractLogicalName(target);
@@ -107,7 +107,7 @@ export default class DOMNodeReference {
           this.target as string,
           this.root,
           false,
-          this[s.debounceTime],
+          this[s.debounceTime]
         )) as HTMLElement;
       }
 
@@ -118,8 +118,8 @@ export default class DOMNodeReference {
       if (
         this.element.id &&
         this.element.querySelectorAll(
-            `#${this.element.id} > input[type="radio"]`,
-          ).length > 0
+          `#${this.element.id} > input[type="radio"]`
+        ).length > 0
       ) {
         await this[s.attachRadioButtons]();
       }
@@ -146,9 +146,8 @@ export default class DOMNodeReference {
 
       this.isLoaded = true;
     } catch (error) {
-      const errorMessage: string = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
       throw new DOMNodeInitializationError(this, errorMessage);
     }
   }
@@ -200,7 +199,7 @@ export default class DOMNodeReference {
   protected [s.registerEventListener](
     element: Element,
     eventType: keyof HTMLElementEventMap,
-    handler: (e: Event) => unknown,
+    handler: (e: Event) => unknown
   ) {
     element.addEventListener(eventType, handler);
 
@@ -221,7 +220,7 @@ export default class DOMNodeReference {
       "[data-date-format]",
       parentElement,
       false,
-      1500,
+      1500
     )) as HTMLElement;
 
     this[s.registerEventListener](dateNode, "select", this.updateValue);
@@ -257,7 +256,7 @@ export default class DOMNodeReference {
       case "select-multiple":
         return {
           value: Array.from(select.selectedOptions).map(
-            (option) => option.value,
+            (option) => option.value
           ),
         };
 
@@ -281,10 +280,11 @@ export default class DOMNodeReference {
         }
 
         return {
-          value: this.element.classList.contains("decimal") ||
-              this.element.classList.contains("money")
-            ? parseFloat(cleanValue)
-            : cleanValue,
+          value:
+            this.element.classList.contains("decimal") ||
+            this.element.classList.contains("money")
+              ? parseFloat(cleanValue)
+              : cleanValue,
         };
       }
     }
@@ -323,7 +323,7 @@ export default class DOMNodeReference {
     if (!this.element) {
       console.error(
         "'this.element' not found: cannot attach radio buttons for ",
-        this.target,
+        this.target
       );
       return;
     }
@@ -343,11 +343,9 @@ export default class DOMNodeReference {
   protected [s.bindMethods]() {
     const prototype = Object.getPrototypeOf(this);
 
-    for (
-      const key of Object.getOwnPropertyNames(prototype) as Array<
-        keyof this
-      >
-    ) {
+    for (const key of Object.getOwnPropertyNames(prototype) as Array<
+      keyof this
+    >) {
       const value = this[key];
 
       // Ensure we're binding only functions and skip the constructor
@@ -404,18 +402,18 @@ export default class DOMNodeReference {
    */
   public on(
     eventType: keyof HTMLElementEventMap,
-    eventHandler: (e: Event) => void,
+    eventHandler: (e: Event) => void
   ): DOMNodeReference {
     if (typeof eventHandler !== "function") {
       throw new Error(
-        `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`,
+        `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`
       );
     }
 
     this[s.registerEventListener](
       this.element,
       eventType,
-      eventHandler.bind(this),
+      eventHandler.bind(this)
     );
 
     return this;
@@ -445,7 +443,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public toggleVisibility(
-    shouldShow: ((instance: DOMNodeReference) => boolean) | boolean,
+    shouldShow: ((instance: DOMNodeReference) => boolean) | boolean
   ): DOMNodeReference {
     if (shouldShow instanceof Function) {
       shouldShow(this) ? this.show() : this.hide();
@@ -499,11 +497,10 @@ export default class DOMNodeReference {
     try {
       (this.element as HTMLInputElement).disabled = true;
     } catch (error) {
-      const errorMessage: string = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage: string =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
-        `There was an error trying to disable the target: ${this.target}: "${errorMessage}"`,
+        `There was an error trying to disable the target: ${this.target}: "${errorMessage}"`
       );
     }
     return this;
@@ -543,7 +540,7 @@ export default class DOMNodeReference {
       } else if (element instanceof HTMLSelectElement) {
         if (element.multiple) {
           Array.from(element.options).forEach(
-            (option) => (option.selected = false),
+            (option) => (option.selected = false)
           );
           this.value = [];
         } else {
@@ -558,13 +555,13 @@ export default class DOMNodeReference {
 
         // Handle nested input elements in container elements
         const childInputs = Array.from(
-          this.element.querySelectorAll("input, select, textarea"),
+          this.element.querySelectorAll("input, select, textarea")
         );
 
         if (childInputs.length > 0) {
           const promises = childInputs.map(async (input) => {
             const inputRef = (await createRef(
-              <HTMLElement> input,
+              <HTMLElement>input
             )) as DOMNodeReference;
             return inputRef.clearValue();
           });
@@ -593,10 +590,9 @@ export default class DOMNodeReference {
 
       return this;
     } catch (error) {
-      const errorMessage =
-        `Failed to clear values for element with target "${this.target}": ${
-          error instanceof Error ? error.message : String(error)
-        }`;
+      const errorMessage = `Failed to clear values for element with target "${
+        this.target
+      }": ${error instanceof Error ? error.message : String(error)}`;
       throw new Error(errorMessage);
     }
   }
@@ -610,7 +606,7 @@ export default class DOMNodeReference {
       (this.element as HTMLInputElement).disabled = false;
     } catch (_error) {
       throw new Error(
-        `There was an error trying to disable the target: ${this.target}`,
+        `There was an error trying to disable the target: ${this.target}`
       );
     }
     return this;
@@ -671,10 +667,10 @@ export default class DOMNodeReference {
    */
   public addLabelTooltip(
     innerHTML: string,
-    containerStyle?: Partial<CSSStyleDeclaration>,
+    containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
     this.getLabel()?.append(
-      createInfoEl(innerHTML, containerStyle || undefined),
+      createInfoEl(innerHTML, containerStyle || undefined)
     );
     return this;
   }
@@ -687,7 +683,7 @@ export default class DOMNodeReference {
    */
   public addTooltip(
     innerHTML: string,
-    containerStyle?: Partial<CSSStyleDeclaration>,
+    containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
     this.append(createInfoEl(innerHTML, containerStyle || undefined));
     return this;
@@ -719,13 +715,13 @@ export default class DOMNodeReference {
   public setStyle(options: Partial<CSSStyleDeclaration>) {
     if (Object.prototype.toString.call(options) !== "[object Object]") {
       throw new Error(
-        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`,
+        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
       );
     }
 
     for (const _key in options) {
       const key: any = _key as keyof Partial<CSSStyleDeclaration>;
-      this.element.style[key] = <string> options[key];
+      this.element.style[key] = <string>options[key];
     }
     return this;
   }
@@ -743,7 +739,7 @@ export default class DOMNodeReference {
       (this.noRadio.element as HTMLInputElement).checked = false;
     } else {
       console.error(
-        "[SYNACT] Attempted to uncheck radios for an element that has no radios",
+        "[SYNACT] Attempted to uncheck radios for an element that has no radios"
       );
     }
     return this;
@@ -758,25 +754,25 @@ export default class DOMNodeReference {
    */
   public applyBusinessRule(
     rule: BusinessRule,
-    dependencies: DOMNodeReference[],
+    dependencies: DOMNodeReference[]
   ): DOMNodeReference {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
         const [condition, clearValuesOnHide = true] = rule.setVisibility;
-        const initialState = condition.bind(this)();
+        const initialState = condition.call(this);
         this.toggleVisibility(initialState);
 
         if (dependencies.length) {
           this._configDependencyTracking(
-            () => this.toggleVisibility(condition.bind(this)()),
+            () => this.toggleVisibility(condition.call(this)),
             dependencies,
             {
               clearValuesOnHide,
               observeVisibility: true,
               trackInputEvents: false,
               trackRadioButtons: false,
-            },
+            }
           );
         }
       }
@@ -788,12 +784,10 @@ export default class DOMNodeReference {
         const fieldDisplayName = (() => {
           let label: any = this.getLabel();
           if (!label) {
-            return new Error(
+            throw new Error(
               `There was an error accessing the label for this element: ${
-                String(
-                  this.target,
-                )
-              }`,
+                this.target as string
+              }`
             );
           }
           label = label.innerHTML;
@@ -815,30 +809,29 @@ export default class DOMNodeReference {
 
         Object.assign(newValidator, {
           controltovalidate: this.element.id,
-          errormessage:
-            `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+          errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
           evaluationfunction: () => {
-            const isFieldRequired = isRequired.bind(this)();
+            const isFieldRequired = isRequired.call(this);
             const isFieldVisible =
               window.getComputedStyle(this.visibilityController).display !==
-                "none";
+              "none";
 
             return (
               !isFieldRequired ||
               !isFieldVisible ||
-              isValid.bind(this)(isFieldRequired)
+              isValid.call(this, isFieldRequired)
             );
           },
         });
 
         Page_Validators.push(newValidator);
-        this.setRequiredLevel(isRequired.bind(this)());
+        this.setRequiredLevel(isRequired.call(this));
 
         // Track dependencies
         this._configDependencyTracking(
-          () => this.setRequiredLevel(isRequired.bind(this)()),
+          () => this.setRequiredLevel(isRequired.call(this)),
           dependencies,
-          { clearValuesOnHide: false },
+          { clearValuesOnHide: false }
         );
       }
 
@@ -846,19 +839,19 @@ export default class DOMNodeReference {
       if (rule.setValue) {
         let [condition, value] = rule.setValue;
         if (value instanceof Function) value = value();
-        if (condition.bind(this)()) {
-          this.setValue.bind(this)(value);
+        if (condition.call(this)) {
+          this.setValue.call(this, value);
         }
 
         if (dependencies.length) {
           this._configDependencyTracking(
             () => {
-              if (condition.bind(this)()) {
-                this.setValue.bind(this)(value);
+              if (condition.call(this)) {
+                this.setValue.call(this, value);
               }
             },
             dependencies,
-            { clearValuesOnHide: false },
+            { clearValuesOnHide: false }
           );
         }
       }
@@ -866,12 +859,12 @@ export default class DOMNodeReference {
       // Apply Disabled Rule
       if (rule.setDisabled) {
         const condition = rule.setDisabled;
-        condition.bind(this)() ? this.disable() : this.enable();
+        condition.call(this) ? this.disable() : this.enable();
 
         if (dependencies.length) {
           this._configDependencyTracking(
             () => {
-              condition.bind(this)() ? this.enable() : this.disable();
+              condition.call(this) ? this.enable() : this.disable();
             },
             dependencies,
             {
@@ -879,7 +872,7 @@ export default class DOMNodeReference {
               observeVisibility: true,
               trackInputEvents: true,
               trackRadioButtons: true,
-            },
+            }
           );
         }
       }
@@ -888,7 +881,7 @@ export default class DOMNodeReference {
     } catch (error: any) {
       throw new ValidationConfigError(
         this,
-        `Failed to apply business rule: ${error}`,
+        `Failed to apply business rule: ${error}`
       );
     }
   }
@@ -909,7 +902,7 @@ export default class DOMNodeReference {
   public configureConditionalRendering(
     condition: () => boolean,
     dependencies?: Array<DOMNodeReference>,
-    clearValuesOnHide: boolean = true,
+    clearValuesOnHide: boolean = true
   ): DOMNodeReference {
     try {
       // Validate inputs
@@ -928,7 +921,7 @@ export default class DOMNodeReference {
       if (!dependencies?.length) {
         console.warn(
           `powerpagestoolkit: No dependencies provided for conditional rendering of ${this}. ` +
-            "Include referenced nodes in the dependency array if using them in rendering logic.",
+            "Include referenced nodes in the dependency array if using them in rendering logic."
         );
         return this;
       }
@@ -941,14 +934,13 @@ export default class DOMNodeReference {
           observeVisibility: true,
           trackInputEvents: false,
           trackRadioButtons: false,
-        },
+        }
       );
 
       return this;
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new ConditionalRenderingError(this, errorMessage);
     }
   }
@@ -967,7 +959,7 @@ export default class DOMNodeReference {
     isRequired: () => boolean,
     isValid: () => boolean,
     fieldDisplayName: string,
-    dependencies: Array<DOMNodeReference>,
+    dependencies: Array<DOMNodeReference>
   ): DOMNodeReference {
     // Input validation
     if (!fieldDisplayName?.trim()) {
@@ -998,14 +990,13 @@ export default class DOMNodeReference {
       // Configure validator properties
       const validatorConfig = {
         controltovalidate: this.element.id,
-        errormessage:
-          `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+        errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
         evaluationfunction: () => {
           // Only validate if the field is required and visible
           const isFieldRequired = isRequired();
           const isFieldVisible =
             window.getComputedStyle(this.visibilityController).display !==
-              "none";
+            "none";
 
           if (!isFieldRequired || !isFieldVisible) {
             return true;
@@ -1027,12 +1018,12 @@ export default class DOMNodeReference {
       // Set up dependency tracking
       this._configDependencyTracking(
         () => this.setRequiredLevel(isRequired()),
-        dependencies,
+        dependencies
       );
     } catch (error: any) {
       throw new ValidationConfigError(
         this,
-        `Failed to configure validation: ${error}`,
+        `Failed to configure validation: ${error}`
       );
     }
 
@@ -1060,7 +1051,7 @@ export default class DOMNodeReference {
       observeVisibility: true,
       trackInputEvents: true,
       trackRadioButtons: true,
-    },
+    }
   ): void {
     const {
       clearValuesOnHide = false,
@@ -1072,7 +1063,7 @@ export default class DOMNodeReference {
     if (!dependencies?.length) {
       console.warn(
         `powerpagestoolkit: No dependencies specified for ${this.element.id}. ` +
-          "Include all referenced nodes in the dependency array for proper tracking.",
+          "Include all referenced nodes in the dependency array for proper tracking."
       );
       return;
     }
@@ -1080,7 +1071,7 @@ export default class DOMNodeReference {
     dependencies.forEach((dep) => {
       if (!dep || !(dep instanceof DOMNodeReference)) {
         throw new TypeError(
-          "Each dependency must be a valid DOMNodeReference instance",
+          "Each dependency must be a valid DOMNodeReference instance"
         );
       }
 
@@ -1107,7 +1098,7 @@ export default class DOMNodeReference {
       if (observeVisibility) {
         const observer = new MutationObserver(() => {
           const display = window.getComputedStyle(
-            dep.visibilityController,
+            dep.visibilityController
           ).display;
           if (display !== "none") {
             handler();
@@ -1146,7 +1137,7 @@ export default class DOMNodeReference {
    * @returns Instance of this [provides option to method chain]
    */
   public setRequiredLevel(
-    isRequired: (() => boolean) | boolean,
+    isRequired: (() => boolean) | boolean
   ): DOMNodeReference {
     if (isRequired instanceof Function) {
       isRequired()
