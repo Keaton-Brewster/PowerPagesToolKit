@@ -70,10 +70,6 @@ declare interface Form extends Partial<SystemForm> {
   formxml: string;
 }
 
-declare type IsValid = (
-  this: DOMNodeReference,
-  isRequired: ReturnType<Condition>
-) => boolean;
 
 declare interface BusinessRule {
   /**
@@ -134,9 +130,9 @@ declare interface CreationOptions {
   timeoutMs?: number;
 }
 
-declare type DependencyHandlerFunction = () => Promise<void>;
+declare type AggregateHandlerFunction = () => Promise<void>;
 
-declare type Dependants = Map<DOMNodeReference, DependencyHandlerFunction>;
+declare type Dependants = Map<DOMNodeReference, AggregateHandlerFunction>;
 
 declare type ValueElement =
   | HTMLInputElement

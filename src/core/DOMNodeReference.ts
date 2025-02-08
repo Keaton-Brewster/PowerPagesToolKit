@@ -263,7 +263,6 @@ export default class DOMNodeReference {
           value: input.checked,
           checked: input.checked,
         };
-
       case "select-multiple":
         return {
           value: Array.from(select.selectedOptions).map(
@@ -381,6 +380,9 @@ export default class DOMNodeReference {
     this.noRadio = null;
     this.isLoaded = false;
     this.value = null;
+    this.dependents.forEach((_, dep) => {
+      dep.dependents.delete(this);
+    });
     this.dependents.clear();
   }
 
@@ -414,12 +416,10 @@ export default class DOMNodeReference {
     for (const [nodeRef, handler] of this.dependents) {
       if (nodeRef.dependents) {
         for (const [_nodeRef, _handler] of nodeRef.dependents) {
-          await _handler();
-          _nodeRef.receiveNotification();
+          _handler();
         }
       }
-      await handler();
-      nodeRef.receiveNotification();
+      handler();
     }
   }
 
@@ -581,12 +581,12 @@ export default class DOMNodeReference {
 
           case "number":
             element.value = "";
-            this.value = "";
+            this.value = null;
             break;
 
           default: // handles text, email, tel, etc.
             element.value = "";
-            this.value = "";
+            this.value = null;
             break;
         }
       } else if (element instanceof HTMLSelectElement) {
@@ -594,16 +594,16 @@ export default class DOMNodeReference {
           Array.from(element.options).forEach(
             (option) => (option.selected = false)
           );
-          this.value = [];
+          this.value = null;
         } else {
           element.selectedIndex = -1;
-          this.value = "";
+          this.value = null;
         }
       } else if (element instanceof HTMLTextAreaElement) {
         element.value = "";
-        this.value = "";
+        this.value = null;
       } else {
-        this.value = "";
+        this.value = null;
 
         // Handle nested input elements in container elements
         const childInputs = Array.from(
@@ -630,15 +630,6 @@ export default class DOMNodeReference {
         await this.yesRadio.clearValue();
         await this.noRadio.clearValue();
       }
-
-      // Dispatch events in the correct order
-      const events = [
-        new Event("input", { bubbles: true }),
-        new Event("change", { bubbles: true }),
-        new Event("click", { bubbles: true }),
-      ];
-
-      events.forEach((event) => this.element.dispatchEvent(event));
 
       return this;
     } catch (error) {
@@ -879,37 +870,13 @@ export default class DOMNodeReference {
         condition.call(this) ? this.disable() : this.enable();
       }
 
+      const aggregateHandler: AggregateHandlerFunction =
+        this.returnAggregateHandler(rule);
+      aggregateHandler();
+
       // setup dep tracking
       if (dependencies.length) {
-        const aggregateHandler: DependencyHandlerFunction =
-          async (): Promise<void> => {
-            return new Promise((resolve) => {
-              let clearValues: boolean = false;
-              if (rule.setVisibility) {
-                const visibilityCondition = rule.setVisibility;
-                clearValues = clearValues || !visibilityCondition.call(this);
-                this.toggleVisibility(visibilityCondition.call(this));
-              }
-              if (rule.setRequirements && rule.setRequirements().isRequired) {
-                const { isRequired } = rule.setRequirements();
-                this.setRequiredLevel(isRequired!.call(this));
-              }
-              if (rule.setValue) {
-                const { condition, value } = rule.setValue();
-                if (condition.call(this)) this.setValue.call(this, value);
-              }
-              if (rule.setDisabled) {
-                const disabledCondition = rule.setDisabled;
-                disabledCondition.call(this) ? this.disable() : this.enable();
-              }
-
-              if (clearValues) {
-                this.clearValue();
-              }
-              resolve();
-            });
-          };
-        this._configDependencyTracking(() => aggregateHandler(), dependencies);
+        this._configDependencyTracking(aggregateHandler, dependencies);
       }
 
       return this;
@@ -921,6 +888,38 @@ export default class DOMNodeReference {
           `Failed to apply business rule: ${error}`
         );
     }
+  }
+
+  protected returnAggregateHandler(
+    rule: BusinessRule
+  ): AggregateHandlerFunction {
+    return (): Promise<void> => {
+      return new Promise((resolve) => {
+        let clearValues: boolean = false;
+        if (rule.setVisibility) {
+          const visibilityCondition = rule.setVisibility;
+          clearValues = clearValues || !visibilityCondition.call(this);
+          this.toggleVisibility(visibilityCondition.call(this));
+        }
+        if (rule.setRequirements && rule.setRequirements().isRequired) {
+          const { isRequired } = rule.setRequirements();
+          this.setRequiredLevel(isRequired!.call(this));
+        }
+        if (rule.setValue) {
+          const { condition, value } = rule.setValue();
+          if (condition.call(this)) this.setValue.call(this, value);
+        }
+        if (rule.setDisabled) {
+          const disabledCondition = rule.setDisabled;
+          disabledCondition.call(this) ? this.disable() : this.enable();
+        }
+
+        if (clearValues) {
+          this.clearValue();
+        }
+        resolve();
+      });
+    };
   }
 
   protected createValidator(
@@ -965,7 +964,7 @@ export default class DOMNodeReference {
    * all other options defaults to true
    */
   protected _configDependencyTracking(
-    handler: DependencyHandlerFunction,
+    handler: AggregateHandlerFunction,
     dependencies: Array<DOMNodeReference>
   ): void {
     if (!(dependencies.length >= 1)) {
