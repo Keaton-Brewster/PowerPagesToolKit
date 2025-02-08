@@ -520,11 +520,12 @@ export default class DOMNodeReference {
       this.yesRadio instanceof DOMNodeReference &&
       this.noRadio instanceof DOMNodeReference
     ) {
-      (this.yesRadio.element as HTMLInputElement).checked = value;
-      (this.noRadio.element as HTMLInputElement).checked = !value;
+      (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
+      (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
       this.value = value;
       this.checked = value;
-      (this.element as HTMLInputElement).checked = value;
+      (this.element as HTMLInputElement).checked = Boolean(value);
+      (this.element as HTMLInputElement).value = value;
     } else if (
       this.isRadio ||
       (this.element as HTMLInputElement).type === "radio"
