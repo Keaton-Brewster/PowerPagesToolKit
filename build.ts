@@ -44,9 +44,9 @@ esbuild
               "./dist/src/globals.d.ts",
               () => {
                 console.log(
-                  "✅ Copied globals.d.ts to ./dist/src/globals.d.ts",
+                  "✅ Copied globals.d.ts to ./dist/src/globals.d.ts"
                 );
-              },
+              }
             );
           });
         },
@@ -60,7 +60,7 @@ esbuild
     legalComments: "linked", // Required for JSR compliance
     sourcemap: "linked",
     metafile: true,
-    minify: false,
+    minify: true,
   })
   .then(async () => {
     // Handle CSS injection for browser environments
@@ -83,11 +83,11 @@ esbuild
       const originalContent = await Deno.readTextFile(bundlePath);
       await Deno.writeTextFile(
         bundlePath,
-        `${importString}\n${originalContent}\n${cssInjectionCode}`,
+        `${importString}\n${originalContent}\n${cssInjectionCode}`
       );
 
       // update '.ts' imports in declaration files to '.d.ts'
-      updateImports("./dist/src");
+      await updateImports("./dist/src");
 
       // Generate JSR metadata
       await Deno.writeTextFile(
@@ -100,14 +100,14 @@ esbuild
             },
           },
           null,
-          2,
-        ),
+          2
+        )
       );
     } catch (error) {
-      console.error("Error during post build", error);
+      console.error("\n❌ Error during post build", error);
       Deno.exit(1);
     }
   })
   .finally(() => {
-    console.log("JSR module bundling complete");
+    console.log("\n✅ Build Complete");
   });

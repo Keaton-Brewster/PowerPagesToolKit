@@ -70,41 +70,47 @@ declare interface Form extends Partial<SystemForm> {
   formxml: string;
 }
 
+declare type IsValid = (
+  this: DOMNodeReference,
+  isRequired: ReturnType<Condition>
+) => boolean;
+
 declare interface BusinessRule {
   /**
    * @param condition A function that returns a boolean to determine
    * the visibility of the target element. If `condition()` returns true, the element is shown;
    * otherwise, it is hidden.
    
-   * @param clearValuesOnHide Should the values in the targeted field be cleared when hidden? Defaults to true
    */
-  setVisibility?: [
-    condition: (this: DOMNodeReference) => boolean,
-    clearValuesOnHide?: boolean
-  ];
+  setVisibility?: (this: DOMNodeReference) => boolean;
   /**
-   * @param isRequired Function determining if field is required
-   * @param isValid Function validating field input.
+   * Configuration function for determining the required level, and field validity of the given fields
+   * @param isRequired - Function determining if field is required
+   * @param isRequired.this - Reference to this DOMNodeReference
+   * @param isValid - Function validating field input.
+   * @param isValid.this - Reference to this DOMNodeReference
+   * @param isValid.isRequiredResult - Only available if 'isRequired' is also returned from the configuration function
    */
-  setRequired?: [
-    isRequired: () => boolean,
-    isValid: (this: DOMNodeReference, isRequired: boolean) => boolean
-  ];
+  setRequirements?: () => {
+    isRequired?: (this: DOMNodeReference) => boolean;
+    isValid?: (this: DOMNodeReference, isRequiredResult?: boolean) => boolean;
+  };
+
   /**
    * @param condition A function to determine if the value provided should be applied to this field
    * @param value The value to set for the HTML element.
    * for parents of boolean radios, pass true or false as value, or
    * an expression returning a boolean
    */
-  setValue?: [
-    condition: (this: DOMNodeReference) => boolean,
-    value: (() => any) | any
-  ];
+  setValue?: () => {
+    condition: (this: DOMNodeReference) => boolean;
+    value: (() => any) | any;
+  };
   /**
    * @param condition A function to determine if this field
    * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
    */
-  setDisabled?: () => boolean;
+  setDisabled?: (this: DOMNodeReference) => boolean;
 }
 
 declare interface CreationOptions {
@@ -127,6 +133,16 @@ declare interface CreationOptions {
    */
   timeoutMs?: number;
 }
+
+declare type DependencyHandlerFunction = () => Promise<void>;
+
+declare type Dependants = Map<DOMNodeReference, DependencyHandlerFunction>;
+
+declare type ValueElement =
+  | HTMLInputElement
+  | HTMLSelectElement
+  | HTMLTextAreaElement
+  | HTMLOptionElement;
 
 declare const Page_Validators: any[];
 

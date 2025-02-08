@@ -4,7 +4,6 @@ import createRef from "./createDOMNodeReferences.ts";
 import defineCustomSetter from "../utils/defineCustomSetter.ts";
 import * as s from "../constants/symbols.ts";
 import {
-  ConditionalRenderingError,
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ValidationConfigError,
@@ -28,7 +27,7 @@ export default class DOMNodeReference {
   protected defaultDisplay: string;
   protected [s.observers]: Array<MutationObserver | ResizeObserver> = [];
   protected [s.boundEventListeners]: Array<BoundEventListener> = [];
-  protected dependents: Set<DOMNodeReference> = new Set();
+  protected dependents: Dependants = new Map();
   protected isRadio: boolean = false;
   protected radioType: RadioType | null = null;
   /**
@@ -150,11 +149,8 @@ export default class DOMNodeReference {
       });
 
       // define a custom setter for this element, to make sure that we receive updates when the value is set by external means
-      defineCustomSetter(this.element as HTMLInputElement, "value", (value) => {
-        console.log("this: ", this, " value was updated: ", value);
-        this.dependents.forEach((dependent) => {
-          dependent.receiveNotification();
-        });
+      defineCustomSetter(this.element as ValueElement, "value", () => {
+        this.updateValue();
       });
 
       this.isLoaded = true;
@@ -179,13 +175,6 @@ export default class DOMNodeReference {
     if (this.isDateInput()) {
       this[s.dateSync](this.element as HTMLInputElement);
     }
-
-    const resizedObserver = new ResizeObserver(() => {
-      this.updateValue();
-    });
-    resizedObserver.observe(this.element);
-
-    this[s.observers].push(resizedObserver);
   }
 
   private determineEventType(): keyof HTMLElementEventMap {
@@ -392,6 +381,7 @@ export default class DOMNodeReference {
     this.noRadio = null;
     this.isLoaded = false;
     this.value = null;
+    this.dependents.clear();
   }
 
   /**
@@ -415,6 +405,21 @@ export default class DOMNodeReference {
 
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
+    }
+
+    this.triggerDependentsHandlers();
+  }
+
+  protected async triggerDependentsHandlers(): Promise<void> {
+    for (const [nodeRef, handler] of this.dependents) {
+      if (nodeRef.dependents) {
+        for (const [_nodeRef, _handler] of nodeRef.dependents) {
+          await _handler();
+          _nodeRef.receiveNotification();
+        }
+      }
+      await handler();
+      nodeRef.receiveNotification();
     }
   }
 
@@ -699,7 +704,7 @@ export default class DOMNodeReference {
 
   /**
    * Retrieves the label associated with the HTML element.
-   * @returns {HTMLElement} The label element associated with this element.
+   * @returns The label element associated with this element.
    */
   public getLabel(): HTMLElement | null {
     return document.querySelector(`#${this.element.id}_label`) || null;
@@ -737,7 +742,7 @@ export default class DOMNodeReference {
 
   /**
    * Sets the inner HTML content of the HTML element.
-   * @param {string} string - The text to set as the inner HTML of the element.
+   * @param string - The text to set as the inner HTML of the element.
    * @returns - Instance of this [provides option to method chain]
    */
   public setInnerHTML(string: string) {
@@ -795,7 +800,7 @@ export default class DOMNodeReference {
    * Applies a business rule to manage visibility, required state, value, and disabled state dynamically.
    * @see {@link BusinessRule}
    * @param rule The business rule containing conditions for various actions.
-   * @param dependencies For re-evaluation conditions when the state of the dependencies change
+   * @param dependencies For re-evaluation of conditions when the state of the dependencies change
    * @returns Instance of this for method chaining.
    */
   public applyBusinessRule(
@@ -803,51 +808,26 @@ export default class DOMNodeReference {
     dependencies: DOMNodeReference[]
   ): DOMNodeReference {
     try {
-      const clearValuesOnHide =
-        rule.setVisibility && rule.setVisibility.length > 1
-          ? rule.setVisibility![1]
-          : true;
       // Apply Visibility Rule
       if (rule.setVisibility) {
-        const [condition] = rule.setVisibility;
+        const condition = rule.setVisibility;
         const initialState = condition.call(this);
         this.toggleVisibility(initialState);
       }
 
       // Apply Required & Validation Rule
-      if (rule.setRequired) {
-        const [isRequired, isValid] = rule.setRequired;
-
-        const fieldDisplayName = (() => {
-          let label: any = this.getLabel();
-          if (!label) {
-            throw new Error(
-              `There was an error accessing the label for this element: ${
-                this.target as string
-              }`
-            );
-          }
-          label = label.innerHTML;
-          if (label.length > 50) {
-            label = label.substring(0, 50) + "...";
-          }
-          return label;
-        })();
+      if (rule.setRequirements) {
+        const { isRequired, isValid } = rule.setRequirements();
+        // get args? rule.setRequired(isRequired, isValid)
 
         if (typeof Page_Validators === "undefined") {
           throw new ValidationConfigError(this, "Page_Validators not found");
         }
 
-        const validatorId = `${this.element.id}Validator`;
+        let evaluationFunction: () => boolean = () => true;
 
-        const newValidator = document.createElement("span");
-        newValidator.style.display = "none";
-        newValidator.id = validatorId;
-
-        Object.assign(newValidator, {
-          controltovalidate: this.element.id,
-          errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
-          evaluationfunction: () => {
+        if (isRequired && isValid) {
+          evaluationFunction = () => {
             const isFieldRequired = isRequired.call(this);
             const isFieldVisible =
               window.getComputedStyle(this.visibilityController).display !==
@@ -858,16 +838,34 @@ export default class DOMNodeReference {
               !isFieldVisible ||
               isValid.call(this, isFieldRequired)
             );
-          },
-        });
+          };
+        } else if (isValid) {
+          evaluationFunction = () => {
+            const isFieldVisible =
+              window.getComputedStyle(this.visibilityController).display !==
+              "none";
+
+            return !isFieldVisible || isValid.call(this);
+          };
+        } else if (isRequired) {
+          evaluationFunction = () => {
+            const isFieldVisible =
+              window.getComputedStyle(this.visibilityController).display !==
+              "none";
+
+            return !isFieldVisible || isRequired.call(this);
+          };
+        }
+
+        const newValidator = this.createValidator(evaluationFunction);
 
         Page_Validators.push(newValidator);
-        this.setRequiredLevel(isRequired.call(this));
+        // this.setRequiredLevel(isRequired.call(this));
       }
 
       // Apply Set Value Rule
       if (rule.setValue) {
-        let [condition, value] = rule.setValue;
+        let { condition, value } = rule.setValue();
         if (value instanceof Function) value = value();
         if (condition.call(this)) {
           this.setValue.call(this, value);
@@ -882,45 +880,80 @@ export default class DOMNodeReference {
 
       // setup dep tracking
       if (dependencies.length) {
-        let visibilityCondition,
-          isRequired,
-          valueCondition,
-          value,
-          disabledCondition;
-        const aggregateHandler = (rule: BusinessRule) => {
-          if (rule.setVisibility) {
-            [visibilityCondition] = rule.setVisibility;
-            this.toggleVisibility(visibilityCondition.call(this));
-          }
-          if (rule.setRequired) {
-            [isRequired] = rule.setRequired;
-            this.setRequiredLevel(isRequired.call(this));
-          }
-          if (rule.setValue) {
-            [valueCondition, value] = rule.setValue;
-            if (valueCondition.call(this)) this.setValue.call(this, value);
-          }
-          if (rule.setDisabled) {
-            disabledCondition = rule.setDisabled;
-            disabledCondition.call(this) ? this.disable() : this.enable;
-          }
-        };
-        this._configDependencyTracking(
-          () => aggregateHandler(rule),
-          dependencies,
-          {
-            clearValuesOnHide,
-          }
-        );
+        const aggregateHandler: DependencyHandlerFunction =
+          async (): Promise<void> => {
+            return new Promise((resolve) => {
+              let clearValues: boolean = false;
+              if (rule.setVisibility) {
+                const visibilityCondition = rule.setVisibility;
+                clearValues = clearValues || !visibilityCondition.call(this);
+                this.toggleVisibility(visibilityCondition.call(this));
+              }
+              if (rule.setRequirements && rule.setRequirements().isRequired) {
+                const { isRequired } = rule.setRequirements();
+                this.setRequiredLevel(isRequired!.call(this));
+              }
+              if (rule.setValue) {
+                const { condition, value } = rule.setValue();
+                if (condition.call(this)) this.setValue.call(this, value);
+              }
+              if (rule.setDisabled) {
+                const disabledCondition = rule.setDisabled;
+                disabledCondition.call(this) ? this.disable() : this.enable();
+              }
+
+              if (clearValues) {
+                this.clearValue();
+              }
+              resolve();
+            });
+          };
+        this._configDependencyTracking(() => aggregateHandler(), dependencies);
       }
 
       return this;
     } catch (error: any) {
-      throw new ValidationConfigError(
-        this,
-        `Failed to apply business rule: ${error}`
-      );
+      if (error instanceof Error) throw error;
+      else
+        throw new ValidationConfigError(
+          this,
+          `Failed to apply business rule: ${error}`
+        );
     }
+  }
+
+  protected createValidator(
+    evaluationFunction: () => boolean
+  ): HTMLSpanElement {
+    const fieldDisplayName = (() => {
+      let label: any = this.getLabel();
+      if (!label) {
+        throw new Error(
+          `There was an error accessing the label for this element: ${
+            this.target as string
+          }`
+        );
+      }
+      label = label.innerHTML;
+      if (label.length > 50) {
+        label = label.substring(0, 50) + "...";
+      }
+      return label;
+    })();
+
+    const validatorId = `${this.element.id}Validator`;
+
+    const newValidator = document.createElement("span");
+    newValidator.style.display = "none";
+    newValidator.id = validatorId;
+
+    Object.assign(newValidator, {
+      controltovalidate: this.element.id,
+      errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+      evaluationfunction: evaluationFunction,
+    });
+
+    return newValidator;
   }
 
   /**
@@ -928,22 +961,14 @@ export default class DOMNodeReference {
    * @protected
    * @param handler The function to execute when dependencies change
    * @param dependencies Array of dependent DOM nodes to track
-   * @param options Additional configuration options. clearValuesOnHide defaults to false.
    * all other options defaults to true
    */
   protected _configDependencyTracking(
-    handler: () => void,
-    dependencies: Array<DOMNodeReference>,
-    options: {
-      clearValuesOnHide?: boolean;
-    } = {
-      clearValuesOnHide: false,
-    }
+    handler: DependencyHandlerFunction,
+    dependencies: Array<DOMNodeReference>
   ): void {
-    const { clearValuesOnHide = false } = options;
-
-    if (!dependencies?.length) {
-      console.warn(
+    if (!(dependencies.length >= 1)) {
+      console.error(
         `powerpagestoolkit: No dependencies specified for ${this.element.id}. ` +
           "Include all referenced nodes in the dependency array for proper tracking."
       );
@@ -957,39 +982,8 @@ export default class DOMNodeReference {
         );
       }
 
-      // Handle value changes
-      const handleChange = () => {
-        handler();
-        console.log(dependency.dependents);
-
-        // Handle clearing values if element becomes hidden
-        if (clearValuesOnHide && this.getVisibility()) {
-          this.clearValue();
-        }
-      };
-
       // The node that THIS depends on needs to be able to send notifications to its dependents
-      dependency.dependents.add(this);
-
-      this[s.registerEventListener](dependency.element, "change", handleChange);
-
-      // Handle visibility changes
-      const observer = new MutationObserver(() => {
-        const display = window.getComputedStyle(
-          dependency.visibilityController
-        ).display;
-        if (display !== "none") {
-          handler();
-        }
-      });
-
-      observer.observe(dependency.visibilityController, {
-        attributes: true,
-        attributeFilter: ["style"],
-        subtree: false,
-      });
-
-      this[s.observers].push(observer);
+      dependency.dependents.set(this, handler.bind(this));
     });
   }
 

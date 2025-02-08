@@ -1,6 +1,10 @@
 //@ts-nocheck
 import safeAjax from "../utils/safeAjax.ts";
 
+interface ODataJSON extends object {
+  [key: `${string}@odata.bind` | string]: any;
+}
+
 /**
  * Provides abstract class `API` that allows basic create, read, and update operations in DataVerse via the PowerPages API
  * @method `createRecord` - Create a record in DataVerse
@@ -14,7 +18,7 @@ abstract class API {
    * @param data The JSON of the fields and data that are to be updated on the targeted record
    * @returns a Promise resolving the successful results *[record id]* of the POST request, or rejecting the failed results *[error]* of the POST request.
    */
-  static createRecord(tableSetName: string, data: JSON): Promise<string> {
+  static createRecord(tableSetName: string, data: ODataJSON): Promise<string> {
     return new Promise((resolve, reject) => {
       safeAjax({
         type: "POST",
@@ -92,7 +96,7 @@ abstract class API {
   static updateRecord(
     tableSetName: string,
     recordId: string,
-    data: object
+    data: ODataJSON
   ): Promise<any> {
     return new Promise((resolve, reject) => {
       const url = `/_api/${tableSetName}(${recordId})`;
