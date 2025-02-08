@@ -1,6 +1,7 @@
 import waitFor from "./waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
 import createRef from "./createDOMNodeReferences.ts";
+import defineCustomSetter from "../utils/defineCustomSetter.ts";
 import * as s from "../constants/symbols.ts";
 import {
   ConditionalRenderingError,
@@ -13,7 +14,7 @@ const EventTypes = {
   CHECKBOX: "click",
   RADIO: "click",
   SELECT: "change",
-  TEXTAREA: "keyup",
+  TEXT: "keyup",
   DEFAULT: "input",
 } as const;
 
@@ -22,11 +23,12 @@ export default class DOMNodeReference {
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
-  protected [s.debounceTime]: number;
+  protected timeoutMs: number;
   protected isLoaded: boolean;
   protected defaultDisplay: string;
-  protected [s.observers]: Array<MutationObserver> = [];
+  protected [s.observers]: Array<MutationObserver | ResizeObserver> = [];
   protected [s.boundEventListeners]: Array<BoundEventListener> = [];
+  protected dependents: Set<DOMNodeReference> = new Set();
   protected isRadio: boolean = false;
   protected radioType: RadioType | null = null;
   /**
@@ -45,6 +47,8 @@ export default class DOMNodeReference {
   public declare element: HTMLElement;
   protected declare visibilityController: HTMLElement;
   public declare checked: boolean;
+
+  public declare radioParent: DOMNodeReference | null;
   /**
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
@@ -67,18 +71,19 @@ export default class DOMNodeReference {
   /******/ /******/ constructor(
     target: Element | string,
     root: Element = document.body,
-    debounceTime: number
+    timeoutMs: number
   ) {
     this.target = target;
     this.logicalName = this.extractLogicalName(target);
     this.root = root;
-    this[s.debounceTime] = debounceTime;
+    this.timeoutMs = timeoutMs;
     this.isLoaded = false;
     this.defaultDisplay = "";
     this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
     this[s.bindMethods]();
+
     // we defer the rest of initialization
   }
 
@@ -107,7 +112,7 @@ export default class DOMNodeReference {
           this.target as string,
           this.root,
           false,
-          this[s.debounceTime]
+          this.timeoutMs
         )) as HTMLElement;
       }
 
@@ -144,6 +149,14 @@ export default class DOMNodeReference {
         subtree: true,
       });
 
+      // define a custom setter for this element, to make sure that we receive updates when the value is set by external means
+      defineCustomSetter(this.element as HTMLInputElement, "value", (value) => {
+        console.log("this: ", this, " value was updated: ", value);
+        this.dependents.forEach((dependent) => {
+          dependent.receiveNotification();
+        });
+      });
+
       this.isLoaded = true;
     } catch (error) {
       const errorMessage: string =
@@ -166,10 +179,18 @@ export default class DOMNodeReference {
     if (this.isDateInput()) {
       this[s.dateSync](this.element as HTMLInputElement);
     }
+
+    const resizedObserver = new ResizeObserver(() => {
+      this.updateValue();
+    });
+    resizedObserver.observe(this.element);
+
+    this[s.observers].push(resizedObserver);
   }
 
   private determineEventType(): keyof HTMLElementEventMap {
     if (this.element instanceof HTMLSelectElement) return "change";
+    if (this.element instanceof HTMLTextAreaElement) return "keyup";
     if (!(this.element instanceof HTMLInputElement)) return EventTypes.DEFAULT;
 
     return (
@@ -272,20 +293,13 @@ export default class DOMNodeReference {
         };
 
       default: {
-        let cleanValue: string = input.value;
-        if (
-          this.element.classList.contains("decimal") ||
-          this.element.classList.contains("money")
-        ) {
-          cleanValue = input.value.replace(/[$,]/g, "");
+        let cleanValue: string | number = input.value;
+        if (this.element.classList.contains("decimal")) {
+          cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
         }
 
         returnValue = {
-          value:
-            this.element.classList.contains("decimal") ||
-            this.element.classList.contains("money")
-              ? parseFloat(cleanValue)
-              : cleanValue,
+          value: cleanValue,
         };
       }
     }
@@ -341,11 +355,13 @@ export default class DOMNodeReference {
     });
     this.yesRadio.isRadio = true;
     this.yesRadio.radioType = "truthy";
+    this.yesRadio.radioParent = this;
     this.noRadio = await createRef('input[type="radio"][value="0"]', {
       root: this.element,
     });
     this.noRadio.isRadio = true;
     this.noRadio.radioType = "falsy";
+    this.noRadio.radioParent = this;
   }
 
   protected [s.bindMethods]() {
@@ -388,7 +404,7 @@ export default class DOMNodeReference {
     if (e) {
       e.stopPropagation();
     }
-    
+
     if (this.yesRadio && this.noRadio) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
@@ -400,12 +416,16 @@ export default class DOMNodeReference {
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
     }
-
-    console.log("updated this element: ", this);
   }
 
   protected validateValue(value: any): any {
-    if (value === null || value === "") {
+    if (
+      (value === null ||
+        value === "" ||
+        this.element instanceof HTMLSelectElement ||
+        (this.element as HTMLInputElement).type === "text") &&
+      !(this.element as HTMLInputElement).classList.contains("decimal")
+    ) {
       return value; // Preserve null or empty string
     }
 
@@ -489,8 +509,7 @@ export default class DOMNodeReference {
       value = value();
     }
 
-    // const eventType = this.determineEventType();
-    // this.element.dispatchEvent(new Event(eventType, { bubbles: false }));
+    const validatedValue = this.validateValue(value);
 
     if (
       this.yesRadio instanceof DOMNodeReference &&
@@ -507,11 +526,12 @@ export default class DOMNodeReference {
     ) {
       this.checked = value;
       (this.element as HTMLInputElement).checked = value;
+      this.radioParent?.updateValue();
     } else {
-      (this.element as HTMLInputElement).value = value;
+      (this.element as HTMLInputElement).value = validatedValue;
     }
 
-    this.value = this.validateValue(value);
+    this.value = validatedValue;
     return this;
   }
 
@@ -783,6 +803,10 @@ export default class DOMNodeReference {
     dependencies: DOMNodeReference[]
   ): DOMNodeReference {
     try {
+      const clearValuesOnHide =
+        rule.setVisibility && rule.setVisibility.length > 1
+          ? rule.setVisibility![1]
+          : true;
       // Apply Visibility Rule
       if (rule.setVisibility) {
         const [condition] = rule.setVisibility;
@@ -859,15 +883,13 @@ export default class DOMNodeReference {
       // setup dep tracking
       if (dependencies.length) {
         let visibilityCondition,
-          clearValuesOnHide,
           isRequired,
           valueCondition,
           value,
           disabledCondition;
         const aggregateHandler = (rule: BusinessRule) => {
           if (rule.setVisibility) {
-            [visibilityCondition, clearValuesOnHide = true] =
-              rule.setVisibility;
+            [visibilityCondition] = rule.setVisibility;
             this.toggleVisibility(visibilityCondition.call(this));
           }
           if (rule.setRequired) {
@@ -888,9 +910,6 @@ export default class DOMNodeReference {
           dependencies,
           {
             clearValuesOnHide,
-            observeVisibility: true,
-            trackInputEvents: false,
-            trackRadioButtons: false,
           }
         );
       }
@@ -917,22 +936,11 @@ export default class DOMNodeReference {
     dependencies: Array<DOMNodeReference>,
     options: {
       clearValuesOnHide?: boolean;
-      observeVisibility?: boolean;
-      trackInputEvents?: boolean;
-      trackRadioButtons?: boolean;
     } = {
       clearValuesOnHide: false,
-      observeVisibility: true,
-      trackInputEvents: true,
-      trackRadioButtons: true,
     }
   ): void {
-    const {
-      clearValuesOnHide = false,
-      observeVisibility = true,
-      trackInputEvents = true,
-      trackRadioButtons = true,
-    } = options;
+    const { clearValuesOnHide = false } = options;
 
     if (!dependencies?.length) {
       console.warn(
@@ -942,8 +950,8 @@ export default class DOMNodeReference {
       return;
     }
 
-    dependencies.forEach((dep) => {
-      if (!dep || !(dep instanceof DOMNodeReference)) {
+    dependencies.forEach((dependency) => {
+      if (!dependency || !(dependency instanceof DOMNodeReference)) {
         throw new TypeError(
           "Each dependency must be a valid DOMNodeReference instance"
         );
@@ -952,55 +960,47 @@ export default class DOMNodeReference {
       // Handle value changes
       const handleChange = () => {
         handler();
+        console.log(dependency.dependents);
 
         // Handle clearing values if element becomes hidden
-        if (
-          clearValuesOnHide &&
-          window.getComputedStyle(this.visibilityController).display === "none"
-        ) {
+        if (clearValuesOnHide && this.getVisibility()) {
           this.clearValue();
         }
       };
 
-      this[s.registerEventListener](dep.element, "change", handleChange);
+      // The node that THIS depends on needs to be able to send notifications to its dependents
+      dependency.dependents.add(this);
 
-      if (trackInputEvents) {
-        this[s.registerEventListener](dep.element, "input", handleChange);
-      }
+      this[s.registerEventListener](dependency.element, "change", handleChange);
 
       // Handle visibility changes
-      if (observeVisibility) {
-        const observer = new MutationObserver(() => {
-          const display = window.getComputedStyle(
-            dep.visibilityController
-          ).display;
-          if (display !== "none") {
-            handler();
-          }
-        });
+      const observer = new MutationObserver(() => {
+        const display = window.getComputedStyle(
+          dependency.visibilityController
+        ).display;
+        if (display !== "none") {
+          handler();
+        }
+      });
 
-        observer.observe(dep.visibilityController, {
-          attributes: true,
-          attributeFilter: ["style"],
-          subtree: false,
-        });
+      observer.observe(dependency.visibilityController, {
+        attributes: true,
+        attributeFilter: ["style"],
+        subtree: false,
+      });
 
-        this[s.observers].push(observer);
-      }
-
-      // Handle radio button changes if applicable
-      if (trackRadioButtons && dep.yesRadio && dep.noRadio) {
-        [dep.yesRadio, dep.noRadio].forEach((radio) => {
-          radio.on("change", handleChange) as DOMNodeReference;
-          //make sure to track event listener for s.destroy()
-          this[s.boundEventListeners].push({
-            element: radio.element,
-            event: "change",
-            handler: handleChange,
-          });
-        });
-      }
+      this[s.observers].push(observer);
     });
+  }
+
+  protected getVisibility(): boolean {
+    return (
+      window.getComputedStyle(this.visibilityController).display === "none"
+    );
+  }
+
+  protected receiveNotification(): void {
+    this.updateValue();
   }
 
   /**
