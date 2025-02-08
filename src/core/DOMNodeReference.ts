@@ -368,22 +368,29 @@ export default class DOMNodeReference {
   }
 
   protected [s.destroy](): void {
+    // Remove all bound event listeners
     this[s.boundEventListeners]?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
+    this[s.boundEventListeners] = []; // Clear the array
+
+    // Disconnect all observers
     this[s.observers]?.forEach((observer) => {
       observer.disconnect();
     });
+    this[s.observers] = []; // Clear the array
+
+    // Destroy radio buttons if they exist
     this.yesRadio?.[s.destroy]();
     this.noRadio?.[s.destroy]();
     this.yesRadio = null;
     this.noRadio = null;
+
+    // Clear other references
     this.isLoaded = false;
     this.value = null;
-    this.dependents.forEach((_, dep) => {
-      dep.dependents.delete(this);
-    });
     this.dependents.clear();
+    this.radioParent = null;
   }
 
   /**
