@@ -1,36 +1,33 @@
 import waitFor from "./waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
 import createRef from "./createDOMNodeReferences.ts";
-import defineCustomSetter from "../utils/defineCustomSetter.ts";
-import * as s from "../constants/symbols.ts";
+import { init, destroy } from "../constants/symbols.ts";
+import { EventTypes } from "../constants/EventTypes.ts";
+
 import {
   DOMNodeInitializationError,
   DOMNodeNotFoundError,
   ValidationConfigError,
 } from "../errors/errors.ts";
 
-const EventTypes = {
-  CHECKBOX: "click",
-  RADIO: "click",
-  SELECT: "change",
-  TEXT: "keyup",
-  DEFAULT: "input",
-} as const;
-
 export default class DOMNodeReference {
+  // declare static properties
   static instances: DOMNodeReference[] = [];
+  // allow for indexing methods with symbols
+  [key: symbol]: (...arg: any[]) => any;
+
   // properties initialized in the constructor
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
-  protected timeoutMs: number;
-  protected isLoaded: boolean;
-  protected defaultDisplay: string;
-  protected [s.observers]: Array<MutationObserver | ResizeObserver> = [];
-  protected [s.boundEventListeners]: Array<BoundEventListener> = [];
-  protected dependents: Dependants = new Map();
-  protected isRadio: boolean = false;
-  protected radioType: RadioType | null = null;
+  protected _timeoutMs: number;
+  protected _isLoaded: boolean;
+  protected _defaultDisplay: string;
+  protected _observers: Array<MutationObserver | ResizeObserver> = [];
+  protected _boundListeners: Array<BoundEventListener> = [];
+  protected _dependents: Dependants = new Map();
+  protected _isRadio: boolean = false;
+  protected _radioType: RadioType | null = null;
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -45,7 +42,7 @@ export default class DOMNodeReference {
    * or access properties not available through this class.
    */
   public declare element: HTMLElement;
-  protected declare visibilityController: HTMLElement;
+  protected declare _visibilityController: HTMLElement;
   public declare checked: boolean;
 
   public declare radioParent: DOMNodeReference | null;
@@ -74,20 +71,20 @@ export default class DOMNodeReference {
     timeoutMs: number
   ) {
     this.target = target;
-    this.logicalName = this.extractLogicalName(target);
+    this.logicalName = this._extractLogicalName(target);
     this.root = root;
-    this.timeoutMs = timeoutMs;
-    this.isLoaded = false;
-    this.defaultDisplay = "";
+    this._timeoutMs = timeoutMs;
+    this._isLoaded = false;
+    this._defaultDisplay = "";
     this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
-    this[s.bindMethods]();
+    this._bindMethods();
 
     // we defer the rest of initialization
   }
 
-  private extractLogicalName(target: Element | string): string {
+  protected _extractLogicalName(target: Element | string): string {
     if (typeof target !== "string") return "";
 
     const bracketMatch = target.match(/\[([^\]]+)\]/);
@@ -98,7 +95,7 @@ export default class DOMNodeReference {
     return (quoteMatch?.[1] || content).replace(/[#\[\]]/g, "");
   }
 
-  public async [s.init](): Promise<void> {
+  public async [init](): Promise<void> {
     /**
      * dynamically define the s.init method using our custom symbol
      * this makes it so that the s.init method cannot be accessed outside
@@ -112,7 +109,7 @@ export default class DOMNodeReference {
           this.target as string,
           this.root,
           false,
-          this.timeoutMs
+          this._timeoutMs
         )) as HTMLElement;
       }
 
@@ -126,18 +123,18 @@ export default class DOMNodeReference {
           `#${this.element.id} > input[type="radio"]`
         ).length > 0
       ) {
-        await this.attachRadioButtons();
+        await this._attachRadioButtons();
       }
 
-      this[s.valueSync]();
-      this[s.attachVisibilityController]();
-      this.defaultDisplay = this.visibilityController.style.display;
+      this._valueSync();
+      this._attachVisibilityController();
+      this._defaultDisplay = this._visibilityController.style.display;
 
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (Array.from(mutation.removedNodes).includes(this.element)) {
-            this[s.destroy]();
+            this[destroy]();
             observer.disconnect();
             break;
           }
@@ -149,14 +146,9 @@ export default class DOMNodeReference {
         subtree: true,
       });
 
-      // define a custom setter for this element, to make sure that we receive updates when the value is set by external means
-      // defineCustomSetter(this.element as ValueElement, "value", () => {
-      //   this.updateValue();
-      // });
-
       DOMNodeReference.instances.push(this);
 
-      this.isLoaded = true;
+      this._isLoaded = true;
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
@@ -168,19 +160,19 @@ export default class DOMNodeReference {
    * Initializes value synchronization with appropriate event listeners
    * based on element type.
    */
-  protected [s.valueSync](): void {
-    if (!this[s.isValidFormElement](this.element)) return;
+  protected _valueSync(): void {
+    if (!this._isValidFormElement(this.element)) return;
 
     this.updateValue();
-    const eventType = this.determineEventType();
-    this[s.registerEventListener](this.element, eventType, this.updateValue);
+    const eventType = this._determineEventType();
+    this._registerEventListener(this.element, eventType, this.updateValue);
 
-    if (this.isDateInput()) {
-      this[s.dateSync](this.element as HTMLInputElement);
+    if (this._isDateInput()) {
+      this._dateSync(this.element as HTMLInputElement);
     }
   }
 
-  private determineEventType(): keyof HTMLElementEventMap {
+  protected _determineEventType(): keyof HTMLElementEventMap {
     if (this.element instanceof HTMLSelectElement) return "change";
     if (this.element instanceof HTMLTextAreaElement) return "keyup";
     if (!(this.element instanceof HTMLInputElement)) return EventTypes.DEFAULT;
@@ -191,14 +183,14 @@ export default class DOMNodeReference {
     );
   }
 
-  private isDateInput(): boolean {
+  protected _isDateInput(): boolean {
     return (
       this.element instanceof HTMLInputElement &&
       this.element.dataset.type === "date"
     );
   }
 
-  protected [s.isValidFormElement](element: Element): element is FormElement {
+  protected _isValidFormElement(element: Element): element is FormElement {
     return (
       element instanceof HTMLInputElement ||
       element instanceof HTMLSelectElement ||
@@ -209,21 +201,21 @@ export default class DOMNodeReference {
     );
   }
 
-  protected [s.registerEventListener](
+  protected _registerEventListener(
     element: Element,
     eventType: keyof HTMLElementEventMap,
     handler: (e: Event) => unknown
   ) {
     element.addEventListener(eventType, handler);
 
-    this[s.boundEventListeners].push({
+    this._boundListeners.push({
       element,
       handler,
       event: eventType,
     });
   }
 
-  protected async [s.dateSync](element: HTMLInputElement): Promise<void> {
+  protected async _dateSync(element: HTMLInputElement): Promise<void> {
     const parentElement = element.parentElement;
     if (!parentElement) {
       throw new Error("Date input must have a parent element");
@@ -236,7 +228,7 @@ export default class DOMNodeReference {
       1500
     )) as HTMLElement;
 
-    this[s.registerEventListener](dateNode, "select", this.updateValue);
+    this._registerEventListener(dateNode, "select", this.updateValue);
   }
 
   /**
@@ -244,7 +236,7 @@ export default class DOMNodeReference {
    * @protected
    * @returns Object containing value and optional checked state
    */
-  protected getElementValue(): Promise<ElementValue> {
+  protected _getElementValue(): Promise<ElementValue> {
     return new Promise((resolve) => {
       const input = this.element as HTMLInputElement;
       const select = this.element as HTMLSelectElement;
@@ -304,22 +296,22 @@ export default class DOMNodeReference {
 
       returnValue = {
         ...returnValue,
-        value: this.validateValue(returnValue.value),
+        value: this._validateValue(returnValue.value),
       };
 
       resolve(returnValue);
     });
   }
 
-  protected [s.attachVisibilityController](): void {
+  protected _attachVisibilityController(): void {
     // Set the default visibility controller to the element itself
-    this.visibilityController = this.element;
+    this._visibilityController = this.element;
 
     // If the element is a table, use its closest fieldset as the controller
     if (this.element.tagName === "TABLE") {
       const fieldset = this.element.closest("fieldset");
       if (fieldset) {
-        this.visibilityController = fieldset;
+        this._visibilityController = fieldset;
       }
       return;
     }
@@ -335,12 +327,12 @@ export default class DOMNodeReference {
     if (tagsRequiringTdParent.includes(this.element.tagName)) {
       const tdParent = this.element.closest("td");
       if (tdParent) {
-        this.visibilityController = tdParent;
+        this._visibilityController = tdParent;
       }
     }
   }
 
-  protected async attachRadioButtons(): Promise<void> {
+  protected async _attachRadioButtons(): Promise<void> {
     if (!this.element) {
       console.error(
         "'this.element' not found: cannot attach radio buttons for ",
@@ -352,19 +344,19 @@ export default class DOMNodeReference {
     this.yesRadio = await createRef('input[type="radio"][value="1"]', {
       root: this.element,
     });
-    this.yesRadio.isRadio = true;
-    this.yesRadio.radioType = "truthy";
+    this.yesRadio._isRadio = true;
+    this.yesRadio._radioType = "truthy";
     this.yesRadio.radioParent = this;
 
     this.noRadio = await createRef('input[type="radio"][value="0"]', {
       root: this.element,
     });
-    this.noRadio.isRadio = true;
-    this.noRadio.radioType = "falsy";
+    this.noRadio._isRadio = true;
+    this.noRadio._radioType = "falsy";
     this.noRadio.radioParent = this;
   }
 
-  protected [s.bindMethods]() {
+  protected _bindMethods() {
     const prototype = Object.getPrototypeOf(this);
 
     for (const key of Object.getOwnPropertyNames(prototype) as Array<
@@ -379,29 +371,29 @@ export default class DOMNodeReference {
     }
   }
 
-  protected [s.destroy](): void {
+  protected [destroy](): void {
     // Remove all bound event listeners
-    this[s.boundEventListeners]?.forEach((binding) => {
+    this._boundListeners?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
-    this[s.boundEventListeners] = []; // Clear the array
+    this._boundListeners = []; // Clear the array
 
     // Disconnect all observers
-    this[s.observers]?.forEach((observer) => {
+    this._observers?.forEach((observer) => {
       observer.disconnect();
     });
-    this[s.observers] = []; // Clear the array
+    this._observers = []; // Clear the array
 
     // Destroy radio buttons if they exist
-    this.yesRadio?.[s.destroy]();
-    this.noRadio?.[s.destroy]();
+    this.yesRadio?.[destroy]();
+    this.noRadio?.[destroy]();
     this.yesRadio = null;
     this.noRadio = null;
 
     // Clear other references
-    this.isLoaded = false;
+    this._isLoaded = false;
     this.value = null;
-    this.dependents.clear();
+    this._dependents.clear();
     this.radioParent = null;
   }
 
@@ -424,20 +416,20 @@ export default class DOMNodeReference {
       this.noRadio!.updateValue();
     }
 
-    const elementValue = await this.getElementValue();
+    const elementValue = await this._getElementValue();
     this.value = elementValue.value;
 
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
     }
 
-    this.triggerDependentsHandlers();
+    this._triggerDependentsHandlers();
   }
 
-  protected triggerDependentsHandlers(): void {
-    for (const [nodeRef, handler] of this.dependents) {
-      if (nodeRef.dependents) {
-        for (const [_nodeRef, _handler] of nodeRef.dependents) {
+  protected _triggerDependentsHandlers(): void {
+    for (const [nodeRef, handler] of this._dependents) {
+      if (nodeRef._dependents) {
+        for (const [_nodeRef, _handler] of nodeRef._dependents) {
           _handler();
         }
       }
@@ -445,7 +437,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected validateValue(value: any): any {
+  protected _validateValue(value: any): any {
     if (typeof value === "boolean" || value === "true" || value === "false") {
       return value === true || value === "true";
     }
@@ -489,7 +481,7 @@ export default class DOMNodeReference {
       );
     }
 
-    this[s.registerEventListener](
+    this._registerEventListener(
       this.element,
       eventType,
       eventHandler.bind(this)
@@ -503,7 +495,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    this.visibilityController.style.display = "none";
+    this._visibilityController.style.display = "none";
     return this;
   }
 
@@ -512,7 +504,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    this.visibilityController.style.display = this.defaultDisplay;
+    this._visibilityController.style.display = this._defaultDisplay;
     return this;
   }
 
@@ -522,10 +514,10 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public toggleVisibility(
-    shouldShow: ((instance: DOMNodeReference) => boolean) | boolean
+    shouldShow: ((this: DOMNodeReference) => boolean) | boolean
   ): DOMNodeReference {
     if (shouldShow instanceof Function) {
-      shouldShow(this) ? this.show() : this.hide();
+      shouldShow.call(this) ? this.show() : this.hide();
     } else {
       shouldShow ? this.show() : this.hide();
     }
@@ -544,21 +536,7 @@ export default class DOMNodeReference {
       value = value();
     }
 
-    console.log(
-      "Entered setValue for this: ",
-      this.target,
-      " Value receieved: ",
-      value
-    );
-
-    const validatedValue = this.validateValue(value);
-
-    console.log(
-      "Validated value :",
-      validatedValue,
-      "being set for: ",
-      this.target
-    );
+    const validatedValue = this._validateValue(value);
 
     if (
       this.yesRadio instanceof DOMNodeReference &&
@@ -571,7 +549,7 @@ export default class DOMNodeReference {
       (this.element as HTMLInputElement).checked = Boolean(value);
       (this.element as HTMLInputElement).value = value;
     } else if (
-      this.isRadio ||
+      this._isRadio ||
       (this.element as HTMLInputElement).type === "radio"
     ) {
       this.checked = value;
@@ -652,8 +630,8 @@ export default class DOMNodeReference {
         this.value = null;
 
         // Handle nested input elements in container elements
-        if (this.getChildren()) {
-          this.callAgainstChildInputs((child) => child.clearValue());
+        if (this._getChildren()) {
+          this._callAgainstChildInputs((child) => child.clearValue());
         }
       }
 
@@ -675,7 +653,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected getChildren(): DOMNodeReference[] | null {
+  protected _getChildren(): DOMNodeReference[] | null {
     const childInputs: Element[] = Array.from(
       this.element.querySelectorAll("input, select, textarea")
     );
@@ -691,11 +669,11 @@ export default class DOMNodeReference {
     return children;
   }
 
-  protected async callAgainstChildInputs(
+  protected async _callAgainstChildInputs(
     func: (child: DOMNodeReference) => Promise<any> | any
   ): Promise<void> {
     // Handle nested input elements in container elements
-    const children: DOMNodeReference[] | null = this.getChildren();
+    const children: DOMNodeReference[] | null = this._getChildren();
 
     if (children && children.length > 0) {
       const promises: Promise<void>[] = children.map(async (input) => {
@@ -891,7 +869,7 @@ export default class DOMNodeReference {
         if (isRequired && isValid) {
           evaluationFunction = () => {
             const isFieldRequired = isRequired.call(this);
-            const isFieldVisible = this.getVisibility();
+            const isFieldVisible = this._getVisibility();
 
             // If the field is not required, it is always valid
             // If the field is required, it must be visible and valid
@@ -902,21 +880,21 @@ export default class DOMNodeReference {
           };
         } else if (isValid) {
           evaluationFunction = () => {
-            const isFieldVisible = this.getVisibility();
+            const isFieldVisible = this._getVisibility();
 
             // The field must be visible and valid
             return isFieldVisible && isValid.call(this);
           };
         } else if (isRequired) {
           evaluationFunction = () => {
-            const isFieldVisible = this.getVisibility();
+            const isFieldVisible = this._getVisibility();
 
             // The field must be visible and required
             return isFieldVisible && isRequired.call(this);
           };
         }
 
-        this.createValidator(evaluationFunction);
+        this._createValidator(evaluationFunction);
       }
 
       // Apply Set Value Rule
@@ -935,12 +913,12 @@ export default class DOMNodeReference {
       }
 
       const aggregateHandler: AggregateHandlerFunction =
-        this.returnAggregateHandler(rule);
+        this._returnAggregateHandler(rule);
       aggregateHandler();
 
       // setup dep tracking
       if (dependencies.length) {
-        this.configureDependencyTracking(aggregateHandler, dependencies);
+        this._configureDependencyTracking(aggregateHandler, dependencies);
       }
 
       return this;
@@ -954,7 +932,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected returnAggregateHandler(
+  protected _returnAggregateHandler(
     rule: BusinessRule
   ): AggregateHandlerFunction {
     return (): void => {
@@ -964,10 +942,8 @@ export default class DOMNodeReference {
         clearValues = clearValues || !visibilityCondition.call(this);
         this.toggleVisibility(visibilityCondition.call(this));
       }
-      let willBeRequired: boolean = false;
       if (rule.setRequirements && rule.setRequirements().isRequired) {
         const { isRequired } = rule.setRequirements();
-        willBeRequired = isRequired!.call(this);
         this.setRequiredLevel(isRequired!.call(this));
       }
       if (rule.setValue) {
@@ -979,16 +955,13 @@ export default class DOMNodeReference {
         disabledCondition.call(this) ? this.disable() : this.enable();
       }
 
-      if (clearValues) {
+      if (clearValues && !rule.setValue) {
         this.clearValue();
-        if (!willBeRequired) {
-          this.setRequiredLevel(false);
-        }
       }
     };
   }
 
-  protected createValidator(evaluationFunction: () => boolean): void {
+  protected _createValidator(evaluationFunction: () => boolean): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -1027,7 +1000,7 @@ export default class DOMNodeReference {
    * @param dependencies Array of dependent DOM nodes to track
    * all other options defaults to true
    */
-  protected configureDependencyTracking(
+  protected _configureDependencyTracking(
     handler: AggregateHandlerFunction,
     dependencies: DOMNodeReference[]
   ): void {
@@ -1054,21 +1027,21 @@ export default class DOMNodeReference {
       }
 
       // The node that THIS depends on needs to be able to send notifications to its dependents
-      dependency.dependents.set(this, handler.bind(this));
+      dependency._dependents.set(this, handler.bind(this));
     });
   }
 
-  protected getVisibility(): boolean {
+  protected _getVisibility(): boolean {
     return (
-      window.getComputedStyle(this.visibilityController).display !== "none" &&
-      window.getComputedStyle(this.visibilityController).visibility !==
+      window.getComputedStyle(this._visibilityController).display !== "none" &&
+      window.getComputedStyle(this._visibilityController).visibility !==
         "hidden" &&
-      this.visibilityController.getBoundingClientRect().height > 0 &&
-      this.visibilityController.getBoundingClientRect().width > 0
+      this._visibilityController.getBoundingClientRect().height > 0 &&
+      this._visibilityController.getBoundingClientRect().width > 0
     );
   }
 
-  protected receiveNotification(): void {
+  protected _receiveNotification(): void {
     this.updateValue();
   }
 
@@ -1103,7 +1076,7 @@ export default class DOMNodeReference {
    * Receives instance of 'this' as an argument
    */
   public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
-    if (this.isLoaded) {
+    if (this._isLoaded) {
       callback(this);
       return;
     }
@@ -1115,7 +1088,7 @@ export default class DOMNodeReference {
     const observer = new MutationObserver(() => {
       if (document.querySelector(this.target as string)) {
         observer.disconnect(); // Stop observing once loaded
-        this.isLoaded = true;
+        this._isLoaded = true;
         callback(this); // Call the provided callback
       }
     });
@@ -1125,6 +1098,6 @@ export default class DOMNodeReference {
       childList: true,
     });
 
-    this[s.observers].push(observer);
+    this._observers.push(observer);
   }
 }

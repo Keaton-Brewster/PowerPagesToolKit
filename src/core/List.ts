@@ -37,6 +37,7 @@ export default class List {
         }
       }
     }
+
     const rows = this._root.querySelectorAll("tr");
     rows.forEach((row) => {
       this._listItems.add(row);
