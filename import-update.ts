@@ -30,7 +30,6 @@ export async function updateImports(
 
       if (original === modified) return;
 
-      console.log(`\nFound in ${filePath}:`);
       original.split("\n").forEach((line, index) => {
         if (line.match(importRegex)) console.log(`Line ${index + 1}: ${line}`);
       });

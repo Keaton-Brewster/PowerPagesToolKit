@@ -18,6 +18,7 @@ const EventTypes = {
 } as const;
 
 export default class DOMNodeReference {
+  static instances: DOMNodeReference[] = [];
   // properties initialized in the constructor
   public target: Element | string;
   public logicalName?: string;
@@ -125,7 +126,7 @@ export default class DOMNodeReference {
           `#${this.element.id} > input[type="radio"]`
         ).length > 0
       ) {
-        await this[s.attachRadioButtons]();
+        await this.attachRadioButtons();
       }
 
       this[s.valueSync]();
@@ -149,9 +150,11 @@ export default class DOMNodeReference {
       });
 
       // define a custom setter for this element, to make sure that we receive updates when the value is set by external means
-      defineCustomSetter(this.element as ValueElement, "value", () => {
-        this.updateValue();
-      });
+      // defineCustomSetter(this.element as ValueElement, "value", () => {
+      //   this.updateValue();
+      // });
+
+      DOMNodeReference.instances.push(this);
 
       this.isLoaded = true;
     } catch (error) {
@@ -241,63 +244,71 @@ export default class DOMNodeReference {
    * @protected
    * @returns Object containing value and optional checked state
    */
-  protected [s.getElementValue](): ElementValue {
-    const input = this.element as HTMLInputElement;
-    const select = this.element as HTMLSelectElement;
+  protected getElementValue(): Promise<ElementValue> {
+    return new Promise((resolve) => {
+      const input = this.element as HTMLInputElement;
+      const select = this.element as HTMLSelectElement;
 
-    if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
-    ) {
-      return {
-        value: this.yesRadio.checked,
-        checked: this.yesRadio.checked,
-      };
-    }
-
-    let returnValue: ElementValue;
-    switch (input.type) {
-      case "checkbox":
-      case "radio":
-        return {
-          value: input.checked,
-          checked: input.checked,
-        };
-      case "select-multiple":
-        return {
-          value: Array.from(select.selectedOptions).map(
-            (option) => option.value
-          ),
-        };
-
-      case "select-one":
-        return {
-          value: select.value,
-        };
-
-      case "number":
-        return {
-          value: input.value !== "" ? Number(input.value) : null,
-        };
-
-      default: {
-        let cleanValue: string | number = input.value;
-        if (this.element.classList.contains("decimal")) {
-          cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
-        }
-
-        returnValue = {
-          value: cleanValue,
-        };
+      if (
+        this.yesRadio instanceof DOMNodeReference &&
+        this.noRadio instanceof DOMNodeReference
+      ) {
+        resolve({
+          value: this.yesRadio.checked,
+          checked: this.yesRadio.checked,
+        });
       }
-    }
 
-    returnValue = {
-      ...returnValue,
-      value: this.validateValue(returnValue.value),
-    };
+      let returnValue: ElementValue = {
+        value: null,
+      };
+      switch (input.type) {
+        case "checkbox":
+        case "radio":
+          resolve({
+            value: input.checked,
+            checked: input.checked,
+          });
+          break;
+        case "select-multiple":
+          resolve({
+            value: Array.from(select.selectedOptions).map(
+              (option) => option.value
+            ),
+          });
+          break;
 
-    return returnValue;
+        case "select-one":
+          resolve({
+            value: select.value,
+          });
+          break;
+
+        case "number":
+          resolve({
+            value: input.value !== "" ? Number(input.value) : null,
+          });
+          break;
+
+        default: {
+          let cleanValue: string | number = input.value;
+          if (this.element.classList.contains("decimal")) {
+            cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
+          }
+
+          returnValue = {
+            value: cleanValue,
+          };
+        }
+      }
+
+      returnValue = {
+        ...returnValue,
+        value: this.validateValue(returnValue.value),
+      };
+
+      resolve(returnValue);
+    });
   }
 
   protected [s.attachVisibilityController](): void {
@@ -329,7 +340,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected async [s.attachRadioButtons](): Promise<void> {
+  protected async attachRadioButtons(): Promise<void> {
     if (!this.element) {
       console.error(
         "'this.element' not found: cannot attach radio buttons for ",
@@ -344,6 +355,7 @@ export default class DOMNodeReference {
     this.yesRadio.isRadio = true;
     this.yesRadio.radioType = "truthy";
     this.yesRadio.radioParent = this;
+
     this.noRadio = await createRef('input[type="radio"][value="0"]', {
       root: this.element,
     });
@@ -397,19 +409,22 @@ export default class DOMNodeReference {
    * Updates the value and checked state based on element type
    * @public
    */
-  public updateValue(e?: Event): void {
+  public async updateValue(e?: Event): Promise<void> {
     if (e && !e.isTrusted) return;
 
     if (e) {
       e.stopPropagation();
     }
 
-    if (this.yesRadio && this.noRadio) {
+    if (
+      this.yesRadio instanceof DOMNodeReference &&
+      this.noRadio instanceof DOMNodeReference
+    ) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
     }
 
-    const elementValue = this[s.getElementValue]();
+    const elementValue = await this.getElementValue();
     this.value = elementValue.value;
 
     if (elementValue.checked !== undefined) {
@@ -419,7 +434,7 @@ export default class DOMNodeReference {
     this.triggerDependentsHandlers();
   }
 
-  protected async triggerDependentsHandlers(): Promise<void> {
+  protected triggerDependentsHandlers(): void {
     for (const [nodeRef, handler] of this.dependents) {
       if (nodeRef.dependents) {
         for (const [_nodeRef, _handler] of nodeRef.dependents) {
@@ -431,14 +446,22 @@ export default class DOMNodeReference {
   }
 
   protected validateValue(value: any): any {
+    if (typeof value === "boolean" || value === "true" || value === "false") {
+      return value === true || value === "true";
+    }
+
+    // If it's a select element or text input (not decimal), return as is
     if (
-      (value === null ||
-        value === "" ||
-        this.element instanceof HTMLSelectElement ||
-        (this.element as HTMLInputElement).type === "text") &&
-      !(this.element as HTMLInputElement).classList.contains("decimal")
+      this.element instanceof HTMLSelectElement ||
+      ((this.element as HTMLInputElement).type === "text" &&
+        !(this.element as HTMLInputElement).classList.contains("decimal"))
     ) {
-      return value; // Preserve null or empty string
+      return value;
+    }
+
+    // Handle null/empty cases
+    if (value === null || value === "") {
+      return value;
     }
 
     if (!isNaN(Number(value))) {
@@ -458,7 +481,7 @@ export default class DOMNodeReference {
    */
   public on(
     eventType: keyof HTMLElementEventMap,
-    eventHandler: (e: Event) => void
+    eventHandler: (this: DOMNodeReference, e: Event) => void
   ): DOMNodeReference {
     if (typeof eventHandler !== "function") {
       throw new Error(
@@ -521,7 +544,21 @@ export default class DOMNodeReference {
       value = value();
     }
 
+    console.log(
+      "Entered setValue for this: ",
+      this.target,
+      " Value receieved: ",
+      value
+    );
+
     const validatedValue = this.validateValue(value);
+
+    console.log(
+      "Validated value :",
+      validatedValue,
+      "being set for: ",
+      this.target
+    );
 
     if (
       this.yesRadio instanceof DOMNodeReference &&
@@ -545,6 +582,8 @@ export default class DOMNodeReference {
     }
 
     this.value = validatedValue;
+
+    console.log("finished setting value for ", this.target, { target: this });
     return this;
   }
 
@@ -613,19 +652,8 @@ export default class DOMNodeReference {
         this.value = null;
 
         // Handle nested input elements in container elements
-        const childInputs = Array.from(
-          this.element.querySelectorAll("input, select, textarea")
-        );
-
-        if (childInputs.length > 0) {
-          const promises = childInputs.map(async (input) => {
-            const inputRef = (await createRef(
-              <HTMLElement>input
-            )) as DOMNodeReference;
-            return inputRef.clearValue();
-          });
-
-          await Promise.all(promises);
+        if (this.getChildren()) {
+          this.callAgainstChildInputs((child) => child.clearValue());
         }
       }
 
@@ -644,6 +672,41 @@ export default class DOMNodeReference {
         this.target
       }": ${error instanceof Error ? error.message : String(error)}`;
       throw new Error(errorMessage);
+    }
+  }
+
+  protected getChildren(): DOMNodeReference[] | null {
+    const childInputs: Element[] = Array.from(
+      this.element.querySelectorAll("input, select, textarea")
+    );
+    const childIds: string[] = childInputs.map((input) => {
+      return input.id;
+    });
+
+    const children =
+      DOMNodeReference.instances.filter((ref) => {
+        return childIds.includes(ref.element.id);
+      }) ?? null;
+
+    return children;
+  }
+
+  protected async callAgainstChildInputs(
+    func: (child: DOMNodeReference) => Promise<any> | any
+  ): Promise<void> {
+    // Handle nested input elements in container elements
+    const children: DOMNodeReference[] | null = this.getChildren();
+
+    if (children && children.length > 0) {
+      const promises: Promise<void>[] = children.map(async (input) => {
+        await func(input);
+        return;
+      });
+
+      await Promise.all(promises);
+      return;
+    } else {
+      return;
     }
   }
 
@@ -828,38 +891,32 @@ export default class DOMNodeReference {
         if (isRequired && isValid) {
           evaluationFunction = () => {
             const isFieldRequired = isRequired.call(this);
-            const isFieldVisible =
-              window.getComputedStyle(this.visibilityController).display !==
-              "none";
+            const isFieldVisible = this.getVisibility();
 
+            // If the field is not required, it is always valid
+            // If the field is required, it must be visible and valid
             return (
               !isFieldRequired ||
-              !isFieldVisible ||
-              isValid.call(this, isFieldRequired)
+              (isFieldVisible && isValid.call(this, isFieldRequired))
             );
           };
         } else if (isValid) {
           evaluationFunction = () => {
-            const isFieldVisible =
-              window.getComputedStyle(this.visibilityController).display !==
-              "none";
+            const isFieldVisible = this.getVisibility();
 
-            return !isFieldVisible || isValid.call(this);
+            // The field must be visible and valid
+            return isFieldVisible && isValid.call(this);
           };
         } else if (isRequired) {
           evaluationFunction = () => {
-            const isFieldVisible =
-              window.getComputedStyle(this.visibilityController).display !==
-              "none";
+            const isFieldVisible = this.getVisibility();
 
-            return !isFieldVisible || isRequired.call(this);
+            // The field must be visible and required
+            return isFieldVisible && isRequired.call(this);
           };
         }
 
-        const newValidator = this.createValidator(evaluationFunction);
-
-        Page_Validators.push(newValidator);
-        // this.setRequiredLevel(isRequired.call(this));
+        this.createValidator(evaluationFunction);
       }
 
       // Apply Set Value Rule
@@ -883,7 +940,7 @@ export default class DOMNodeReference {
 
       // setup dep tracking
       if (dependencies.length) {
-        this._configDependencyTracking(aggregateHandler, dependencies);
+        this.configureDependencyTracking(aggregateHandler, dependencies);
       }
 
       return this;
@@ -900,38 +957,38 @@ export default class DOMNodeReference {
   protected returnAggregateHandler(
     rule: BusinessRule
   ): AggregateHandlerFunction {
-    return (): Promise<void> => {
-      return new Promise((resolve) => {
-        let clearValues: boolean = false;
-        if (rule.setVisibility) {
-          const visibilityCondition = rule.setVisibility;
-          clearValues = clearValues || !visibilityCondition.call(this);
-          this.toggleVisibility(visibilityCondition.call(this));
-        }
-        if (rule.setRequirements && rule.setRequirements().isRequired) {
-          const { isRequired } = rule.setRequirements();
-          this.setRequiredLevel(isRequired!.call(this));
-        }
-        if (rule.setValue) {
-          const { condition, value } = rule.setValue();
-          if (condition.call(this)) this.setValue.call(this, value);
-        }
-        if (rule.setDisabled) {
-          const disabledCondition = rule.setDisabled;
-          disabledCondition.call(this) ? this.disable() : this.enable();
-        }
+    return (): void => {
+      let clearValues: boolean = false;
+      if (rule.setVisibility) {
+        const visibilityCondition = rule.setVisibility;
+        clearValues = clearValues || !visibilityCondition.call(this);
+        this.toggleVisibility(visibilityCondition.call(this));
+      }
+      let willBeRequired: boolean = false;
+      if (rule.setRequirements && rule.setRequirements().isRequired) {
+        const { isRequired } = rule.setRequirements();
+        willBeRequired = isRequired!.call(this);
+        this.setRequiredLevel(isRequired!.call(this));
+      }
+      if (rule.setValue) {
+        const { condition, value } = rule.setValue();
+        if (condition.call(this)) this.setValue.call(this, value);
+      }
+      if (rule.setDisabled) {
+        const disabledCondition = rule.setDisabled;
+        disabledCondition.call(this) ? this.disable() : this.enable();
+      }
 
-        if (clearValues) {
-          this.clearValue();
+      if (clearValues) {
+        this.clearValue();
+        if (!willBeRequired) {
+          this.setRequiredLevel(false);
         }
-        resolve();
-      });
+      }
     };
   }
 
-  protected createValidator(
-    evaluationFunction: () => boolean
-  ): HTMLSpanElement {
+  protected createValidator(evaluationFunction: () => boolean): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -960,7 +1017,7 @@ export default class DOMNodeReference {
       evaluationfunction: evaluationFunction,
     });
 
-    return newValidator;
+    Page_Validators.push(newValidator);
   }
 
   /**
@@ -970,14 +1027,14 @@ export default class DOMNodeReference {
    * @param dependencies Array of dependent DOM nodes to track
    * all other options defaults to true
    */
-  protected _configDependencyTracking(
+  protected configureDependencyTracking(
     handler: AggregateHandlerFunction,
-    dependencies: Array<DOMNodeReference>
+    dependencies: DOMNodeReference[]
   ): void {
-    if (!(dependencies.length >= 1)) {
+    if (dependencies.length < 1) {
       console.error(
         `powerpagestoolkit: No dependencies specified for ${this.element.id}. ` +
-          "Include all referenced nodes in the dependency array for proper tracking."
+          "Include all required nodes in the dependency array for proper tracking."
       );
       return;
     }
@@ -989,6 +1046,13 @@ export default class DOMNodeReference {
         );
       }
 
+      // Check for self-referential dependency
+      if (dependency.logicalName === this.logicalName) {
+        throw new Error(
+          `powerpagestoolkit: Self-referential dependency detected; a node cannot depend on itself: Source: ${this.element.id}`
+        );
+      }
+
       // The node that THIS depends on needs to be able to send notifications to its dependents
       dependency.dependents.set(this, handler.bind(this));
     });
@@ -996,7 +1060,11 @@ export default class DOMNodeReference {
 
   protected getVisibility(): boolean {
     return (
-      window.getComputedStyle(this.visibilityController).display === "none"
+      window.getComputedStyle(this.visibilityController).display !== "none" &&
+      window.getComputedStyle(this.visibilityController).visibility !==
+        "hidden" &&
+      this.visibilityController.getBoundingClientRect().height > 0 &&
+      this.visibilityController.getBoundingClientRect().width > 0
     );
   }
 

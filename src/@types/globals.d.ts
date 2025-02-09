@@ -130,7 +130,7 @@ declare interface CreationOptions {
   timeoutMs?: number;
 }
 
-declare type AggregateHandlerFunction = () => Promise<void>;
+declare type AggregateHandlerFunction = () => void;
 
 declare type Dependants = Map<DOMNodeReference, AggregateHandlerFunction>;
 
