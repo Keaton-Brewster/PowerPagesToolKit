@@ -160,18 +160,15 @@ applyBusinessRule(
 
 ```typescript
 interface BusinessRule {
-  setVisibility?: [
-    condition: () => boolean,
-    clearValuesOnHide?: boolean = true
-    ];
-  setRequired?: [
+  setVisibility?: () => boolean;
+  setRequirements?: () => ({
     isRequired: () => boolean,
     isValid: () => boolean
-  ];
-  setValue?: [
+  });
+  setValue?: () => ({
     condition: () => boolean,
     value: () => any | any
-    ];
+  });
   setDisabled?: () => boolean;
 }
 ```
@@ -183,24 +180,10 @@ interface BusinessRule {
 // 'businessTypeField' is set to 'Corporation' or 'LLC'
 taxIdField.applyBusinessRule(
   {
-    setVisibility: [
+    setVisibility: 
       () =>
         businessTypeField.value === "Corporation" ||
-        businessTypeField.value === "LLC",
-    ],
-  },
-  [businessTypeField] // Re-evaluate when businessTypeField changes
-);
-
-// Optionally disable 'clearValuesOnHide':
-taxIdField.applyBusinessRule(
-  {
-    setVisibility: [
-      () =>
-        businessTypeField.value === "Corporation" ||
-        businessTypeField.value === "LLC",
-      false, // defaults to true. False will prevent the fields from losing it's value if it is hidden
-    ],
+        businessTypeField.value === "LLC"
   },
   [businessTypeField] // Re-evaluate when businessTypeField changes
 );
@@ -212,17 +195,17 @@ taxIdField.applyBusinessRule(
 // Require 'taxIdField' when 'businessTypeField' is 'Corporation' or 'LLC'
 taxIdField.applyBusinessRule(
   {
-    setRequired: [
-      function () {
+    setRequirements: () => ({
+      isRequired: function () {
         return (
           businessTypeField.value === "Corporation" ||
           businessTypeField.value === "LLC"
         );
       },
-      function () {
+      isValid: function () {
         return this.value != null && this.value !== "";
       },
-    ],
+    })
   },
   [businessTypeField] // Revalidate when businessTypeField changes
 );
@@ -234,10 +217,10 @@ taxIdField.applyBusinessRule(
 // Set default industry value when 'businessTypeField' is 'Corporation'
 industryField.applyBusinessRule(
   {
-    setValue: [
-      () => businessTypeField.value === "Corporation",
-      "Corporate"
-    ],
+    setValue: () => ({
+      condition: () => businessTypeField.value === "Corporation",
+      value: "Corporate"
+    })
   },
   [businessTypeField] // Apply value when businessTypeField changes
 );
