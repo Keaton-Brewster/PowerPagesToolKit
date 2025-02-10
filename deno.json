@@ -26,6 +26,7 @@
     "lib": ["DOM", "ES2016"],
     "types": ["./dist/src/globals.d.ts"]
   },
+  "exclude": ["./dist/src/globals.d.ts"],
   "unstable": ["sloppy-imports"],
   "jsr": {
     "name": "@keatonbrewster/powerpagestoolkit",

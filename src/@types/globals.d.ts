@@ -70,7 +70,6 @@ declare interface Form extends Partial<SystemForm> {
   formxml: string;
 }
 
-
 declare interface BusinessRule {
   /**
    * @param condition A function that returns a boolean to determine
@@ -130,9 +129,11 @@ declare interface CreationOptions {
   timeoutMs?: number;
 }
 
-declare type AggregateHandlerFunction = () => void;
+declare type DependencyHandler = () => void;
 
-declare type Dependants = Map<DOMNodeReference, AggregateHandlerFunction>;
+declare interface BusinessRuleHandler extends DependencyHandler {}
+
+declare type Dependents = Map<DOMNodeReference, DependencyHandler>;
 
 declare type ValueElement =
   | HTMLInputElement

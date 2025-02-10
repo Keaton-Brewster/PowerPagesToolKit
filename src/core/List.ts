@@ -1,7 +1,10 @@
+/**
+ * @experimental
+ */
 export default class List {
   private static _instance: List | null = null;
   private _root: HTMLElement;
-  private _listItems: Set<HTMLElement> = new Set();
+  private _listItems: Set<Element> = new Set();
   private _observer: MutationObserver;
 
   private constructor() {
@@ -50,7 +53,15 @@ export default class List {
     List._instance = null;
   }
 
-  public destroy(): void {
-    this._destroy();
+  /**
+   * @iterator
+   * @param modifier The function to apply to each list item
+   * @returns Instance for method chaining
+   */
+  public modifyListItems(modifier: (listItem: Element) => void): List {
+    for (const listItem of this._listItems) {
+      modifier(listItem);
+    }
+    return this;
   }
 }

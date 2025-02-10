@@ -20,14 +20,14 @@ export default class DOMNodeReference {
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
-  protected _timeoutMs: number;
-  protected _isLoaded: boolean;
-  protected _defaultDisplay: string;
-  protected _observers: Array<MutationObserver | ResizeObserver> = [];
-  protected _boundListeners: Array<BoundEventListener> = [];
-  protected _dependents: Dependants = new Map();
-  protected _isRadio: boolean = false;
-  protected _radioType: RadioType | null = null;
+  protected timeoutMs: number;
+  protected isLoaded: boolean;
+  protected defaultDisplay: string;
+  protected observers: Array<MutationObserver | ResizeObserver> = [];
+  protected boundListeners: Array<BoundEventListener> = [];
+  protected dependents: Dependents = new Map();
+  protected isRadio: boolean = false;
+  protected radioType: RadioType | null = null;
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
@@ -42,7 +42,7 @@ export default class DOMNodeReference {
    * or access properties not available through this class.
    */
   public declare element: HTMLElement;
-  protected declare _visibilityController: HTMLElement;
+  protected declare visibilityController: HTMLElement;
   public declare checked: boolean;
 
   public declare radioParent: DOMNodeReference | null;
@@ -73,9 +73,9 @@ export default class DOMNodeReference {
     this.target = target;
     this.logicalName = this._extractLogicalName(target);
     this.root = root;
-    this._timeoutMs = timeoutMs;
-    this._isLoaded = false;
-    this._defaultDisplay = "";
+    this.timeoutMs = timeoutMs;
+    this.isLoaded = false;
+    this.defaultDisplay = "";
     this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
@@ -109,7 +109,7 @@ export default class DOMNodeReference {
           this.target as string,
           this.root,
           false,
-          this._timeoutMs
+          this.timeoutMs
         )) as HTMLElement;
       }
 
@@ -128,7 +128,7 @@ export default class DOMNodeReference {
 
       this._valueSync();
       this._attachVisibilityController();
-      this._defaultDisplay = this._visibilityController.style.display;
+      this.defaultDisplay = this.visibilityController.style.display;
 
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
@@ -148,7 +148,7 @@ export default class DOMNodeReference {
 
       DOMNodeReference.instances.push(this);
 
-      this._isLoaded = true;
+      this.isLoaded = true;
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
@@ -208,7 +208,7 @@ export default class DOMNodeReference {
   ) {
     element.addEventListener(eventType, handler);
 
-    this._boundListeners.push({
+    this.boundListeners.push({
       element,
       handler,
       event: eventType,
@@ -305,13 +305,13 @@ export default class DOMNodeReference {
 
   protected _attachVisibilityController(): void {
     // Set the default visibility controller to the element itself
-    this._visibilityController = this.element;
+    this.visibilityController = this.element;
 
     // If the element is a table, use its closest fieldset as the controller
     if (this.element.tagName === "TABLE") {
       const fieldset = this.element.closest("fieldset");
       if (fieldset) {
-        this._visibilityController = fieldset;
+        this.visibilityController = fieldset;
       }
       return;
     }
@@ -327,7 +327,7 @@ export default class DOMNodeReference {
     if (tagsRequiringTdParent.includes(this.element.tagName)) {
       const tdParent = this.element.closest("td");
       if (tdParent) {
-        this._visibilityController = tdParent;
+        this.visibilityController = tdParent;
       }
     }
   }
@@ -344,15 +344,15 @@ export default class DOMNodeReference {
     this.yesRadio = await createRef('input[type="radio"][value="1"]', {
       root: this.element,
     });
-    this.yesRadio._isRadio = true;
-    this.yesRadio._radioType = "truthy";
+    this.yesRadio.isRadio = true;
+    this.yesRadio.radioType = "truthy";
     this.yesRadio.radioParent = this;
 
     this.noRadio = await createRef('input[type="radio"][value="0"]', {
       root: this.element,
     });
-    this.noRadio._isRadio = true;
-    this.noRadio._radioType = "falsy";
+    this.noRadio.isRadio = true;
+    this.noRadio.radioType = "falsy";
     this.noRadio.radioParent = this;
   }
 
@@ -373,16 +373,16 @@ export default class DOMNodeReference {
 
   protected [destroy](): void {
     // Remove all bound event listeners
-    this._boundListeners?.forEach((binding) => {
+    this.boundListeners?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
     });
-    this._boundListeners = []; // Clear the array
+    this.boundListeners = []; // Clear the array
 
     // Disconnect all observers
-    this._observers?.forEach((observer) => {
+    this.observers?.forEach((observer) => {
       observer.disconnect();
     });
-    this._observers = []; // Clear the array
+    this.observers = []; // Clear the array
 
     // Destroy radio buttons if they exist
     this.yesRadio?.[destroy]();
@@ -391,9 +391,9 @@ export default class DOMNodeReference {
     this.noRadio = null;
 
     // Clear other references
-    this._isLoaded = false;
+    this.isLoaded = false;
     this.value = null;
-    this._dependents.clear();
+    this.dependents.clear();
     this.radioParent = null;
   }
 
@@ -423,18 +423,14 @@ export default class DOMNodeReference {
       this.checked = elementValue.checked;
     }
 
-    this._triggerDependentsHandlers();
+    this.triggerDependentsHandlers();
   }
 
-  protected _triggerDependentsHandlers(): void {
-    for (const [nodeRef, handler] of this._dependents) {
-      if (nodeRef._dependents) {
-        for (const [_nodeRef, _handler] of nodeRef._dependents) {
-          _handler();
-        }
+  protected triggerDependentsHandlers(): void {
+    if (this.dependents.size > 0)
+      for (const [_node, handler] of this.dependents) {
+        handler();
       }
-      handler();
-    }
   }
 
   protected _validateValue(value: any): any {
@@ -495,7 +491,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    this._visibilityController.style.display = "none";
+    this.visibilityController.style.display = "none";
     return this;
   }
 
@@ -504,7 +500,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    this._visibilityController.style.display = this._defaultDisplay;
+    this.visibilityController.style.display = this.defaultDisplay;
     return this;
   }
 
@@ -549,7 +545,7 @@ export default class DOMNodeReference {
       (this.element as HTMLInputElement).checked = Boolean(value);
       (this.element as HTMLInputElement).value = value;
     } else if (
-      this._isRadio ||
+      this.isRadio ||
       (this.element as HTMLInputElement).type === "radio"
     ) {
       this.checked = value;
@@ -561,7 +557,6 @@ export default class DOMNodeReference {
 
     this.value = validatedValue;
 
-    console.log("finished setting value for ", this.target, { target: this });
     return this;
   }
 
@@ -631,7 +626,7 @@ export default class DOMNodeReference {
 
         // Handle nested input elements in container elements
         if (this._getChildren()) {
-          this._callAgainstChildInputs((child) => child.clearValue());
+          this.callAgainstChildInputs((child) => child.clearValue());
         }
       }
 
@@ -661,30 +656,25 @@ export default class DOMNodeReference {
       return input.id;
     });
 
-    const children =
-      DOMNodeReference.instances.filter((ref) => {
-        return childIds.includes(ref.element.id);
-      }) ?? null;
+    const children = DOMNodeReference.instances.filter((ref) => {
+      return childIds.includes(ref.element.id);
+    });
 
-    return children;
+    return children.length > 0 ? children : null;
   }
 
-  protected async _callAgainstChildInputs(
-    func: (child: DOMNodeReference) => Promise<any> | any
-  ): Promise<void> {
+  protected callAgainstChildInputs(
+    func: (child: DOMNodeReference) => any
+  ): void {
     // Handle nested input elements in container elements
     const children: DOMNodeReference[] | null = this._getChildren();
-
-    if (children && children.length > 0) {
-      const promises: Promise<void>[] = children.map(async (input) => {
-        await func(input);
-        return;
-      });
-
-      await Promise.all(promises);
+    if (!children) {
+      console.error("No child inputs found for target: ", this);
       return;
-    } else {
-      return;
+    }
+
+    for (const child of children) {
+      func(child);
     }
   }
 
@@ -912,13 +902,13 @@ export default class DOMNodeReference {
         condition.call(this) ? this.disable() : this.enable();
       }
 
-      const aggregateHandler: AggregateHandlerFunction =
-        this._returnAggregateHandler(rule);
-      aggregateHandler();
+      const handler: BusinessRuleHandler =
+        this._returnBusinessRuleHandler(rule);
+      handler();
 
       // setup dep tracking
       if (dependencies.length) {
-        this._configureDependencyTracking(aggregateHandler, dependencies);
+        this._configureDependencyTracking(handler, dependencies);
       }
 
       return this;
@@ -932,9 +922,9 @@ export default class DOMNodeReference {
     }
   }
 
-  protected _returnAggregateHandler(
+  protected _returnBusinessRuleHandler(
     rule: BusinessRule
-  ): AggregateHandlerFunction {
+  ): BusinessRuleHandler {
     return (): void => {
       let clearValues: boolean = false;
       if (rule.setVisibility) {
@@ -958,6 +948,8 @@ export default class DOMNodeReference {
       if (clearValues && !rule.setValue) {
         this.clearValue();
       }
+
+      this.triggerDependentsHandlers();
     };
   }
 
@@ -1001,7 +993,7 @@ export default class DOMNodeReference {
    * all other options defaults to true
    */
   protected _configureDependencyTracking(
-    handler: AggregateHandlerFunction,
+    handler: DependencyHandler,
     dependencies: DOMNodeReference[]
   ): void {
     if (dependencies.length < 1) {
@@ -1027,17 +1019,17 @@ export default class DOMNodeReference {
       }
 
       // The node that THIS depends on needs to be able to send notifications to its dependents
-      dependency._dependents.set(this, handler.bind(this));
+      dependency.dependents.set(this, handler.bind(this));
     });
   }
 
   protected _getVisibility(): boolean {
     return (
-      window.getComputedStyle(this._visibilityController).display !== "none" &&
-      window.getComputedStyle(this._visibilityController).visibility !==
+      window.getComputedStyle(this.visibilityController).display !== "none" &&
+      window.getComputedStyle(this.visibilityController).visibility !==
         "hidden" &&
-      this._visibilityController.getBoundingClientRect().height > 0 &&
-      this._visibilityController.getBoundingClientRect().width > 0
+      this.visibilityController.getBoundingClientRect().height > 0 &&
+      this.visibilityController.getBoundingClientRect().width > 0
     );
   }
 
@@ -1076,7 +1068,7 @@ export default class DOMNodeReference {
    * Receives instance of 'this' as an argument
    */
   public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
-    if (this._isLoaded) {
+    if (this.isLoaded) {
       callback(this);
       return;
     }
@@ -1088,7 +1080,7 @@ export default class DOMNodeReference {
     const observer = new MutationObserver(() => {
       if (document.querySelector(this.target as string)) {
         observer.disconnect(); // Stop observing once loaded
-        this._isLoaded = true;
+        this.isLoaded = true;
         callback(this); // Call the provided callback
       }
     });
@@ -1098,6 +1090,6 @@ export default class DOMNodeReference {
       childList: true,
     });
 
-    this._observers.push(observer);
+    this.observers.push(observer);
   }
 }
