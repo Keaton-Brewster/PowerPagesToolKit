@@ -2,6 +2,7 @@ import waitFor from "./waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import { init, destroy } from "../constants/symbols.ts";
+import EventManager from "../ancillary/EventManager.ts";
 import { EventTypes } from "../constants/EventTypes.ts";
 
 import {
@@ -9,10 +10,12 @@ import {
   DOMNodeNotFoundError,
   ValidationConfigError,
 } from "../errors/errors.ts";
+import VisibilityManager from "../ancillary/VisibilityManager.ts";
 
 export default class DOMNodeReference {
   // declare static properties
   static instances: DOMNodeReference[] = [];
+
   // allow for indexing methods with symbols
   [key: symbol]: (...arg: any[]) => any;
 
@@ -23,6 +26,8 @@ export default class DOMNodeReference {
   protected timeoutMs: number;
   protected isLoaded: boolean;
   protected defaultDisplay: string;
+  public eventManager: EventManager = new EventManager();
+  public declare visibilityManager: VisibilityManager;
   protected observers: Array<MutationObserver | ResizeObserver> = [];
   protected boundListeners: Array<BoundEventListener> = [];
   protected dependents: Dependents = new Map();
@@ -42,7 +47,7 @@ export default class DOMNodeReference {
    * or access properties not available through this class.
    */
   public declare element: HTMLElement;
-  protected declare visibilityController: HTMLElement;
+  // protected declare visibilityController: HTMLElement;
   public declare checked: boolean;
 
   public declare radioParent: DOMNodeReference | null;
@@ -127,8 +132,7 @@ export default class DOMNodeReference {
       }
 
       this._valueSync();
-      this._attachVisibilityController();
-      this.defaultDisplay = this.visibilityController.style.display;
+      this.visibilityManager = new VisibilityManager(this.element);
 
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
@@ -303,35 +307,6 @@ export default class DOMNodeReference {
     });
   }
 
-  protected _attachVisibilityController(): void {
-    // Set the default visibility controller to the element itself
-    this.visibilityController = this.element;
-
-    // If the element is a table, use its closest fieldset as the controller
-    if (this.element.tagName === "TABLE") {
-      const fieldset = this.element.closest("fieldset");
-      if (fieldset) {
-        this.visibilityController = fieldset;
-      }
-      return;
-    }
-
-    // For specific tag types, use the closest 'td' if available as the controller
-    const tagsRequiringTdParent = [
-      "SPAN",
-      "INPUT",
-      "TEXTAREA",
-      "SELECT",
-      "TABLE",
-    ];
-    if (tagsRequiringTdParent.includes(this.element.tagName)) {
-      const tdParent = this.element.closest("td");
-      if (tdParent) {
-        this.visibilityController = tdParent;
-      }
-    }
-  }
-
   protected async _attachRadioButtons(): Promise<void> {
     if (!this.element) {
       console.error(
@@ -395,6 +370,8 @@ export default class DOMNodeReference {
     this.value = null;
     this.dependents.clear();
     this.radioParent = null;
+
+    // this.eventManager.stopListening.call(this);
   }
 
   /**
@@ -427,10 +404,11 @@ export default class DOMNodeReference {
   }
 
   protected triggerDependentsHandlers(): void {
-    if (this.dependents.size > 0)
-      for (const [_node, handler] of this.dependents) {
-        handler();
-      }
+    // if (this.dependents.size > 0)
+    //   for (const [_node, handler] of this.dependents) {
+    //     handler();
+    //   }
+    this.eventManager.dispatchDependencyHandlers();
   }
 
   protected _validateValue(value: any): any {
@@ -491,7 +469,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    this.visibilityController.style.display = "none";
+    this.visibilityManager.hide();
     return this;
   }
 
@@ -500,7 +478,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    this.visibilityController.style.display = this.defaultDisplay;
+    this.visibilityManager.show();
     return this;
   }
 
@@ -859,7 +837,7 @@ export default class DOMNodeReference {
         if (isRequired && isValid) {
           evaluationFunction = () => {
             const isFieldRequired = isRequired.call(this);
-            const isFieldVisible = this._getVisibility();
+            const isFieldVisible = this.visibilityManager.getVisibility();
 
             // If the field is not required, it is always valid
             // If the field is required, it must be visible and valid
@@ -870,14 +848,14 @@ export default class DOMNodeReference {
           };
         } else if (isValid) {
           evaluationFunction = () => {
-            const isFieldVisible = this._getVisibility();
+            const isFieldVisible = this.visibilityManager.getVisibility();
 
             // The field must be visible and valid
             return isFieldVisible && isValid.call(this);
           };
         } else if (isRequired) {
           evaluationFunction = () => {
-            const isFieldVisible = this._getVisibility();
+            const isFieldVisible = this.visibilityManager.getVisibility();
 
             // The field must be visible and required
             return isFieldVisible && isRequired.call(this);
@@ -1019,23 +997,20 @@ export default class DOMNodeReference {
       }
 
       // The node that THIS depends on needs to be able to send notifications to its dependents
-      dependency.dependents.set(this, handler.bind(this));
+      // dependency.dependents.set(this, handler.bind(this));
+      dependency.eventManager.registerDependent(this, handler);
     });
   }
 
-  protected _getVisibility(): boolean {
-    return (
-      window.getComputedStyle(this.visibilityController).display !== "none" &&
-      window.getComputedStyle(this.visibilityController).visibility !==
-        "hidden" &&
-      this.visibilityController.getBoundingClientRect().height > 0 &&
-      this.visibilityController.getBoundingClientRect().width > 0
-    );
-  }
-
-  protected _receiveNotification(): void {
-    this.updateValue();
-  }
+  // protected _getVisibility(): boolean {
+  //   return (
+  //     window.getComputedStyle(this.visibilityController).display !== "none" &&
+  //     window.getComputedStyle(this.visibilityController).visibility !==
+  //       "hidden" &&
+  //     this.visibilityController.getBoundingClientRect().height > 0 &&
+  //     this.visibilityController.getBoundingClientRect().width > 0
+  //   );
+  // }
 
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
