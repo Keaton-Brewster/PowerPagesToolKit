@@ -12,11 +12,6 @@ declare type Listeners = Set<DOMNodeReference>;
 
   constructor() {}
 
-  public destroy(): void {
-    this.events.clear();
-    this.listeners.clear();
-  }
-
   public dispatchDependencyHandlers(): void {
     for (const [dependency, handler] of this.dependencyHandlers) {
       handler.call(dependency);
@@ -83,17 +78,10 @@ declare type Listeners = Set<DOMNodeReference>;
       if (listeners.has(listener)) listeners.delete(listener);
     }
   }
-}
 
-/**
- * example implementation
- * class Node {
- *  registrar: EventRegistry = new EventRegistry
- *  .....
- * }
- *
- * const node = new Node()
- *
- * node.registrar.listen.call(this, "click");
- *
- */
+  public destroy(): void {
+    this.events.clear();
+    this.dependencyHandlers.clear();
+    this.listeners.clear();
+  }
+}

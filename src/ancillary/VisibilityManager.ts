@@ -1,6 +1,8 @@
+import type DOMNodeReference from "../core/DOMNodeReference.ts";
+
 export default class VisibilityManager {
-  private declare visibilityController: HTMLElement;
-  private declare defaultVisibility: string;
+  private declare visibilityController: HTMLElement | null;
+  private declare defaultVisibility: string | null;
 
   constructor(target: HTMLElement) {
     // Set the default visibility controller to the element itself
@@ -12,7 +14,6 @@ export default class VisibilityManager {
       if (fieldset) {
         this.visibilityController = fieldset;
       }
-      return;
     }
 
     // For specific tag types, use the closest 'td' if available as the controller
@@ -34,20 +35,29 @@ export default class VisibilityManager {
   }
 
   public hide(): void {
-    this.visibilityController.style.display = "none";
+    this.visibilityController!.style.display = "none";
   }
 
   public show(): void {
-    this.visibilityController.style.display = this.defaultVisibility;
+    this.visibilityController!.style.display = this.defaultVisibility!;
+  }
+
+  public toggleVisibility(shouldShow: boolean): void {
+    shouldShow ? this.show() : this.hide();
   }
 
   public getVisibility(): true | false {
     return (
-      window.getComputedStyle(this.visibilityController).display !== "none" &&
-      window.getComputedStyle(this.visibilityController).visibility !==
+      window.getComputedStyle(this.visibilityController!).display !== "none" &&
+      window.getComputedStyle(this.visibilityController!).visibility !==
         "hidden" &&
-      this.visibilityController.getBoundingClientRect().height > 0 &&
-      this.visibilityController.getBoundingClientRect().width > 0
+      this.visibilityController!.getBoundingClientRect().height > 0 &&
+      this.visibilityController!.getBoundingClientRect().width > 0
     );
+  }
+
+  public destroy(): void {
+    this.visibilityController = null;
+    this.defaultVisibility = null;
   }
 }

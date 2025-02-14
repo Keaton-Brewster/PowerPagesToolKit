@@ -11,6 +11,7 @@ import {
   ValidationConfigError,
 } from "../errors/errors.ts";
 import VisibilityManager from "../ancillary/VisibilityManager.ts";
+import ValueManager from "../ancillary/ValueManager.ts";
 
 export default class DOMNodeReference {
   // declare static properties
@@ -23,15 +24,11 @@ export default class DOMNodeReference {
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
+  public isRadio: boolean = false;
   protected timeoutMs: number;
   protected isLoaded: boolean;
-  protected defaultDisplay: string;
-  public eventManager: EventManager = new EventManager();
-  public declare visibilityManager: VisibilityManager;
   protected observers: Array<MutationObserver | ResizeObserver> = [];
   protected boundListeners: Array<BoundEventListener> = [];
-  protected dependents: Dependents = new Map();
-  protected isRadio: boolean = false;
   protected radioType: RadioType | null = null;
   /**
    * The value of the element that this node represents
@@ -47,8 +44,10 @@ export default class DOMNodeReference {
    * or access properties not available through this class.
    */
   public declare element: HTMLElement;
-  // protected declare visibilityController: HTMLElement;
   public declare checked: boolean;
+  public visibilityManager!: VisibilityManager | null;
+  public valueManager!: ValueManager | null;
+  public eventManager!: EventManager | null;
 
   public declare radioParent: DOMNodeReference | null;
   /**
@@ -80,7 +79,6 @@ export default class DOMNodeReference {
     this.root = root;
     this.timeoutMs = timeoutMs;
     this.isLoaded = false;
-    this.defaultDisplay = "";
     this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
@@ -132,7 +130,9 @@ export default class DOMNodeReference {
       }
 
       this._valueSync();
+      this.eventManager = new EventManager();
       this.visibilityManager = new VisibilityManager(this.element);
+      this.valueManager = new ValueManager();
 
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
@@ -368,10 +368,12 @@ export default class DOMNodeReference {
     // Clear other references
     this.isLoaded = false;
     this.value = null;
-    this.dependents.clear();
     this.radioParent = null;
 
-    // this.eventManager.stopListening.call(this);
+    this.eventManager!.destroy();
+    this.eventManager = null;
+    this.visibilityManager!.destroy();
+    this.visibilityManager = null;
   }
 
   /**
@@ -404,11 +406,7 @@ export default class DOMNodeReference {
   }
 
   protected triggerDependentsHandlers(): void {
-    // if (this.dependents.size > 0)
-    //   for (const [_node, handler] of this.dependents) {
-    //     handler();
-    //   }
-    this.eventManager.dispatchDependencyHandlers();
+    this.eventManager!.dispatchDependencyHandlers();
   }
 
   protected _validateValue(value: any): any {
@@ -469,7 +467,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public hide(): DOMNodeReference {
-    this.visibilityManager.hide();
+    this.visibilityManager!.hide();
     return this;
   }
 
@@ -478,7 +476,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public show(): DOMNodeReference {
-    this.visibilityManager.show();
+    this.visibilityManager!.show();
     return this;
   }
 
@@ -490,11 +488,10 @@ export default class DOMNodeReference {
   public toggleVisibility(
     shouldShow: ((this: DOMNodeReference) => boolean) | boolean
   ): DOMNodeReference {
-    if (shouldShow instanceof Function) {
-      shouldShow.call(this) ? this.show() : this.hide();
-    } else {
-      shouldShow ? this.show() : this.hide();
-    }
+    const bool: boolean =
+      shouldShow instanceof Function ? shouldShow.call(this) : shouldShow;
+
+    this.visibilityManager?.toggleVisibility(bool);
     return this;
   }
 
@@ -837,7 +834,7 @@ export default class DOMNodeReference {
         if (isRequired && isValid) {
           evaluationFunction = () => {
             const isFieldRequired = isRequired.call(this);
-            const isFieldVisible = this.visibilityManager.getVisibility();
+            const isFieldVisible = this.visibilityManager!.getVisibility();
 
             // If the field is not required, it is always valid
             // If the field is required, it must be visible and valid
@@ -848,14 +845,14 @@ export default class DOMNodeReference {
           };
         } else if (isValid) {
           evaluationFunction = () => {
-            const isFieldVisible = this.visibilityManager.getVisibility();
+            const isFieldVisible = this.visibilityManager!.getVisibility();
 
             // The field must be visible and valid
             return isFieldVisible && isValid.call(this);
           };
         } else if (isRequired) {
           evaluationFunction = () => {
-            const isFieldVisible = this.visibilityManager.getVisibility();
+            const isFieldVisible = this.visibilityManager!.getVisibility();
 
             // The field must be visible and required
             return isFieldVisible && isRequired.call(this);
@@ -998,19 +995,9 @@ export default class DOMNodeReference {
 
       // The node that THIS depends on needs to be able to send notifications to its dependents
       // dependency.dependents.set(this, handler.bind(this));
-      dependency.eventManager.registerDependent(this, handler);
+      dependency.eventManager!.registerDependent(this, handler);
     });
   }
-
-  // protected _getVisibility(): boolean {
-  //   return (
-  //     window.getComputedStyle(this.visibilityController).display !== "none" &&
-  //     window.getComputedStyle(this.visibilityController).visibility !==
-  //       "hidden" &&
-  //     this.visibilityController.getBoundingClientRect().height > 0 &&
-  //     this.visibilityController.getBoundingClientRect().width > 0
-  //   );
-  // }
 
   /**
    * Sets the required level for the field by adding or removing the "required-field" class on the label.
