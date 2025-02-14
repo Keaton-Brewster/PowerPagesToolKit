@@ -366,7 +366,7 @@ export default class DOMNodeReference {
     const bool: boolean =
       shouldShow instanceof Function ? shouldShow.call(this) : shouldShow;
 
-    this.visibilityManager?.toggleVisibility(bool);
+    this.visibilityManager!.toggleVisibility(bool);
     return this;
   }
 

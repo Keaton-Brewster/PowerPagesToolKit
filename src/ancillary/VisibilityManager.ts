@@ -1,5 +1,3 @@
-import type DOMNodeReference from "../core/DOMNodeReference.ts";
-
 export default class VisibilityManager {
   private declare visibilityController: HTMLElement | null;
   private declare defaultVisibility: string | null;
