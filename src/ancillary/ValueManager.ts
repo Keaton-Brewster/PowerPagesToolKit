@@ -1,17 +1,18 @@
-import type DOMNodeReference from "../core/DOMNodeReference.ts";
+import DOMNodeReference from "../core/DOMNodeReference.ts";
 
 declare interface ValueManagerProps {
   element: HTMLElement;
-  noRadio: DOMNodeReference;
-  yesRadio: DOMNodeReference;
+  noRadio?: DOMNodeReference;
+  yesRadio?: DOMNodeReference;
   isRadio: boolean;
 }
 
 export default class ValueManager {
   public value: any;
-  private element: HTMLElement;
-  private noRadio: DOMNodeReference | null = null;
-  private yesRadio: DOMNodeReference | null = null;
+  public checked: true | false | undefined = false;
+  private element: HTMLElement | null;
+  private noRadio?: DOMNodeReference | undefined;
+  private yesRadio?: DOMNodeReference | undefined;
   private isRadio: boolean = false;
 
   constructor(properties: ValueManagerProps) {
@@ -21,7 +22,7 @@ export default class ValueManager {
     this.isRadio = properties.isRadio;
   }
 
-  public setValue(value: any, inst: DOMNodeReference): void {
+  public setValue(value: any): void {
     const validatedValue = this._validateValue(value);
 
     if (
@@ -38,12 +39,100 @@ export default class ValueManager {
       (this.element as HTMLInputElement).type === "radio"
     ) {
       (this.element as HTMLInputElement).checked = value;
-      this.radioParent?.updateValue();
+      // this.radioParent?.updateValue();
     } else {
       (this.element as HTMLInputElement).value = validatedValue;
     }
 
     this.value = validatedValue;
+  }
+
+  public async updateValue(e?: Event): Promise<void> {
+    if (e) {
+      e.stopPropagation();
+    }
+
+    if (
+      this.yesRadio instanceof DOMNodeReference &&
+      this.noRadio instanceof DOMNodeReference
+    ) {
+      this.yesRadio!.updateValue();
+      this.noRadio!.updateValue();
+    }
+
+    const elementValue = await this.getElementValue();
+    this.value = elementValue.value;
+
+    if (elementValue.checked !== undefined) {
+      this.checked = elementValue.checked;
+    }
+  }
+
+  public getElementValue(): Promise<ElementValue> {
+    return new Promise((resolve) => {
+      const input = this.element as HTMLInputElement;
+      const select = this.element as HTMLSelectElement;
+
+      if (
+        this.yesRadio instanceof DOMNodeReference &&
+        this.noRadio instanceof DOMNodeReference
+      ) {
+        resolve({
+          value: this.yesRadio.checked,
+          checked: this.yesRadio.checked,
+        });
+      }
+
+      let returnValue: ElementValue = {
+        value: null,
+      };
+      switch (input.type) {
+        case "checkbox":
+        case "radio":
+          resolve({
+            value: input.checked,
+            checked: input.checked,
+          });
+          break;
+        case "select-multiple":
+          resolve({
+            value: Array.from(select.selectedOptions).map(
+              (option) => option.value
+            ),
+          });
+          break;
+
+        case "select-one":
+          resolve({
+            value: select.value,
+          });
+          break;
+
+        case "number":
+          resolve({
+            value: input.value !== "" ? Number(input.value) : null,
+          });
+          break;
+
+        default: {
+          let cleanValue: string | number = input.value;
+          if (this.element!.classList.contains("decimal")) {
+            cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
+          }
+
+          returnValue = {
+            value: cleanValue,
+          };
+        }
+      }
+
+      returnValue = {
+        ...returnValue,
+        value: this._validateValue(returnValue.value),
+      };
+
+      resolve(returnValue);
+    });
   }
 
   protected _validateValue(value: any): any {
@@ -70,5 +159,16 @@ export default class ValueManager {
     }
 
     return value;
+  }
+
+  public clearValue(): void {}
+
+  public destroy(): void {
+    this.value = null;
+    this.checked = undefined;
+    this.element = null;
+    this.noRadio = undefined;
+    this.yesRadio = undefined;
+    this.isRadio = false;
   }
 }

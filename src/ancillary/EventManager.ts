@@ -9,6 +9,8 @@ declare type Listeners = Set<DOMNodeReference>;
   private readonly listeners: Map<EventType, Listeners> = new Map();
   private readonly dependencyHandlers: Set<[DOMNodeReference, Handler]> =
     new Set();
+  private observers: Array<MutationObserver | ResizeObserver> = [];
+  private boundListeners: Array<BoundEventListener> = [];
 
   constructor() {}
 
@@ -79,9 +81,49 @@ declare type Listeners = Set<DOMNodeReference>;
     }
   }
 
+  public registerObserver(
+    observer: MutationObserver | ResizeObserver,
+    observerOptions: {
+      nodeToObserve: Element;
+      options: Partial<ResizeObserverOptions> | Partial<MutationObserverInit>;
+    }
+  ): void {
+    const { nodeToObserve, options } = observerOptions;
+    observer.observe(nodeToObserve, options);
+    this.observers.push(observer);
+  }
+
+  public registerDOMEventListener(
+    element: Element,
+    eventType: keyof HTMLElementEventMap,
+    handler: (e: Event) => unknown
+  ): void {
+    element.addEventListener(eventType, handler);
+
+    this.boundListeners.push({
+      element,
+      handler,
+      event: eventType,
+    });
+  }
+
   public destroy(): void {
+    // Remove all bound event listeners
+    this.boundListeners?.forEach((binding) => {
+      binding.element?.removeEventListener(binding.event, binding.handler);
+    });
+    this.boundListeners = []; // Clear the array
+
+    // Disconnect all observers
+    this.observers?.forEach((observer) => {
+      observer.disconnect();
+    });
+    this.observers = []; // Clear the array
+
     this.events.clear();
+
     this.dependencyHandlers.clear();
+
     this.listeners.clear();
   }
 }

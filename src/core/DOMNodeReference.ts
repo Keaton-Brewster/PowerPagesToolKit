@@ -3,6 +3,8 @@ import createInfoEl from "../utils/createInfoElement.ts";
 import createRef from "./createDOMNodeReferences.ts";
 import { init, destroy } from "../constants/symbols.ts";
 import EventManager from "../ancillary/EventManager.ts";
+import VisibilityManager from "../ancillary/VisibilityManager.ts";
+import ValueManager from "../ancillary/ValueManager.ts";
 import { EventTypes } from "../constants/EventTypes.ts";
 
 import {
@@ -10,8 +12,6 @@ import {
   DOMNodeNotFoundError,
   ValidationConfigError,
 } from "../errors/errors.ts";
-import VisibilityManager from "../ancillary/VisibilityManager.ts";
-import ValueManager from "../ancillary/ValueManager.ts";
 
 export default class DOMNodeReference {
   // declare static properties
@@ -27,14 +27,20 @@ export default class DOMNodeReference {
   public isRadio: boolean = false;
   protected timeoutMs: number;
   protected isLoaded: boolean;
-  protected observers: Array<MutationObserver | ResizeObserver> = [];
-  protected boundListeners: Array<BoundEventListener> = [];
   protected radioType: RadioType | null = null;
+
   /**
    * The value of the element that this node represents
    * stays in syncs with the live DOM elements?.,m  via event handler
    */
-  public value: any;
+  public get value() {
+    return this.valueManager!.value;
+  }
+
+  public set value(newValue) {
+    this.valueManager!.setValue(newValue);
+  }
+  // public value: any;
 
   // other properties made available after async s.init
 
@@ -49,19 +55,19 @@ export default class DOMNodeReference {
   public valueManager!: ValueManager | null;
   public eventManager!: EventManager | null;
 
-  public declare radioParent: DOMNodeReference | null;
+  public declare radioParent: DOMNodeReference | undefined;
   /**
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare yesRadio: DOMNodeReference | null;
+  public declare yesRadio: DOMNodeReference | undefined;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare noRadio: DOMNodeReference | null;
+  public declare noRadio: DOMNodeReference | undefined;
 
   /**
    * Creates an instance of DOMNodeReference.
@@ -79,7 +85,6 @@ export default class DOMNodeReference {
     this.root = root;
     this.timeoutMs = timeoutMs;
     this.isLoaded = false;
-    this.value = null;
 
     // we want to ensure that all method calls from the consumer have access to 'this'
     this._bindMethods();
@@ -129,11 +134,16 @@ export default class DOMNodeReference {
         await this._attachRadioButtons();
       }
 
-      this._valueSync();
       this.eventManager = new EventManager();
       this.visibilityManager = new VisibilityManager(this.element);
-      this.valueManager = new ValueManager();
+      this.valueManager = new ValueManager({
+        element: this.element,
+        isRadio: this.isRadio,
+        noRadio: this.noRadio,
+        yesRadio: this.yesRadio,
+      });
 
+      this._valueSync();
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
@@ -169,7 +179,11 @@ export default class DOMNodeReference {
 
     this.updateValue();
     const eventType = this._determineEventType();
-    this._registerEventListener(this.element, eventType, this.updateValue);
+    this.eventManager!.registerDOMEventListener(
+      this.element,
+      eventType,
+      this.updateValue.bind(this)
+    );
 
     if (this._isDateInput()) {
       this._dateSync(this.element as HTMLInputElement);
@@ -205,20 +219,6 @@ export default class DOMNodeReference {
     );
   }
 
-  protected _registerEventListener(
-    element: Element,
-    eventType: keyof HTMLElementEventMap,
-    handler: (e: Event) => unknown
-  ) {
-    element.addEventListener(eventType, handler);
-
-    this.boundListeners.push({
-      element,
-      handler,
-      event: eventType,
-    });
-  }
-
   protected async _dateSync(element: HTMLInputElement): Promise<void> {
     const parentElement = element.parentElement;
     if (!parentElement) {
@@ -232,79 +232,11 @@ export default class DOMNodeReference {
       1500
     )) as HTMLElement;
 
-    this._registerEventListener(dateNode, "select", this.updateValue);
-  }
-
-  /**
-   * Gets the current value of the element based on its type
-   * @protected
-   * @returns Object containing value and optional checked state
-   */
-  protected _getElementValue(): Promise<ElementValue> {
-    return new Promise((resolve) => {
-      const input = this.element as HTMLInputElement;
-      const select = this.element as HTMLSelectElement;
-
-      if (
-        this.yesRadio instanceof DOMNodeReference &&
-        this.noRadio instanceof DOMNodeReference
-      ) {
-        resolve({
-          value: this.yesRadio.checked,
-          checked: this.yesRadio.checked,
-        });
-      }
-
-      let returnValue: ElementValue = {
-        value: null,
-      };
-      switch (input.type) {
-        case "checkbox":
-        case "radio":
-          resolve({
-            value: input.checked,
-            checked: input.checked,
-          });
-          break;
-        case "select-multiple":
-          resolve({
-            value: Array.from(select.selectedOptions).map(
-              (option) => option.value
-            ),
-          });
-          break;
-
-        case "select-one":
-          resolve({
-            value: select.value,
-          });
-          break;
-
-        case "number":
-          resolve({
-            value: input.value !== "" ? Number(input.value) : null,
-          });
-          break;
-
-        default: {
-          let cleanValue: string | number = input.value;
-          if (this.element.classList.contains("decimal")) {
-            cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
-          }
-
-          returnValue = {
-            value: cleanValue,
-          };
-        }
-      }
-
-      returnValue = {
-        ...returnValue,
-        value: this._validateValue(returnValue.value),
-      };
-
-      resolve(returnValue);
-    });
+    this.eventManager!.registerDOMEventListener(
+      dateNode,
+      "select",
+      this.updateValue.bind(this)
+    );
   }
 
   protected async _attachRadioButtons(): Promise<void> {
@@ -347,28 +279,16 @@ export default class DOMNodeReference {
   }
 
   protected [destroy](): void {
-    // Remove all bound event listeners
-    this.boundListeners?.forEach((binding) => {
-      binding.element?.removeEventListener(binding.event, binding.handler);
-    });
-    this.boundListeners = []; // Clear the array
-
-    // Disconnect all observers
-    this.observers?.forEach((observer) => {
-      observer.disconnect();
-    });
-    this.observers = []; // Clear the array
-
     // Destroy radio buttons if they exist
     this.yesRadio?.[destroy]();
     this.noRadio?.[destroy]();
-    this.yesRadio = null;
-    this.noRadio = null;
+    this.yesRadio = undefined;
+    this.noRadio = undefined;
 
     // Clear other references
     this.isLoaded = false;
     this.value = null;
-    this.radioParent = null;
+    this.radioParent = undefined;
 
     this.eventManager!.destroy();
     this.eventManager = null;
@@ -382,57 +302,12 @@ export default class DOMNodeReference {
    */
   public async updateValue(e?: Event): Promise<void> {
     if (e && !e.isTrusted) return;
-
-    if (e) {
-      e.stopPropagation();
-    }
-
-    if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
-    ) {
-      this.yesRadio!.updateValue();
-      this.noRadio!.updateValue();
-    }
-
-    const elementValue = await this._getElementValue();
-    this.value = elementValue.value;
-
-    if (elementValue.checked !== undefined) {
-      this.checked = elementValue.checked;
-    }
-
+    await this.valueManager!.updateValue(e);
     this.triggerDependentsHandlers();
   }
 
   protected triggerDependentsHandlers(): void {
     this.eventManager!.dispatchDependencyHandlers();
-  }
-
-  protected _validateValue(value: any): any {
-    if (typeof value === "boolean" || value === "true" || value === "false") {
-      return value === true || value === "true";
-    }
-
-    // If it's a select element or text input (not decimal), return as is
-    if (
-      this.element instanceof HTMLSelectElement ||
-      ((this.element as HTMLInputElement).type === "text" &&
-        !(this.element as HTMLInputElement).classList.contains("decimal"))
-    ) {
-      return value;
-    }
-
-    // Handle null/empty cases
-    if (value === null || value === "") {
-      return value;
-    }
-
-    if (!isNaN(Number(value))) {
-      return Number(value);
-    }
-
-    return value;
   }
 
   /**
@@ -453,7 +328,7 @@ export default class DOMNodeReference {
       );
     }
 
-    this._registerEventListener(
+    this.eventManager!.registerDOMEventListener(
       this.element,
       eventType,
       eventHandler.bind(this)
@@ -506,31 +381,7 @@ export default class DOMNodeReference {
     if (value instanceof Function) {
       value = value();
     }
-
-    const validatedValue = this._validateValue(value);
-
-    if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
-    ) {
-      (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
-      (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
-      this.value = value;
-      this.checked = value;
-      (this.element as HTMLInputElement).checked = Boolean(value);
-      (this.element as HTMLInputElement).value = value;
-    } else if (
-      this.isRadio ||
-      (this.element as HTMLInputElement).type === "radio"
-    ) {
-      this.checked = value;
-      (this.element as HTMLInputElement).checked = value;
-      this.radioParent?.updateValue();
-    } else {
-      (this.element as HTMLInputElement).value = validatedValue;
-    }
-
-    this.value = validatedValue;
+    this.valueManager!.setValue(value);
 
     return this;
   }
@@ -556,71 +407,9 @@ export default class DOMNodeReference {
    * Clears all values and states of the element.
    * Handles different input types appropriately, and can be called
    * on an element containing N child inputs to clear all
-   *
-   * @returns - Instance of this [provides option to method chain]
-   * @throws If clearing values fails
    */
-  public async clearValue(): Promise<DOMNodeReference> {
-    try {
-      const element = this.element;
-
-      if (element instanceof HTMLInputElement) {
-        switch (element.type.toLowerCase()) {
-          case "checkbox":
-          case "radio":
-            element.checked = false;
-            this.checked = false;
-            this.value = false;
-            break;
-
-          case "number":
-            element.value = "";
-            this.value = null;
-            break;
-
-          default: // handles text, email, tel, etc.
-            element.value = "";
-            this.value = null;
-            break;
-        }
-      } else if (element instanceof HTMLSelectElement) {
-        if (element.multiple) {
-          Array.from(element.options).forEach(
-            (option) => (option.selected = false)
-          );
-          this.value = null;
-        } else {
-          element.selectedIndex = -1;
-          this.value = null;
-        }
-      } else if (element instanceof HTMLTextAreaElement) {
-        element.value = "";
-        this.value = null;
-      } else {
-        this.value = null;
-
-        // Handle nested input elements in container elements
-        if (this._getChildren()) {
-          this.callAgainstChildInputs((child) => child.clearValue());
-        }
-      }
-
-      // Handle radio button group if present
-      if (
-        this.yesRadio instanceof DOMNodeReference &&
-        this.noRadio instanceof DOMNodeReference
-      ) {
-        await this.yesRadio.clearValue();
-        await this.noRadio.clearValue();
-      }
-
-      return this;
-    } catch (error) {
-      const errorMessage = `Failed to clear values for element with target "${
-        this.target
-      }": ${error instanceof Error ? error.message : String(error)}`;
-      throw new Error(errorMessage);
-    }
+  public clearValue(): void {
+    this.valueManager!.clearValue();
   }
 
   protected _getChildren(): DOMNodeReference[] | null {
@@ -921,7 +710,7 @@ export default class DOMNodeReference {
       }
 
       if (clearValues && !rule.setValue) {
-        this.clearValue();
+        this.valueManager!.clearValue();
       }
 
       this.triggerDependentsHandlers();
@@ -1039,19 +828,19 @@ export default class DOMNodeReference {
       callback(this);
       return;
     }
-    const observer = new MutationObserver(() => {
-      if (document.querySelector(this.target as string)) {
-        observer.disconnect(); // Stop observing once loaded
-        this.isLoaded = true;
-        callback(this); // Call the provided callback
-      }
-    });
+    const observer = new MutationObserver(
+      function (this: DOMNodeReference) {
+        if (document.querySelector(this.target as string)) {
+          observer.disconnect(); // Stop observing once loaded
+          this.isLoaded = true;
+          callback(this); // Call the provided callback
+        }
+      }.bind(this)
+    );
 
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
+    this.eventManager!.registerObserver(observer, {
+      nodeToObserve: document.body,
+      options: { subtree: true, childList: true },
     });
-
-    this.observers.push(observer);
   }
 }

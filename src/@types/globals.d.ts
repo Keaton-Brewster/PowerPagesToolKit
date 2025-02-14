@@ -163,16 +163,3 @@ declare type FormElement =
   | HTMLSpanElement
   | HTMLButtonElement
   | HTMLFieldSetElement;
-
-// declare type IEvent = () => void;
-
-// declare interface EventDispatcher {
-//   events: Map<IEvent, Receivers>;
-
-//   dispatch: (event: IEvent) => void;
-//   register: (event: IEvent, receiver: Receiver) => void;
-// }
-
-// declare interface Receiver extends DOMNodeReference {}
-
-// declare interface Receivers extends Map<string, Receiver> {}
