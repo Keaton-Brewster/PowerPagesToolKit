@@ -21,13 +21,13 @@ npm install powerpagestoolkit
 
 # Core Modules
 
-### DOMNodeReference
+### PowerPagesElement
 
 A powerful class for managing DOM elements with automatic value synchronization and event handling.
 
 #### Basic Usage
 
-DOMNodeReferences are instantiated with the help of the following factory function: `createRef`
+PowerPagesElements are instantiated with the help of the following factory function: `createRef`
 
 ```typescript
 createRef(
@@ -37,7 +37,7 @@ createRef(
     root: HTMLElement,
     timeoutMs:number
   }
-): Promise<DOMNodeReference | DOMNodeReference[]>;
+): Promise<PowerPagesElement | PowerPagesElement[]>;
 ```
 
 createRef takes two main arguments:
@@ -76,13 +76,13 @@ createRef takes two main arguments:
   </tbody>
 </table>
 
-Import the utility function for creating DOMNodeReference(s)
+Import the utility function for creating PowerPagesElement(s)
 
 ```typescript
 import { createRef } from "powerpagestoolkit";
 ```
 
-Instantiate one, or multiple instances of a DOMNodeReference, and optionally configure advanced options
+Instantiate one, or multiple instances of a PowerPagesElement, and optionally configure advanced options
 
 ```javascript
 // Create a single reference (i.e. 'querySelector')
@@ -120,8 +120,8 @@ const nodes2 = await createRef("#target", {
 | value    | any                      | Current synchronized value of the element     |
 | isLoaded | boolean                  | Element load status                           |
 | target   | HTMLElement \| string    | Original target selector or element           |
-| yesRadio | DOMNodeReference \| null | Reference to 'yes' radio (for boolean fields) |
-| noRadio  | DOMNodeReference \| null | Reference to 'no' radio (for boolean fields)  |
+| yesRadio | PowerPagesElement \| null | Reference to 'yes' radio (for boolean fields) |
+| noRadio  | PowerPagesElement \| null | Reference to 'no' radio (for boolean fields)  |
 | checked  | boolean                  | Checkbox/radio checked state                  |
 
 #### Key Methods
@@ -151,8 +151,8 @@ _Method Signature:_
 ```typescript
 applyBusinessRule(
   rule: BusinessRule,
-  dependencies: DOMNodeReference[]
-): DOMNodeReference; /* Instance of this is returned for optional
+  dependencies: PowerPagesElement[]
+): PowerPagesElement; /* Instance of this is returned for optional
  method chaining */
 ```
 
@@ -370,7 +370,7 @@ bindForm("form-guid").then((form) => {
  * @param formGuid Unique identifier for the form
  * @returns Promise resolving to form element references
  */
-function bindForm(formGuid: string): Promise<DOMNodeReferenceArray & Record<string: DOMNodeReference>>;
+function bindForm(formGuid: string): Promise<PowerPagesElementArray & Record<string: PowerPagesElement>>;
 ```
 
 ##### Benefits
@@ -447,7 +447,7 @@ await API.updateRecord("contacts", "record-guid", {
 
 ## Best Practices
 
-1. Always await DOMNodeReference creation:
+1. Always await PowerPagesElement creation:
 
 ```typescript
 const node = await createRef("#element");

@@ -1,17 +1,17 @@
 import API from "./API.ts";
-import createRef from "./createDOMNodeReferences.ts";
+import createRef from "./getPowerPagesElement.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
-import type DOMNodeReference from "./DOMNodeReference.ts";
-import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
+import type PowerPagesElement from "./PowerPagesElement.ts";
+import type PowerPagesElementArray from "./PowerPagesElementArray.ts";
 
 /**
  * When loading into a page in PowerPages that has a form,
  * you can use this function by passing in the GUID of the form, and you will receive an array/record
- * of {@link DOMNodeReference}s that represent all fields, sections, sub-grids, and tabs of the given form.
+ * of {@link PowerPagesElement}s that represent all fields, sections, sub-grids, and tabs of the given form.
  * Access these properties of the {@link BoundForm} using the logical name of the control you need to access: form['logical_name']
- * you can then execute all the methods available from DOMNodeReference
+ * you can then execute all the methods available from PowerPagesElement
  * @param formId - The string GUID of the form you want to bind to
- * @returns An array of DOMNodeReferences, accessible as properties of a Record<string, DOMNodeReference> i.e. formProp = form["some_logicalName"]
+ * @returns An array of PowerPagesElements, accessible as properties of a Record<string, PowerPagesElement> i.e. formProp = form["some_logicalName"]
  * @example
  * ```js
  * bindForm("form-guid-0000").then((form) => {
@@ -26,11 +26,11 @@ import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
  * const form = await bindForm("form-guid-0000")
  * ```
  *  @see {@link BoundForm}
- *  @see {@link DOMNodeReference}
+ *  @see {@link PowerPagesElement}
  */
 export default async function bindForm(
   formId: string
-): Promise<DOMNodeReferenceArray & Record<string, DOMNodeReference>> {
+): Promise<PowerPagesElementArray & Record<string, PowerPagesElement>> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
     const { formxml } = form;
@@ -55,7 +55,7 @@ export default async function bindForm(
      * which will allow us to access individual nodes using the syntax `array["logical_name"]`
      */
     return enhanceArray(
-      resolvedRefs.filter((ref): ref is DOMNodeReference => ref !== null)
+      resolvedRefs.filter((ref): ref is PowerPagesElement => ref !== null)
     );
     /** handle errors */
   } catch (error: unknown) {

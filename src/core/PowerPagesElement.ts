@@ -1,6 +1,6 @@
 import waitFor from "./waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
-import createRef from "./createDOMNodeReferences.ts";
+import createRef from "./getPowerPagesElement.ts";
 import { init, destroy } from "../constants/symbols.ts";
 import EventManager from "../ancillary/EventManager.ts";
 import VisibilityManager from "../ancillary/VisibilityManager.ts";
@@ -13,9 +13,9 @@ import {
   ValidationConfigError,
 } from "../errors/errors.ts";
 
-export default class DOMNodeReference {
+export default class PowerPagesElement {
   // declare static properties
-  static instances: DOMNodeReference[] = [];
+  static instances: PowerPagesElement[] = [];
 
   // allow for indexing methods with symbols
   [key: symbol]: (...arg: any[]) => any;
@@ -40,37 +40,39 @@ export default class DOMNodeReference {
   public set value(newValue) {
     this.valueManager!.setValue(newValue);
   }
+  public get checked() {
+    return this.valueManager!.checked;
+  }
   // public value: any;
 
   // other properties made available after async s.init
 
   /**
-   * The element targeted when instantiating DOMNodeReference.
+   * The element targeted when instantiating PowerPagesElement.
    * Made available in order to perform normal DOM traversal,
    * or access properties not available through this class.
    */
   public declare element: HTMLElement;
-  public declare checked: boolean;
   public visibilityManager!: VisibilityManager | null;
   public valueManager!: ValueManager | null;
   public eventManager!: EventManager | null;
 
-  public declare radioParent: DOMNodeReference | undefined;
+  public declare radioParent: PowerPagesElement | undefined;
   /**
    * Represents the 'yes' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare yesRadio: DOMNodeReference | undefined;
+  public declare yesRadio: PowerPagesElement | undefined;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare noRadio: DOMNodeReference | undefined;
+  public declare noRadio: PowerPagesElement | undefined;
 
   /**
-   * Creates an instance of DOMNodeReference.
+   * Creates an instance of PowerPagesElement.
    * @param target - The CSS selector to find the desired DOM element.
    * @param root - Optionally specify the element within to search for the element targeted by 'target'
    * Defaults to 'document.body'
@@ -161,7 +163,7 @@ export default class DOMNodeReference {
         subtree: true,
       });
 
-      DOMNodeReference.instances.push(this);
+      PowerPagesElement.instances.push(this);
 
       this.isLoaded = true;
     } catch (error) {
@@ -255,6 +257,7 @@ export default class DOMNodeReference {
     this.yesRadio.isRadio = true;
     this.yesRadio.radioType = "truthy";
     this.yesRadio.radioParent = this;
+    this.yesRadio.valueManager!.radioParent = this;
 
     this.noRadio = await createRef('input[type="radio"][value="0"]', {
       root: this.element,
@@ -262,6 +265,7 @@ export default class DOMNodeReference {
     this.noRadio.isRadio = true;
     this.noRadio.radioType = "falsy";
     this.noRadio.radioParent = this;
+    this.noRadio.valueManager!.radioParent = this;
   }
 
   protected _bindMethods() {
@@ -322,8 +326,8 @@ export default class DOMNodeReference {
    */
   public on(
     eventType: keyof HTMLElementEventMap,
-    eventHandler: (this: DOMNodeReference, e: Event) => void
-  ): DOMNodeReference {
+    eventHandler: (this: PowerPagesElement, e: Event) => void
+  ): PowerPagesElement {
     if (typeof eventHandler !== "function") {
       throw new Error(
         `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`
@@ -343,7 +347,7 @@ export default class DOMNodeReference {
    * Hides the element by setting its display style to "none".
    * @returns - Instance of this [provides option to method chain]
    */
-  public hide(): DOMNodeReference {
+  public hide(): PowerPagesElement {
     this.visibilityManager!.hide();
     return this;
   }
@@ -352,7 +356,7 @@ export default class DOMNodeReference {
    * Shows the element by restoring its default display style.
    * @returns - Instance of this [provides option to method chain]
    */
-  public show(): DOMNodeReference {
+  public show(): PowerPagesElement {
     this.visibilityManager!.show();
     return this;
   }
@@ -363,8 +367,8 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public toggleVisibility(
-    shouldShow: ((this: DOMNodeReference) => boolean) | boolean
-  ): DOMNodeReference {
+    shouldShow: ((this: PowerPagesElement) => boolean) | boolean
+  ): PowerPagesElement {
     const bool: boolean =
       shouldShow instanceof Function ? shouldShow.call(this) : shouldShow;
 
@@ -379,7 +383,7 @@ export default class DOMNodeReference {
    * an expression returning a boolean
    * @returns - Instance of this [provides option to method chain]
    */
-  public setValue(value: (() => any) | any): DOMNodeReference {
+  public setValue(value: (() => any) | any): PowerPagesElement {
     if (value instanceof Function) {
       value = value();
     }
@@ -392,7 +396,7 @@ export default class DOMNodeReference {
    * Disables the element so that users cannot input any data
    * @returns - Instance of this [provides option to method chain]
    */
-  public disable(): DOMNodeReference {
+  public disable(): PowerPagesElement {
     try {
       (this.element as HTMLInputElement).disabled = true;
     } catch (error) {
@@ -410,11 +414,25 @@ export default class DOMNodeReference {
    * Handles different input types appropriately, and can be called
    * on an element containing N child inputs to clear all
    */
-  public clearValue(): void {
+  private _clearValue(): void {
     this.valueManager!.clearValue();
+
+    // Handle radio button group if present
+    if (
+      this.yesRadio instanceof PowerPagesElement &&
+      this.noRadio instanceof PowerPagesElement
+    ) {
+      this.yesRadio._clearValue();
+      this.noRadio._clearValue();
+    }
+
+    // Handle nested input elements in container elements
+    if (this._getChildren()) {
+      this.callAgainstChildInputs((child) => child._clearValue());
+    }
   }
 
-  protected _getChildren(): DOMNodeReference[] | null {
+  protected _getChildren(): PowerPagesElement[] | null {
     const childInputs: Element[] = Array.from(
       this.element.querySelectorAll("input, select, textarea")
     );
@@ -422,7 +440,7 @@ export default class DOMNodeReference {
       return input.id;
     });
 
-    const children = DOMNodeReference.instances.filter((ref) => {
+    const children = PowerPagesElement.instances.filter((ref) => {
       return childIds.includes(ref.element.id);
     });
 
@@ -430,10 +448,10 @@ export default class DOMNodeReference {
   }
 
   protected callAgainstChildInputs(
-    func: (child: DOMNodeReference) => any
+    func: (child: PowerPagesElement) => any
   ): void {
     // Handle nested input elements in container elements
-    const children: DOMNodeReference[] | null = this._getChildren();
+    const children: PowerPagesElement[] | null = this._getChildren();
     if (!children) {
       console.error("No child inputs found for target: ", this);
       return;
@@ -448,7 +466,7 @@ export default class DOMNodeReference {
    * Enables the element so that users can input data
    * @returns - Instance of this [provides option to method chain]
    */
-  public enable(): DOMNodeReference {
+  public enable(): PowerPagesElement {
     try {
       (this.element as HTMLInputElement).disabled = false;
     } catch (_error) {
@@ -463,7 +481,7 @@ export default class DOMNodeReference {
    * @param elements - The elements to prepend to the element targeted by this.
    * @returns - Instance of this [provides option to method chain]
    */
-  public prepend(...elements: HTMLElement[]): DOMNodeReference {
+  public prepend(...elements: HTMLElement[]): PowerPagesElement {
     this.element.prepend(...elements);
     return this;
   }
@@ -473,7 +491,7 @@ export default class DOMNodeReference {
    * @param elements - The elements to append to the element targeted by this.
    * @returns - Instance of this [provides option to method chain]
    */
-  public append(...elements: HTMLElement[]): DOMNodeReference {
+  public append(...elements: HTMLElement[]): PowerPagesElement {
     this.element.append(...elements);
     return this;
   }
@@ -483,7 +501,7 @@ export default class DOMNodeReference {
    * @param elements - The elements to insert before the HTML element.
    * @returns - Instance of this [provides option to method chain]
    */
-  public before(...elements: HTMLElement[]): DOMNodeReference {
+  public before(...elements: HTMLElement[]): PowerPagesElement {
     this.element.before(...elements);
     return this;
   }
@@ -493,7 +511,7 @@ export default class DOMNodeReference {
    * @param elements - The elements to insert after the HTML element.
    * @returns - Instance of this [provides option to method chain]
    */
-  public after(...elements: HTMLElement[]): DOMNodeReference {
+  public after(...elements: HTMLElement[]): PowerPagesElement {
     this.element.after(...elements);
     return this;
   }
@@ -515,7 +533,7 @@ export default class DOMNodeReference {
   public addLabelTooltip(
     innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
-  ): DOMNodeReference {
+  ): PowerPagesElement {
     this.getLabel()?.append(
       createInfoEl(innerHTML, containerStyle || undefined)
     );
@@ -531,7 +549,7 @@ export default class DOMNodeReference {
   public addTooltip(
     innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
-  ): DOMNodeReference {
+  ): PowerPagesElement {
     this.append(createInfoEl(innerHTML, containerStyle || undefined));
     return this;
   }
@@ -562,7 +580,7 @@ export default class DOMNodeReference {
   public setStyle(options: Partial<CSSStyleDeclaration>) {
     if (Object.prototype.toString.call(options) !== "[object Object]") {
       throw new Error(
-        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
+        `powerpagestoolkit: 'PowerPagesElement.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
       );
     }
 
@@ -577,10 +595,10 @@ export default class DOMNodeReference {
    * Unchecks both the yes and no radio buttons if they exist.
    * @returns - Instance of this [provides option to method chain]
    */
-  public uncheckRadios(): DOMNodeReference {
+  public uncheckRadios(): PowerPagesElement {
     if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
+      this.yesRadio instanceof PowerPagesElement &&
+      this.noRadio instanceof PowerPagesElement
     ) {
       (this.yesRadio.element as HTMLInputElement).checked = false;
       (this.noRadio.element as HTMLInputElement).checked = false;
@@ -601,8 +619,8 @@ export default class DOMNodeReference {
    */
   public applyBusinessRule(
     rule: BusinessRule,
-    dependencies: DOMNodeReference[]
-  ): DOMNodeReference {
+    dependencies: PowerPagesElement[]
+  ): PowerPagesElement {
     try {
       // Apply Visibility Rule
       if (rule.setVisibility) {
@@ -692,10 +710,10 @@ export default class DOMNodeReference {
     rule: BusinessRule
   ): BusinessRuleHandler {
     return (): void => {
-      let clearValues: boolean = false;
+      let _clearValues: boolean = false;
       if (rule.setVisibility) {
         const visibilityCondition = rule.setVisibility;
-        clearValues = clearValues || !visibilityCondition.call(this);
+        _clearValues = _clearValues || !visibilityCondition.call(this);
         this.toggleVisibility(visibilityCondition.call(this));
       }
       if (rule.setRequirements && rule.setRequirements().isRequired) {
@@ -711,8 +729,8 @@ export default class DOMNodeReference {
         disabledCondition.call(this) ? this.disable() : this.enable();
       }
 
-      if (clearValues && !rule.setValue) {
-        this.valueManager!.clearValue();
+      if (_clearValues && !rule.setValue) {
+        this._clearValue();
       }
 
       this.triggerDependentsHandlers();
@@ -760,7 +778,7 @@ export default class DOMNodeReference {
    */
   protected _configureDependencyTracking(
     handler: DependencyHandler,
-    dependencies: DOMNodeReference[]
+    dependencies: PowerPagesElement[]
   ): void {
     if (dependencies.length < 1) {
       console.error(
@@ -771,9 +789,9 @@ export default class DOMNodeReference {
     }
 
     dependencies.forEach((dependency) => {
-      if (!dependency || !(dependency instanceof DOMNodeReference)) {
+      if (!dependency || !(dependency instanceof PowerPagesElement)) {
         throw new TypeError(
-          "Each dependency must be a valid DOMNodeReference instance"
+          "Each dependency must be a valid PowerPagesElement instance"
         );
       }
 
@@ -799,7 +817,7 @@ export default class DOMNodeReference {
    */
   public setRequiredLevel(
     isRequired: (() => boolean) | boolean
-  ): DOMNodeReference {
+  ): PowerPagesElement {
     if (isRequired instanceof Function) {
       isRequired()
         ? this.getLabel()?.classList.add("required-field")
@@ -820,7 +838,7 @@ export default class DOMNodeReference {
    * @param callback A callback function to execute once the element is loaded.
    * Receives instance of 'this' as an argument
    */
-  public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
+  public onceLoaded(callback: (instance: PowerPagesElement) => any): any {
     if (this.isLoaded) {
       callback(this);
       return;
@@ -831,7 +849,7 @@ export default class DOMNodeReference {
       return;
     }
     const observer = new MutationObserver(
-      function (this: DOMNodeReference) {
+      function (this: PowerPagesElement) {
         if (document.querySelector(this.target as string)) {
           observer.disconnect(); // Stop observing once loaded
           this.isLoaded = true;

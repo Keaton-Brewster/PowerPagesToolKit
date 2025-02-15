@@ -1,9 +1,9 @@
-import DOMNodeReferenceArray from "../core/DOMNodeReferenceArray.ts";
-import type DOMNodeReference from "../core/DOMNodeReference.ts";
+import PowerPagesElementArray from "../core/PowerPagesElementArray.ts";
+import type PowerPagesElement from "../core/PowerPagesElement.ts";
 
 /**
  *
- * @param array An array of DOMnodeReferences to be modified with custom methods, as well as a custom getter. Custom getter allows for accessing properties within the array with bracket-style property access. See example
+ * @param array An array of PowerPagesElements to be modified with custom methods, as well as a custom getter. Custom getter allows for accessing properties within the array with bracket-style property access. See example
  * @example
  * ```javascript
  * const enhanced = enhanceArray(basicArray)
@@ -11,9 +11,9 @@ import type DOMNodeReference from "../core/DOMNodeReference.ts";
  * ```
  */
 export default function enhanceArray<T extends string>(
-  array: DOMNodeReference[]
-): DOMNodeReferenceArray & Record<T, DOMNodeReference> {
-  const enhancedArray = new DOMNodeReferenceArray(...array);
+  array: PowerPagesElement[]
+): PowerPagesElementArray & Record<T, PowerPagesElement> {
+  const enhancedArray = new PowerPagesElementArray(...array);
 
   return new Proxy(enhancedArray, {
     get(target, prop: string | symbol, receiver) {
@@ -33,5 +33,5 @@ export default function enhanceArray<T extends string>(
 
       return undefined;
     },
-  }) as DOMNodeReferenceArray & Record<T, DOMNodeReference>;
+  }) as PowerPagesElementArray & Record<T, PowerPagesElement>;
 }

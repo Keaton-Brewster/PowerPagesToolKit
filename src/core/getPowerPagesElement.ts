@@ -1,25 +1,25 @@
-import DOMNodeReference from "./DOMNodeReference.ts";
+import PowerPagesElement from "./PowerPagesElement.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import waitFor from "./waitFor.ts";
 import { init } from "../constants/symbols.ts";
-import type DOMNodeReferenceArray from "./DOMNodeReferenceArray.ts";
+import type PowerPagesElementArray from "./PowerPagesElementArray.ts";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 /**
- * Creates and initializes a DOMNodeReference instance.
+ * Creates and initializes a PowerPagesElement instance.
  * @see {@link CreationOptions}
- * @param  **target** - The selector, using `querySelector` syntax, for the desired DOM element. Or, the `HTMLElement` itself for which to create a DOMNodeReference.
+ * @param  **target** - The selector, using `querySelector` syntax, for the desired DOM element. Or, the `HTMLElement` itself for which to create a PowerPagesElement.
  * @param **options** - Options for advanced retrieval of elements
  * @param **options.multiple** - Should this call return an array of instantiated references, or just a single? Defaults to false, returning a single instance
  * @param **options.root** - Optionally specify the element within to search for the element targeted by 'target'. Defaults to `document.body`
  * @param **options.timeoutMs** - Optionally specify the amount of time that should be waited to find the targeted element before throwing error - useful for async DOM loading. Relies on MutationObserver.  ***WARNING***: Implementing multiple references with timeout can result in infinite loading.
- * @returns  A promise that resolves to a Proxy of the initialized DOMNodeReference instance.
+ * @returns  A promise that resolves to a Proxy of the initialized PowerPagesElement instance.
  *
- * @see {@link DOMNodeReference}
- * @see {@link DOMNodeReferenceArray}
+ * @see {@link PowerPagesElement}
+ * @see {@link PowerPagesElementArray}
  * @see {@link enhanceArray}
  */
-export default async function createDOMNodeReference(
+export default async function createPowerPagesElement(
   target: string | HTMLElement,
   options?: {
     /**
@@ -39,8 +39,8 @@ export default async function createDOMNodeReference(
      */
     timeoutMs?: number;
   }
-): Promise<DOMNodeReference>;
-export default async function createDOMNodeReference(
+): Promise<PowerPagesElement>;
+export default async function createPowerPagesElement(
   target: string,
   options?: {
     /**
@@ -60,9 +60,9 @@ export default async function createDOMNodeReference(
      */
     timeoutMs?: number;
   }
-): Promise<DOMNodeReference>;
+): Promise<PowerPagesElement>;
 
-export default async function createDOMNodeReference(
+export default async function createPowerPagesElement(
   target: Element,
   options?: {
     /**
@@ -77,9 +77,9 @@ export default async function createDOMNodeReference(
      */
     timeoutMs?: number;
   }
-): Promise<DOMNodeReference>;
+): Promise<PowerPagesElement>;
 
-export default async function createDOMNodeReference(
+export default async function createPowerPagesElement(
   target: string,
   options?: {
     /**
@@ -99,16 +99,16 @@ export default async function createDOMNodeReference(
      */
     timeoutMs?: number;
   }
-): Promise<DOMNodeReferenceArray>;
+): Promise<PowerPagesElementArray>;
 
-export default async function createDOMNodeReference(
+export default async function createPowerPagesElement(
   target: Element | string,
   options: CreationOptions = {
     multiple: false,
     root: document.body,
     timeoutMs: 0,
   }
-): Promise<DOMNodeReference | DOMNodeReferenceArray> {
+): Promise<PowerPagesElement | PowerPagesElementArray> {
   try {
     if (typeof options !== "object") {
       throw new Error(
@@ -134,9 +134,9 @@ export default async function createDOMNodeReference(
       );
 
       // Avoid recursive call with multiple flag for better performance
-      const initializedElements = <DOMNodeReferenceArray>await Promise.all(
+      const initializedElements = <PowerPagesElementArray>await Promise.all(
         elements.map(async (element) => {
-          const instance = new DOMNodeReference(element, root, timeoutMs);
+          const instance = new PowerPagesElement(element, root, timeoutMs);
           await instance[init]();
           return new Proxy(instance, createProxyHandler());
         })
@@ -144,7 +144,7 @@ export default async function createDOMNodeReference(
       return enhanceArray(initializedElements);
     }
 
-    const instance = new DOMNodeReference(target, root, timeoutMs);
+    const instance = new PowerPagesElement(target, root, timeoutMs);
     await instance[init]();
     return new Proxy(instance, createProxyHandler());
   } catch (e) {
@@ -183,10 +183,10 @@ export function validateOptions(options: Partial<CreationOptions>) {
 // Separate proxy handler for reusability
 export function createProxyHandler() {
   return {
-    get: (target: DOMNodeReference, prop: string | symbol) => {
+    get: (target: PowerPagesElement, prop: string | symbol) => {
       if (prop.toString().startsWith("_")) return undefined;
 
-      const value = target[<keyof DOMNodeReference>prop];
+      const value = target[<keyof PowerPagesElement>prop];
       if (typeof value === "function" && prop !== "onceLoaded") {
         return (...args: any[]) => {
           target.onceLoaded(() => value.apply(target, args));

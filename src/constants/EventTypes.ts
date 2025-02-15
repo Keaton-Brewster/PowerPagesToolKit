@@ -1,6 +1,6 @@
 /**
- * For use in setting up event management in the instances of DOMNodeReference
- * @see {@link DOMNodeReference}
+ * For use in setting up event management in the instances of PowerPagesElement
+ * @see {@link PowerPagesElement}
  */
 export const EventTypes = {
   CHECKBOX: "click",

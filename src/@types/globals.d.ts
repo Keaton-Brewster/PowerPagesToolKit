@@ -1,4 +1,4 @@
-/// <reference path="../core/DOMNodeReference.ts"/>
+/// <reference path="../core/PowerPagesElement.ts"/>
 
 declare type EventCallback = () => any;
 
@@ -77,18 +77,18 @@ declare interface BusinessRule {
    * otherwise, it is hidden.
    
    */
-  setVisibility?: (this: DOMNodeReference) => boolean;
+  setVisibility?: (this: PowerPagesElement) => boolean;
   /**
    * Configuration function for determining the required level, and field validity of the given fields
    * @param isRequired - Function determining if field is required
-   * @param isRequired.this - Reference to this DOMNodeReference
+   * @param isRequired.this - Reference to this PowerPagesElement
    * @param isValid - Function validating field input.
-   * @param isValid.this - Reference to this DOMNodeReference
+   * @param isValid.this - Reference to this PowerPagesElement
    * @param isValid.isRequiredResult - Only available if 'isRequired' is also returned from the configuration function
    */
   setRequirements?: () => {
-    isRequired?: (this: DOMNodeReference) => boolean;
-    isValid?: (this: DOMNodeReference, isRequiredResult?: boolean) => boolean;
+    isRequired?: (this: PowerPagesElement) => boolean;
+    isValid?: (this: PowerPagesElement, isRequiredResult?: boolean) => boolean;
   };
 
   /**
@@ -98,14 +98,14 @@ declare interface BusinessRule {
    * an expression returning a boolean
    */
   setValue?: () => {
-    condition: (this: DOMNodeReference) => boolean;
+    condition: (this: PowerPagesElement) => boolean;
     value: (() => any) | any;
   };
   /**
    * @param condition A function to determine if this field
    * should be enabled in a form, or disabled. True || 1 = disabled. False || 0 = enabled
    */
-  setDisabled?: (this: DOMNodeReference) => boolean;
+  setDisabled?: (this: PowerPagesElement) => boolean;
 }
 
 declare interface CreationOptions {
@@ -133,7 +133,7 @@ declare type DependencyHandler = () => void;
 
 declare interface BusinessRuleHandler extends DependencyHandler {}
 
-declare type Dependents = Map<DOMNodeReference, DependencyHandler>;
+declare type Dependents = Map<PowerPagesElement, DependencyHandler>;
 
 declare type ValueElement =
   | HTMLInputElement

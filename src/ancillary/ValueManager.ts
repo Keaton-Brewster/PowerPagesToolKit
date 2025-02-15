@@ -1,18 +1,19 @@
-import DOMNodeReference from "../core/DOMNodeReference.ts";
+import PowerPagesElement from "../core/PowerPagesElement.ts";
 
 declare interface ValueManagerProps {
   element: HTMLElement;
-  noRadio?: DOMNodeReference;
-  yesRadio?: DOMNodeReference;
+  noRadio?: PowerPagesElement;
+  yesRadio?: PowerPagesElement;
   isRadio: boolean;
 }
 
 export default class ValueManager {
   public value: any;
-  public checked: true | false | undefined = false;
+  public checked: true | false = false;
   private element: HTMLElement | null;
-  private noRadio?: DOMNodeReference | undefined;
-  private yesRadio?: DOMNodeReference | undefined;
+  private noRadio?: PowerPagesElement | undefined;
+  private yesRadio?: PowerPagesElement | undefined;
+  public declare radioParent?: PowerPagesElement | undefined;
   private isRadio: boolean = false;
 
   constructor(properties: ValueManagerProps) {
@@ -26,8 +27,8 @@ export default class ValueManager {
     const validatedValue = this._validateValue(value);
 
     if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
+      this.yesRadio instanceof PowerPagesElement &&
+      this.noRadio instanceof PowerPagesElement
     ) {
       (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
       (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
@@ -39,7 +40,8 @@ export default class ValueManager {
       (this.element as HTMLInputElement).type === "radio"
     ) {
       (this.element as HTMLInputElement).checked = value;
-      // this.radioParent?.updateValue();
+      this.checked = value;
+      this.radioParent?.updateValue();
     } else {
       (this.element as HTMLInputElement).value = validatedValue;
     }
@@ -53,8 +55,8 @@ export default class ValueManager {
     }
 
     if (
-      this.yesRadio instanceof DOMNodeReference &&
-      this.noRadio instanceof DOMNodeReference
+      this.yesRadio instanceof PowerPagesElement &&
+      this.noRadio instanceof PowerPagesElement
     ) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
@@ -74,8 +76,8 @@ export default class ValueManager {
       const select = this.element as HTMLSelectElement;
 
       if (
-        this.yesRadio instanceof DOMNodeReference &&
-        this.noRadio instanceof DOMNodeReference
+        this.yesRadio instanceof PowerPagesElement &&
+        this.noRadio instanceof PowerPagesElement
       ) {
         resolve({
           value: this.yesRadio.checked,
@@ -161,11 +163,56 @@ export default class ValueManager {
     return value;
   }
 
-  public clearValue(): void {}
+  public clearValue(): void {
+    try {
+      const element = this.element;
+
+      if (element instanceof HTMLInputElement) {
+        switch (element.type.toLowerCase()) {
+          case "checkbox":
+          case "radio":
+            element.checked = false;
+            this.checked = false;
+            this.value = false;
+            break;
+
+          case "number":
+            element.value = "";
+            this.value = null;
+            break;
+
+          default: // handles text, email, tel, etc.
+            element.value = "";
+            this.value = null;
+            break;
+        }
+      } else if (element instanceof HTMLSelectElement) {
+        if (element.multiple) {
+          Array.from(element.options).forEach(
+            (option) => (option.selected = false)
+          );
+          this.value = null;
+        } else {
+          element.selectedIndex = -1;
+          this.value = null;
+        }
+      } else if (element instanceof HTMLTextAreaElement) {
+        element.value = "";
+        this.value = null;
+      } else {
+        this.value = null;
+      }
+    } catch (error) {
+      const errorMessage = `Failed to clear values for element with target "${this}": ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      throw new Error(errorMessage);
+    }
+  }
 
   public destroy(): void {
     this.value = null;
-    this.checked = undefined;
+    this.checked = false;
     this.element = null;
     this.noRadio = undefined;
     this.yesRadio = undefined;
