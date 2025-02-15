@@ -86,9 +86,6 @@ export default class DOMNodeReference {
     this.timeoutMs = timeoutMs;
     this.isLoaded = false;
 
-    // we want to ensure that all method calls from the consumer have access to 'this'
-    this._bindMethods();
-
     // we defer the rest of initialization
   }
 
@@ -144,6 +141,10 @@ export default class DOMNodeReference {
       });
 
       this._valueSync();
+
+      // we want to ensure that all method calls from the consumer have access to 'this'
+      this._bindMethods();
+
       // when the element is removed from the DOM, destroy this
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
@@ -303,6 +304,7 @@ export default class DOMNodeReference {
   public async updateValue(e?: Event): Promise<void> {
     if (e && !e.isTrusted) return;
     await this.valueManager!.updateValue(e);
+    console.log("updating this' value: ", this);
     this.triggerDependentsHandlers();
   }
 
