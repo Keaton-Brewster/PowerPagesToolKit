@@ -1,22 +1,22 @@
-import type PowerPagesElement from "../core/PowerPagesElement.ts";
+import type DOMNodeReference from "../ancillary/DOMNodeReference.ts";
 
 export class DOMNodeInitializationError extends Error {
-  constructor(instance: PowerPagesElement, error: string) {
+  constructor(instance: DOMNodeReference, error: string) {
     super(
-      `There was an error initializing a PowerPagesElement for target: ${instance.target}, :: ${error}`
+      `There was an error initializing a DOMNodeReference for target: ${instance.target}, :: ${error}`
     );
     this.name = "DOMNodeInitializationError";
   }
 }
 
 export class DOMNodeNotFoundError extends Error {
-  constructor(instance: PowerPagesElement) {
+  constructor(instance: DOMNodeReference) {
     super(`The targeted DOM element was not found: ${instance.target}`);
   }
 }
 
 export class ConditionalRenderingError extends Error {
-  constructor(instance: PowerPagesElement, error: string) {
+  constructor(instance: DOMNodeReference, error: string) {
     super(
       `There was an error condiguring conditional rendering for target: ${instance.target} :: ${error}`
     );
@@ -24,7 +24,7 @@ export class ConditionalRenderingError extends Error {
 }
 
 export class ValidationConfigError extends Error {
-  constructor(node: PowerPagesElement, message: string) {
+  constructor(node: DOMNodeReference, message: string) {
     super(`Validation configuration error for ${node.target}: ${message}`);
     this.name = "ValidationConfigError";
   }

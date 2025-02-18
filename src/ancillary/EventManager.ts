@@ -1,13 +1,13 @@
-import type PowerPagesElement from "../core/PowerPagesElement.ts";
+import type DOMNodeReference from "./DOMNodeReference.ts";
 
 declare type EventType = string;
-declare type Handler = (this: PowerPagesElement, ...args: any[]) => void;
-declare type Listeners = Set<PowerPagesElement>;
+declare type Handler = (this: DOMNodeReference, ...args: any[]) => void;
+declare type Listeners = Set<DOMNodeReference>;
 
 /********/ /********/ export default class EventManager {
   private readonly events: Map<EventType, Handler> = new Map();
   private readonly listeners: Map<EventType, Listeners> = new Map();
-  private readonly dependencyHandlers: Set<[PowerPagesElement, Handler]> =
+  private readonly dependencyHandlers: Set<[DOMNodeReference, Handler]> =
     new Set();
   private observers: Array<MutationObserver | ResizeObserver> = [];
   private boundListeners: Array<BoundEventListener> = [];
@@ -21,7 +21,7 @@ declare type Listeners = Set<PowerPagesElement>;
   }
 
   public registerDependent(
-    dependency: PowerPagesElement,
+    dependency: DOMNodeReference,
     handler: Handler
   ): true | false {
     try {
@@ -44,7 +44,7 @@ declare type Listeners = Set<PowerPagesElement>;
 
   public registerListener(
     event: EventType,
-    listener: PowerPagesElement
+    listener: DOMNodeReference
   ): true | false {
     if (this.events.has(event)) {
       const listeners: Listeners = this.listeners.get(event) ?? new Set();
@@ -75,7 +75,7 @@ declare type Listeners = Set<PowerPagesElement>;
     return;
   }
 
-  public stopListening(listener: PowerPagesElement): void {
+  public stopListening(listener: DOMNodeReference): void {
     for (const [_event, listeners] of this.listeners) {
       if (listeners.has(listener)) listeners.delete(listener);
     }

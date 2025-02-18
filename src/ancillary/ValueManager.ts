@@ -1,9 +1,11 @@
-import PowerPagesElement from "../core/PowerPagesElement.ts";
+import type DOMNodeReference from "./DOMNodeReference.ts";
+import Radio from "./Radio.ts";
 
 declare interface ValueManagerProps {
   element: HTMLElement;
-  noRadio?: PowerPagesElement;
-  yesRadio?: PowerPagesElement;
+  noRadio?: Radio;
+  yesRadio?: Radio;
+  radioParent?: DOMNodeReference;
   isRadio: boolean;
 }
 
@@ -11,9 +13,9 @@ export default class ValueManager {
   public value: any;
   public checked: true | false = false;
   private element: HTMLElement | null;
-  private noRadio?: PowerPagesElement | undefined;
-  private yesRadio?: PowerPagesElement | undefined;
-  public declare radioParent?: PowerPagesElement | undefined;
+  private noRadio?: Radio | undefined;
+  private yesRadio?: Radio | undefined;
+  public declare radioParent?: DOMNodeReference | undefined;
   private isRadio: boolean = false;
 
   constructor(properties: ValueManagerProps) {
@@ -26,10 +28,7 @@ export default class ValueManager {
   public setValue(value: any): void {
     const validatedValue = this._validateValue(value);
 
-    if (
-      this.yesRadio instanceof PowerPagesElement &&
-      this.noRadio instanceof PowerPagesElement
-    ) {
+    if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
       (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
       (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
       this.value = value;
@@ -54,10 +53,7 @@ export default class ValueManager {
       e.stopPropagation();
     }
 
-    if (
-      this.yesRadio instanceof PowerPagesElement &&
-      this.noRadio instanceof PowerPagesElement
-    ) {
+    if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
       this.yesRadio!.updateValue();
       this.noRadio!.updateValue();
     }
@@ -75,10 +71,7 @@ export default class ValueManager {
       const input = this.element as HTMLInputElement;
       const select = this.element as HTMLSelectElement;
 
-      if (
-        this.yesRadio instanceof PowerPagesElement &&
-        this.noRadio instanceof PowerPagesElement
-      ) {
+      if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
         resolve({
           value: this.yesRadio.checked,
           checked: this.yesRadio.checked,
