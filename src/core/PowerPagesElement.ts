@@ -40,6 +40,7 @@ export default class PowerPagesElement {
   public set value(newValue) {
     this.valueManager!.setValue(newValue);
   }
+
   public get checked() {
     return this.valueManager!.checked;
   }
@@ -414,7 +415,7 @@ export default class PowerPagesElement {
    * Handles different input types appropriately, and can be called
    * on an element containing N child inputs to clear all
    */
-  private _clearValue(): void {
+  protected clearValue(): void {
     this.valueManager!.clearValue();
 
     // Handle radio button group if present
@@ -422,13 +423,13 @@ export default class PowerPagesElement {
       this.yesRadio instanceof PowerPagesElement &&
       this.noRadio instanceof PowerPagesElement
     ) {
-      this.yesRadio._clearValue();
-      this.noRadio._clearValue();
+      this.yesRadio.clearValue();
+      this.noRadio.clearValue();
     }
 
     // Handle nested input elements in container elements
     if (this._getChildren()) {
-      this.callAgainstChildInputs((child) => child._clearValue());
+      this.callAgainstChildInputs((child) => child.clearValue());
     }
   }
 
@@ -710,10 +711,10 @@ export default class PowerPagesElement {
     rule: BusinessRule
   ): BusinessRuleHandler {
     return (): void => {
-      let _clearValues: boolean = false;
+      let clearValues: boolean = false;
       if (rule.setVisibility) {
         const visibilityCondition = rule.setVisibility;
-        _clearValues = _clearValues || !visibilityCondition.call(this);
+        clearValues = clearValues || !visibilityCondition.call(this);
         this.toggleVisibility(visibilityCondition.call(this));
       }
       if (rule.setRequirements && rule.setRequirements().isRequired) {
@@ -729,8 +730,8 @@ export default class PowerPagesElement {
         disabledCondition.call(this) ? this.disable() : this.enable();
       }
 
-      if (_clearValues && !rule.setValue) {
-        this._clearValue();
+      if (clearValues && !rule.setValue) {
+        this.clearValue();
       }
 
       this.triggerDependentsHandlers();
