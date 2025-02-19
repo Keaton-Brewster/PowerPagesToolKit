@@ -1,15 +1,11 @@
-import waitFor from "./waitFor.ts";
-import { init, destroy } from "../constants/symbols.ts";
-import EventManager from "../ancillary/EventManager.ts";
-import VisibilityManager from "../ancillary/VisibilityManager.ts";
-import ValueManager from "../ancillary/ValueManager.ts";
 import DOMNodeReference from "../ancillary/DOMNodeReference.ts";
+import VisibilityManager from "../ancillary/VisibilityManager.ts";
+import EventManager from "../ancillary/EventManager.ts";
+import ValueManager from "../ancillary/ValueManager.ts";
+import waitFor from "./waitFor.ts";
+import Errors from "../errors/errors.ts";
 import Radio from "../ancillary/Radio.ts";
-
-import {
-  DOMNodeInitializationError,
-  DOMNodeNotFoundError,
-} from "../errors/errors.ts";
+import { init, destroy } from "../constants/symbols.ts";
 
 export default class PowerPagesElement extends DOMNodeReference {
   // allow for indexing methods with symbols
@@ -62,7 +58,7 @@ export default class PowerPagesElement extends DOMNodeReference {
       }
 
       if (!this.element) {
-        throw new DOMNodeNotFoundError(this);
+        throw new Errors.NodeNotFoundError(this);
       }
 
       if (
@@ -110,7 +106,7 @@ export default class PowerPagesElement extends DOMNodeReference {
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
-      throw new DOMNodeInitializationError(this, errorMessage);
+      throw new Errors.InitializationError(this, errorMessage);
     }
   }
 

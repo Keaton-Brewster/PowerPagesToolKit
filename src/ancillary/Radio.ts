@@ -1,13 +1,10 @@
+import VisibilityManager from "./VisibilityManager.ts";
 import DOMNodeReference from "./DOMNodeReference.ts";
-import waitFor from "../core/waitFor.ts";
-import { init, destroy } from "../constants/symbols.ts";
 import EventManager from "./EventManager.ts";
 import ValueManager from "./ValueManager.ts";
-import VisibilityManager from "./VisibilityManager.ts";
-import {
-  DOMNodeInitializationError,
-  DOMNodeNotFoundError,
-} from "../errors/errors.ts";
+import waitFor from "../core/waitFor.ts";
+import Errors from "../errors/errors.ts";
+import { init, destroy } from "../constants/symbols.ts";
 
 export default class Radio extends DOMNodeReference {
   // allow for indexing methods with symbols
@@ -48,7 +45,7 @@ export default class Radio extends DOMNodeReference {
       }
 
       if (!this.element) {
-        throw new DOMNodeNotFoundError(this);
+        throw new Errors.NodeNotFoundError(this);
       }
 
       this.eventManager = new EventManager();
@@ -86,7 +83,7 @@ export default class Radio extends DOMNodeReference {
     } catch (error) {
       const errorMessage: string =
         error instanceof Error ? error.message : String(error);
-      throw new DOMNodeInitializationError(this, errorMessage);
+      throw new Errors.InitializationError(this, errorMessage);
     }
   }
 

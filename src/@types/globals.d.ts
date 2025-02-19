@@ -108,6 +108,8 @@ declare interface BusinessRule {
   setDisabled?: (this: PowerPagesElement) => boolean;
 }
 
+declare type DependencyArray<T> = [T, ...T[]];
+
 declare interface CreationOptions {
   /**
    * Should this call return an array of instantiated references, or just a single?

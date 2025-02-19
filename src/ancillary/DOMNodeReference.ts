@@ -1,17 +1,12 @@
+import type EventManager from "../ancillary/EventManager.ts";
+import type VisibilityManager from "../ancillary/VisibilityManager.ts";
+import type ValueManager from "../ancillary/ValueManager.ts";
+
 import waitFor from "../core/waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
-import get from "../core/getPowerPagesElement.ts";
-import { init, destroy } from "../constants/symbols.ts";
-import EventManager from "../ancillary/EventManager.ts";
-import VisibilityManager from "../ancillary/VisibilityManager.ts";
-import ValueManager from "../ancillary/ValueManager.ts";
+import { destroy } from "../constants/symbols.ts";
 import { EventTypes } from "../constants/EventTypes.ts";
-
-import {
-  DOMNodeInitializationError,
-  DOMNodeNotFoundError,
-  ValidationConfigError,
-} from "../errors/errors.ts";
+import Errors from "../errors/errors.ts";
 
 export default class DOMNodeReference {
   // declare static properties
@@ -155,7 +150,7 @@ export default class DOMNodeReference {
   protected async _dateSync(element: HTMLInputElement): Promise<void> {
     const parentElement = element.parentElement;
     if (!parentElement) {
-      throw new Error("Date input must have a parent element");
+      throw new DOMException("Date input must have a parent element");
     }
 
     const dateNode = (await waitFor(
@@ -227,8 +222,12 @@ export default class DOMNodeReference {
     eventHandler: (this: DOMNodeReference, e: Event) => void
   ): DOMNodeReference {
     if (typeof eventHandler !== "function") {
-      throw new Error(
-        `Argument "eventHandler" must be a Function. Received: ${typeof eventHandler}`
+      throw new Errors.IncorrectParameterError(
+        this,
+        "on",
+        "eventHandler",
+        ["function"],
+        typeof eventHandler
       );
     }
 
@@ -295,15 +294,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public disable(): DOMNodeReference {
-    try {
-      (this.element as HTMLInputElement).disabled = true;
-    } catch (error) {
-      const errorMessage: string =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `There was an error trying to disable the target: ${this.target}: "${errorMessage}"`
-      );
-    }
+    (this.element as HTMLInputElement).disabled = true;
     return this;
   }
 
@@ -317,7 +308,7 @@ export default class DOMNodeReference {
 
     // Handle nested input elements in container elements
     if (this._getChildren()) {
-      this.callAgainstChildInputs((child) => child.clearValue());
+      this.callAgainstChildrenInputs((child) => child.clearValue());
     }
   }
 
@@ -336,8 +327,8 @@ export default class DOMNodeReference {
     return children.length > 0 ? children : null;
   }
 
-  protected callAgainstChildInputs(
-    func: (child: DOMNodeReference) => any
+  protected callAgainstChildrenInputs(
+    callback: (child: DOMNodeReference) => any
   ): void {
     // Handle nested input elements in container elements
     const children: DOMNodeReference[] | null = this._getChildren();
@@ -347,7 +338,7 @@ export default class DOMNodeReference {
     }
 
     for (const child of children) {
-      func(child);
+      callback(child);
     }
   }
 
@@ -356,13 +347,7 @@ export default class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public enable(): DOMNodeReference {
-    try {
-      (this.element as HTMLInputElement).disabled = false;
-    } catch (_error) {
-      throw new Error(
-        `There was an error trying to disable the target: ${this.target}`
-      );
-    }
+    (this.element as HTMLInputElement).disabled = false;
     return this;
   }
 
@@ -410,7 +395,11 @@ export default class DOMNodeReference {
    * @returns The label element associated with this element.
    */
   public getLabel(): HTMLElement | null {
-    return document.querySelector(`#${this.element.id}_label`) || null;
+    const label =
+      (document.querySelector(`#${this.element.id}_label`) as HTMLElement) ||
+      null;
+    if (!label) throw new Errors.LabelNotFoundError(this);
+    return label;
   }
 
   /**
@@ -463,20 +452,31 @@ export default class DOMNodeReference {
   }
 
   /**
-   * @param options and object containing the styles you want to set : {key: value} e.g.: {'display': 'block'}
-   * @returns - Instance of this [provides option to method chain]
+   * Sets inline CSS styles on the element.
+   * @param options - An object containing CSS property-value pairs, e.g., { display: 'block' }.
+   * @returns The instance, enabling method chaining.
    */
-  public setStyle(options: Partial<CSSStyleDeclaration>) {
-    if (Object.prototype.toString.call(options) !== "[object Object]") {
-      throw new Error(
-        `powerpagestoolkit: 'DOMNodeReference.setStyle' required options to be in the form of an object. Argument passed was of type: ${typeof options}`
+  public setStyle(options: Partial<CSSStyleDeclaration>): this {
+    if (options === null || typeof options !== "object") {
+      throw new Errors.IncorrectParameterError(
+        this,
+        "setStyle",
+        "options",
+        ["Partial<CSSStyleDeclaration>"],
+        typeof options
       );
     }
 
-    for (const _key in options) {
-      const key: any = _key as keyof Partial<CSSStyleDeclaration>;
-      this.element.style[key] = <string>options[key];
-    }
+    // Iterate over own enumerable properties of the options object.
+    Object.entries(options).forEach(([prop, value]) => {
+      // Skip properties that are undefined.
+      if (value !== undefined) {
+        // Here we cast 'prop' as a key of CSSStyleDeclaration.
+        // Using bracket notation allows dynamic property access.
+        (this.element.style as any)[prop] = value;
+      }
+    });
+
     return this;
   }
 
@@ -489,91 +489,81 @@ export default class DOMNodeReference {
    */
   public applyBusinessRule(
     rule: BusinessRule,
-    dependencies: DOMNodeReference[]
+    dependencies: DependencyArray<DOMNodeReference>
   ): DOMNodeReference {
-    try {
-      // Apply Visibility Rule
-      if (rule.setVisibility) {
-        const condition = rule.setVisibility;
-        const initialState = condition.call(this);
-        this.toggleVisibility(initialState);
-      }
-
-      // Apply Required & Validation Rule
-      if (rule.setRequirements) {
-        const { isRequired, isValid } = rule.setRequirements();
-        // get args? rule.setRequired(isRequired, isValid)
-
-        if (typeof Page_Validators === "undefined") {
-          throw new ValidationConfigError(this, "Page_Validators not found");
-        }
-
-        let evaluationFunction: () => boolean = () => true;
-
-        if (isRequired && isValid) {
-          evaluationFunction = () => {
-            const isFieldRequired = isRequired.call(this);
-            const isFieldVisible = this.visibilityManager!.getVisibility();
-
-            // If the field is not required, it is always valid
-            // If the field is required, it must be visible and valid
-            return (
-              !isFieldRequired ||
-              (isFieldVisible && isValid.call(this, isFieldRequired))
-            );
-          };
-        } else if (isValid) {
-          evaluationFunction = () => {
-            const isFieldVisible = this.visibilityManager!.getVisibility();
-
-            // The field must be visible and valid
-            return isFieldVisible && isValid.call(this);
-          };
-        } else if (isRequired) {
-          evaluationFunction = () => {
-            const isFieldVisible = this.visibilityManager!.getVisibility();
-
-            // The field must be visible and required
-            return isFieldVisible && isRequired.call(this);
-          };
-        }
-
-        this._createValidator(evaluationFunction);
-      }
-
-      // Apply Set Value Rule
-      if (rule.setValue) {
-        let { condition, value } = rule.setValue();
-        if (value instanceof Function) value = value();
-        if (condition.call(this)) {
-          this.setValue.call(this, value);
-        }
-      }
-
-      // Apply Disabled Rule
-      if (rule.setDisabled) {
-        const condition = rule.setDisabled;
-        condition.call(this) ? this.disable() : this.enable();
-      }
-
-      const handler: BusinessRuleHandler =
-        this._returnBusinessRuleHandler(rule);
-      handler();
-
-      // setup dep tracking
-      if (dependencies.length) {
-        this._configureDependencyTracking(handler, dependencies);
-      }
-
-      return this;
-    } catch (error: any) {
-      if (error instanceof Error) throw error;
-      else
-        throw new ValidationConfigError(
-          this,
-          `Failed to apply business rule: ${error}`
-        );
+    // Apply Visibility Rule
+    if (rule.setVisibility) {
+      const condition = rule.setVisibility;
+      const initialState = condition.call(this);
+      this.toggleVisibility(initialState);
     }
+
+    // Apply Required & Validation Rule
+    if (rule.setRequirements) {
+      const { isRequired, isValid } = rule.setRequirements();
+      // get args? rule.setRequired(isRequired, isValid)
+
+      if (typeof Page_Validators === "undefined") {
+        throw new Errors.Page_ValidatorsNotFoundError(this);
+      }
+
+      let evaluationFunction: () => boolean = () => true;
+
+      if (isRequired && isValid) {
+        evaluationFunction = () => {
+          const isFieldRequired = isRequired.call(this);
+          const isFieldVisible = this.visibilityManager!.getVisibility();
+
+          // If the field is not required, it is always valid
+          // If the field is required, it must be visible and valid
+          return (
+            !isFieldRequired ||
+            (isFieldVisible && isValid.call(this, isFieldRequired))
+          );
+        };
+      } else if (isValid) {
+        evaluationFunction = () => {
+          const isFieldVisible = this.visibilityManager!.getVisibility();
+
+          // The field must be visible and valid
+          return isFieldVisible && isValid.call(this);
+        };
+      } else if (isRequired) {
+        evaluationFunction = () => {
+          const isFieldVisible = this.visibilityManager!.getVisibility();
+
+          // The field must be visible and required
+          return isFieldVisible && isRequired.call(this);
+        };
+      }
+
+      this._createValidator(evaluationFunction);
+    }
+
+    // Apply Set Value Rule
+    if (rule.setValue) {
+      let { condition, value } = rule.setValue();
+      if (value instanceof Function) value = value();
+      if (condition.call(this)) {
+        this.setValue.call(this, value);
+      }
+    }
+
+    // Apply Disabled Rule
+    if (rule.setDisabled) {
+      const condition = rule.setDisabled;
+      condition.call(this) ? this.disable() : this.enable();
+    }
+
+    const handler: BusinessRuleHandler = this._returnBusinessRuleHandler(rule);
+    handler();
+
+    // setup dep tracking
+    if (dependencies.length) {
+      this._configureDependencyTracking(handler, dependencies);
+    }
+
+    return this;
   }
 
   protected _returnBusinessRuleHandler(
@@ -611,11 +601,7 @@ export default class DOMNodeReference {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
-        throw new Error(
-          `There was an error accessing the label for this element: ${
-            this.target as string
-          }`
-        );
+        throw new Errors.LabelNotFoundError(this);
       }
       label = label.innerHTML;
       if (label.length > 50) {
@@ -635,6 +621,9 @@ export default class DOMNodeReference {
       errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
       evaluationfunction: evaluationFunction,
     });
+
+    if (Page_Validators == undefined)
+      throw new Errors.Page_ValidatorsNotFoundError(this);
 
     Page_Validators.push(newValidator);
   }
@@ -667,9 +656,7 @@ export default class DOMNodeReference {
 
       // Check for self-referential dependency
       if (dependency.logicalName === this.logicalName) {
-        throw new Error(
-          `powerpagestoolkit: Self-referential dependency detected; a node cannot depend on itself: Source: ${this.element.id}`
-        );
+        throw new Errors.SelfReferenceError(this);
       }
 
       // The node that THIS depends on needs to be able to send notifications to its dependents
