@@ -1,6 +1,7 @@
 .info-icon {
   position: relative;
   display: inline-block;
+  margin: 3px;
 }
 
 .info-icon .fa-info-circle {

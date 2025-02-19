@@ -1,8 +1,8 @@
-import API from "./API.ts";
-import createRef from "./getPowerPagesElement.ts";
-import enhanceArray from "../utils/enhanceArray.ts";
-import type PowerPagesElement from "./PowerPagesElement.ts";
 import type PowerPagesElementArray from "./PowerPagesElementArray.ts";
+import type PowerPagesElement from "./PowerPagesElement.ts";
+import enhanceArray from "../utils/enhanceArray.ts";
+import get from "./getPowerPagesElement.ts";
+import API from "./API.ts";
 
 /**
  * When loading into a page in PowerPages that has a form,
@@ -84,7 +84,7 @@ function processElements(element: HTMLCollectionOf<Element>) {
       );
       if (!referenceString) return null;
 
-      return createRef(referenceString).catch((error) => {
+      return get(referenceString).catch((error) => {
         console.warn(
           `Failed to create a reference to the form field: ${datafieldname}`,
           error

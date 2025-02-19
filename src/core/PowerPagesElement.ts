@@ -88,7 +88,7 @@ export default class PowerPagesElement extends DOMNodeReference {
       const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
           if (Array.from(mutation.removedNodes).includes(this.element)) {
-            this[destroy]();
+            if (typeof this[destroy] === "function") this[destroy]();
             observer.disconnect();
             break;
           }

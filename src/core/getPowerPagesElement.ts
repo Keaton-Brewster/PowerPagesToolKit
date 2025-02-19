@@ -3,6 +3,7 @@ import PowerPagesElement from "./PowerPagesElement.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import waitFor from "./waitFor.ts";
 import { init } from "../constants/symbols.ts";
+import Errors from "../errors/errors.ts";
 
 // Add function overloads to clearly specify return types based on the 'multiple' parameter
 /**
@@ -109,43 +110,48 @@ export default async function createPowerPagesElement(
     timeoutMs: 0,
   }
 ): Promise<PowerPagesElement | PowerPagesElementArray> {
-  if (typeof options !== "object") {
-    throw new TypeError(
-      `'options' must be of type 'object'. Received type: '${typeof options}'`
-    );
-  }
-
-  validateOptions(options);
-  const { multiple = false, root = document.body, timeoutMs = 0 } = options;
-
-  // Evaluate multiple parameter once at the start
-  const isMultiple = typeof multiple === "function" ? multiple() : multiple;
-
-  if (isMultiple) {
-    if (typeof target !== "string") {
+  try {
+    if (typeof options !== "object") {
       throw new TypeError(
-        `'target' must be of type 'string' if 'multiple' is set to 'true'. Received type: '${typeof target}'`
+        `'options' must be of type 'object'. Received type: '${typeof options}'`
       );
     }
 
-    const elements = <HTMLElement[]>(
-      await waitFor(target, root, true, timeoutMs)
-    );
+    validateOptions(options);
+    const { multiple = false, root = document.body, timeoutMs = 0 } = options;
 
-    // Avoid recursive call with multiple flag for better performance
-    const initializedElements = <PowerPagesElementArray>await Promise.all(
-      elements.map(async (element) => {
-        const instance = new PowerPagesElement(element, root, timeoutMs);
-        await instance[init]();
-        return new Proxy(instance, createProxyHandler());
-      })
-    );
-    return enhanceArray(initializedElements);
+    // Evaluate multiple parameter once at the start
+    const isMultiple = typeof multiple === "function" ? multiple() : multiple;
+
+    if (isMultiple) {
+      if (typeof target !== "string") {
+        throw new TypeError(
+          `'target' must be of type 'string' if 'multiple' is set to 'true'. Received type: '${typeof target}'`
+        );
+      }
+
+      const elements = <HTMLElement[]>(
+        await waitFor(target, root, true, timeoutMs)
+      );
+
+      // Avoid recursive call with multiple flag for better performance
+      const initializedElements = <PowerPagesElementArray>await Promise.all(
+        elements.map(async (element) => {
+          const instance = new PowerPagesElement(element, root, timeoutMs);
+          await instance[init]();
+          return new Proxy(instance, createProxyHandler());
+        })
+      );
+      return enhanceArray(initializedElements);
+    }
+
+    const instance = new PowerPagesElement(target, root, timeoutMs);
+    await instance[init]();
+    return new Proxy(instance, createProxyHandler());
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    else throw new Error("Failed to get DOM Node by target: " + target);
   }
-
-  const instance = new PowerPagesElement(target, root, timeoutMs);
-  await instance[init]();
-  return new Proxy(instance, createProxyHandler());
 }
 
 export function validateOptions(options: Partial<CreationOptions>) {

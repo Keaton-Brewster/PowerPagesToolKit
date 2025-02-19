@@ -1,12 +1,11 @@
-import type EventManager from "../ancillary/EventManager.ts";
 import type VisibilityManager from "../ancillary/VisibilityManager.ts";
+import type EventManager from "../ancillary/EventManager.ts";
 import type ValueManager from "../ancillary/ValueManager.ts";
-
-import waitFor from "../core/waitFor.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
-import { destroy } from "../constants/symbols.ts";
-import { EventTypes } from "../constants/EventTypes.ts";
+import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
+import { EventTypes } from "../constants/EventTypes.ts";
+import { destroy } from "../constants/symbols.ts";
 
 export default class DOMNodeReference {
   // declare static properties
@@ -491,79 +490,85 @@ export default class DOMNodeReference {
     rule: BusinessRule,
     dependencies: DependencyArray<DOMNodeReference>
   ): DOMNodeReference {
-    // Apply Visibility Rule
-    if (rule.setVisibility) {
-      const condition = rule.setVisibility;
-      const initialState = condition.call(this);
-      this.toggleVisibility(initialState);
-    }
-
-    // Apply Required & Validation Rule
-    if (rule.setRequirements) {
-      const { isRequired, isValid } = rule.setRequirements();
-      // get args? rule.setRequired(isRequired, isValid)
-
-      if (typeof Page_Validators === "undefined") {
-        throw new Errors.Page_ValidatorsNotFoundError(this);
+    try {
+      // Apply Visibility Rule
+      if (rule.setVisibility) {
+        const condition = rule.setVisibility;
+        const initialState = condition.call(this);
+        this.toggleVisibility(initialState);
       }
 
-      let evaluationFunction: () => boolean = () => true;
+      // Apply Required & Validation Rule
+      if (rule.setRequirements) {
+        const { isRequired, isValid } = rule.setRequirements();
+        // get args? rule.setRequired(isRequired, isValid)
 
-      if (isRequired && isValid) {
-        evaluationFunction = () => {
-          const isFieldRequired = isRequired.call(this);
-          const isFieldVisible = this.visibilityManager!.getVisibility();
+        if (typeof Page_Validators === "undefined") {
+          throw new Errors.Page_ValidatorsNotFoundError(this);
+        }
 
-          // If the field is not required, it is always valid
-          // If the field is required, it must be visible and valid
-          return (
-            !isFieldRequired ||
-            (isFieldVisible && isValid.call(this, isFieldRequired))
-          );
-        };
-      } else if (isValid) {
-        evaluationFunction = () => {
-          const isFieldVisible = this.visibilityManager!.getVisibility();
+        let evaluationFunction: () => boolean = () => true;
 
-          // The field must be visible and valid
-          return isFieldVisible && isValid.call(this);
-        };
-      } else if (isRequired) {
-        evaluationFunction = () => {
-          const isFieldVisible = this.visibilityManager!.getVisibility();
+        if (isRequired && isValid) {
+          evaluationFunction = () => {
+            const isFieldRequired = isRequired.call(this);
+            const isFieldVisible = this.visibilityManager!.getVisibility();
 
-          // The field must be visible and required
-          return isFieldVisible && isRequired.call(this);
-        };
+            // If the field is not required, it is always valid
+            // If the field is required, it must be visible and valid
+            return (
+              !isFieldRequired ||
+              (isFieldVisible && isValid.call(this, isFieldRequired))
+            );
+          };
+        } else if (isValid) {
+          evaluationFunction = () => {
+            const isFieldVisible = this.visibilityManager!.getVisibility();
+
+            // The field must be visible and valid
+            return isFieldVisible && isValid.call(this);
+          };
+        } else if (isRequired) {
+          evaluationFunction = () => {
+            const isFieldVisible = this.visibilityManager!.getVisibility();
+
+            // The field must be visible and required
+            return isFieldVisible && isRequired.call(this);
+          };
+        }
+
+        this._createValidator(evaluationFunction);
       }
 
-      this._createValidator(evaluationFunction);
-    }
-
-    // Apply Set Value Rule
-    if (rule.setValue) {
-      let { condition, value } = rule.setValue();
-      if (value instanceof Function) value = value();
-      if (condition.call(this)) {
-        this.setValue.call(this, value);
+      // Apply Set Value Rule
+      if (rule.setValue) {
+        let { condition, value } = rule.setValue();
+        if (value instanceof Function) value = value();
+        if (condition.call(this)) {
+          this.setValue.call(this, value);
+        }
       }
+
+      // Apply Disabled Rule
+      if (rule.setDisabled) {
+        const condition = rule.setDisabled;
+        condition.call(this) ? this.disable() : this.enable();
+      }
+
+      const handler: BusinessRuleHandler =
+        this._returnBusinessRuleHandler(rule);
+      handler();
+
+      // setup dep tracking
+      if (dependencies.length) {
+        this._configureDependencyTracking(handler, dependencies);
+      }
+
+      return this;
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      else throw new Errors.BusinessRuleError(this);
     }
-
-    // Apply Disabled Rule
-    if (rule.setDisabled) {
-      const condition = rule.setDisabled;
-      condition.call(this) ? this.disable() : this.enable();
-    }
-
-    const handler: BusinessRuleHandler = this._returnBusinessRuleHandler(rule);
-    handler();
-
-    // setup dep tracking
-    if (dependencies.length) {
-      this._configureDependencyTracking(handler, dependencies);
-    }
-
-    return this;
   }
 
   protected _returnBusinessRuleHandler(
