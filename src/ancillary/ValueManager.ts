@@ -50,9 +50,7 @@ export default class ValueManager {
       (this.element as HTMLInputElement).checked = value;
       this.checked = value;
       this.value = value;
-      console.log("updating radio parent value");
       this.radioParent?.updateValue();
-      console.log(this.radioParent);
     } else {
       (this.element as HTMLInputElement).value = validatedValue;
       this.value = validatedValue;
