@@ -1,11 +1,11 @@
-import type VisibilityManager from "../ancillary/VisibilityManager.ts";
-import type EventManager from "../ancillary/EventManager.ts";
 import type ValueManager from "../ancillary/ValueManager.ts";
+import EventManager from "../ancillary/EventManager.ts";
+import VisibilityManager from "./VisibilityManager.ts";
 import createInfoEl from "../utils/createInfoElement.ts";
 import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
+import { init, destroy } from "../constants/symbols.ts";
 import { EventTypes } from "../constants/EventTypes.ts";
-import { destroy } from "../constants/symbols.ts";
 
 export default class DOMNodeReference {
   // declare static properties
@@ -38,7 +38,10 @@ export default class DOMNodeReference {
   public get checked() {
     return this.valueManager!.checked;
   }
-  // public value: any;
+
+  public set defaultDisplay(newValue: string | null) {
+    this.visibilityManager!.defaultDisplay = newValue;
+  }
 
   // other properties made available after async s.init
 
@@ -83,7 +86,27 @@ export default class DOMNodeReference {
     this.timeoutMs = timeoutMs;
     this.isLoaded = false;
 
-    // we defer the rest of initialization
+    // The rest of initialization.
+  }
+
+  protected async [init](): Promise<void> {
+    if (this.target instanceof HTMLElement) {
+      this.element = this.target;
+    } else {
+      this.element = (await waitFor(
+        this.target as string,
+        this.root,
+        false,
+        this.timeoutMs
+      )) as HTMLElement;
+    }
+
+    if (!this.element) {
+      throw new Errors.NodeNotFoundError(this);
+    }
+
+    this.eventManager = new EventManager();
+    this.visibilityManager = new VisibilityManager(this.element);
   }
 
   protected _extractLogicalName(target: Element | string): string {
@@ -117,7 +140,7 @@ export default class DOMNodeReference {
     }
   }
 
-  protected _determineEventType(): keyof HTMLElementEventMap {
+  protected _determineEventType(): keyof GlobalEventHandlersEventMap {
     if (this.element instanceof HTMLSelectElement) return "change";
     if (this.element instanceof HTMLTextAreaElement) return "keyup";
     if (!(this.element instanceof HTMLInputElement)) return EventTypes.DEFAULT;
@@ -216,9 +239,12 @@ export default class DOMNodeReference {
    * specified event occurs.
    * @returns - Instance of this [provides option to method chain]
    */
-  public on(
-    eventType: keyof HTMLElementEventMap,
-    eventHandler: (this: DOMNodeReference, e: Event) => void
+  public on<K extends keyof GlobalEventHandlersEventMap>(
+    eventType: K,
+    eventHandler: (
+      this: DOMNodeReference,
+      e: GlobalEventHandlersEventMap[K]
+    ) => void
   ): DOMNodeReference {
     if (typeof eventHandler !== "function") {
       throw new Errors.IncorrectParameterError(
@@ -230,10 +256,11 @@ export default class DOMNodeReference {
       );
     }
 
+    const handler = eventHandler as (this: DOMNodeReference, e: Event) => void;
     this.eventManager!.registerDOMEventListener(
       this.element,
       eventType,
-      eventHandler.bind(this)
+      handler.bind(this)
     );
 
     return this;

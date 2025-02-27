@@ -1,8 +1,5 @@
 import DOMNodeReference from "../ancillary/DOMNodeReference.ts";
-import VisibilityManager from "../ancillary/VisibilityManager.ts";
-import EventManager from "../ancillary/EventManager.ts";
 import ValueManager from "../ancillary/ValueManager.ts";
-import waitFor from "./waitFor.ts";
 import Errors from "../errors/errors.ts";
 import Radio from "../ancillary/Radio.ts";
 import { init, destroy } from "../constants/symbols.ts";
@@ -46,20 +43,7 @@ export default class PowerPagesElement extends DOMNodeReference {
      * of this package: i.e. by any consumers of the package
      */
     try {
-      if (this.target instanceof HTMLElement) {
-        this.element = this.target;
-      } else {
-        this.element = (await waitFor(
-          this.target as string,
-          this.root,
-          false,
-          this.timeoutMs
-        )) as HTMLElement;
-      }
-
-      if (!this.element) {
-        throw new Errors.NodeNotFoundError(this);
-      }
+      await super[init]();
 
       if (
         this.element.id &&
@@ -70,14 +54,7 @@ export default class PowerPagesElement extends DOMNodeReference {
         await this._attachRadioButtons();
       }
 
-      this.eventManager = new EventManager();
-      this.visibilityManager = new VisibilityManager(this.element);
-      this.valueManager = new ValueManager({
-        element: this.element,
-        isRadio: false,
-        noRadio: this.noRadio,
-        yesRadio: this.yesRadio,
-      });
+      this.valueManager = new ValueManager(this);
 
       this._valueSync();
 
@@ -174,12 +151,5 @@ export default class PowerPagesElement extends DOMNodeReference {
     this.noRadio?.[destroy]();
     this.yesRadio = undefined;
     this.noRadio = undefined;
-
-    this.eventManager!.destroy();
-    this.eventManager = null;
-    this.visibilityManager!.destroy();
-    this.visibilityManager = null;
-    this.valueManager!.destroy();
-    this.valueManager = null;
   }
 }

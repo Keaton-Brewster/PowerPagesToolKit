@@ -1,3 +1,4 @@
+import PowerPagesElement from "../core/PowerPagesElement.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
 import Radio from "./Radio.ts";
 
@@ -13,16 +14,24 @@ export default class ValueManager {
   public value: any;
   public checked: true | false = false;
   private element: HTMLElement | null;
-  private noRadio?: Radio | undefined;
-  private yesRadio?: Radio | undefined;
-  public declare radioParent?: DOMNodeReference | undefined;
+  private noRadio: Radio | undefined;
+  private yesRadio: Radio | undefined;
+  public radioParent?: DOMNodeReference | undefined;
   private isRadio: boolean = false;
 
-  constructor(properties: ValueManagerProps) {
-    this.element = properties.element;
-    this.noRadio = properties.noRadio;
-    this.yesRadio = properties.yesRadio;
-    this.isRadio = properties.isRadio;
+  constructor(instance: DOMNodeReference) {
+    if (instance instanceof PowerPagesElement) {
+      this.noRadio = instance.noRadio;
+      this.yesRadio = instance.yesRadio;
+      this.radioParent = undefined;
+    } else if (instance instanceof Radio) {
+      this.isRadio = true;
+      this.noRadio = undefined;
+      this.yesRadio = undefined;
+      this.radioParent = instance.radioParent;
+    }
+
+    this.element = instance.element;
   }
 
   public setValue(value: any): void {
@@ -40,12 +49,14 @@ export default class ValueManager {
     ) {
       (this.element as HTMLInputElement).checked = value;
       this.checked = value;
+      this.value = value;
+      console.log("updating radio parent value");
       this.radioParent?.updateValue();
+      console.log(this.radioParent);
     } else {
       (this.element as HTMLInputElement).value = validatedValue;
+      this.value = validatedValue;
     }
-
-    this.value = validatedValue;
   }
 
   public async updateValue(e?: Event): Promise<void> {

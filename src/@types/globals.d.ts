@@ -108,7 +108,15 @@ declare interface BusinessRule {
   setDisabled?: (this: PowerPagesElement) => boolean;
 }
 
-declare type DependencyArray<T> = [T, ...T[]];
+// This helper checks that an array type has at least one element.
+// If T is empty, it “fails” by evaluating to a string literal.
+type NonEmptyArray<T extends unknown[]> = T extends []
+  ? "Error: Dependency array must have at least one element"
+  : T;
+
+// Now, define DependencyArray so that it is essentially [T, ...T[]]
+// but if someone passes an empty array (i.e. []), the type becomes a custom error.
+declare type DependencyArray<T> = NonEmptyArray<[T, ...T[]]>;
 
 declare interface CreationOptions {
   /**

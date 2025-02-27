@@ -1,6 +1,10 @@
 export default class VisibilityManager {
   private declare visibilityController: HTMLElement | null;
-  private declare defaultVisibility: string | null;
+  private defaultVisibility: string | null;
+
+  public set defaultDisplay(newValue: string | null) {
+    this.defaultVisibility = newValue;
+  }
 
   constructor(target: HTMLElement) {
     // Set the default visibility controller to the element itself

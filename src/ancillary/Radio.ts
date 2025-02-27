@@ -1,8 +1,5 @@
-import VisibilityManager from "./VisibilityManager.ts";
 import DOMNodeReference from "./DOMNodeReference.ts";
-import EventManager from "./EventManager.ts";
 import ValueManager from "./ValueManager.ts";
-import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
 import { init, destroy } from "../constants/symbols.ts";
 
@@ -33,28 +30,9 @@ export default class Radio extends DOMNodeReference {
      * of this package: i.e. by any consumers of the package
      */
     try {
-      if (this.target instanceof HTMLElement) {
-        this.element = this.target;
-      } else {
-        this.element = (await waitFor(
-          this.target as string,
-          this.root,
-          false,
-          this.timeoutMs
-        )) as HTMLElement;
-      }
+      await super[init]();
 
-      if (!this.element) {
-        throw new Errors.NodeNotFoundError(this);
-      }
-
-      this.eventManager = new EventManager();
-      this.visibilityManager = new VisibilityManager(this.element);
-      this.valueManager = new ValueManager({
-        element: this.element,
-        isRadio: true,
-        radioParent: this.radioParent,
-      });
+      this.valueManager = new ValueManager(this);
 
       this._valueSync();
 
@@ -90,12 +68,5 @@ export default class Radio extends DOMNodeReference {
   override [destroy](): void {
     super[destroy]();
     this.radioParent = undefined;
-
-    this.eventManager!.destroy();
-    this.eventManager = null;
-    this.visibilityManager!.destroy();
-    this.visibilityManager = null;
-    this.valueManager!.destroy();
-    this.valueManager = null;
   }
 }
