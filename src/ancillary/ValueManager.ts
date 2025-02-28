@@ -2,22 +2,15 @@ import PowerPagesElement from "../core/PowerPagesElement.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
 import Radio from "./Radio.ts";
 
-declare interface ValueManagerProps {
-  element: HTMLElement;
-  noRadio?: Radio;
-  yesRadio?: Radio;
-  radioParent?: DOMNodeReference;
-  isRadio: boolean;
-}
-
 export default class ValueManager {
   public value: any;
   public checked: true | false = false;
-  private element: HTMLElement | null;
+  public element: HTMLElement | null;
   private noRadio: Radio | undefined;
   private yesRadio: Radio | undefined;
   public radioParent?: DOMNodeReference | undefined;
   private isRadio: boolean = false;
+  private radioType: RadioType | undefined;
 
   constructor(instance: DOMNodeReference) {
     if (instance instanceof PowerPagesElement) {
@@ -29,6 +22,7 @@ export default class ValueManager {
       this.noRadio = undefined;
       this.yesRadio = undefined;
       this.radioParent = instance.radioParent;
+      this.radioType = instance.radioType;
     }
 
     this.element = instance.element;
@@ -62,16 +56,37 @@ export default class ValueManager {
       e.stopPropagation();
     }
 
-    if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
-      this.yesRadio!.updateValue();
-      this.noRadio!.updateValue();
-    }
-
     const elementValue = await this.getElementValue();
     this.value = elementValue.value;
 
     if (elementValue.checked !== undefined) {
       this.checked = elementValue.checked;
+    }
+
+    // need a way to make sure radios stay in sync with each-other. If yes is checked, no should be 'unchecked' and vise-versa
+    if (
+      this.radioParent instanceof PowerPagesElement &&
+      e &&
+      e.type !== "manual-radio-sync"
+    ) {
+      switch (this.radioType) {
+        case "falsy":
+          this.radioParent.yesRadio!.setValue(!elementValue);
+          await this.radioParent.yesRadio!.updateValue(
+            new Event("manual-radio-sync")
+          );
+
+          break;
+        case "truthy":
+          this.radioParent.noRadio!.setValue(!elementValue);
+          await this.radioParent.noRadio!.updateValue(
+            new Event("manual-radio-sync")
+          );
+
+          break;
+      }
+
+      this.radioParent.updateValue();
     }
   }
 
@@ -168,6 +183,9 @@ export default class ValueManager {
   public clearValue(): void {
     try {
       const element = this.element;
+
+      // set 'default value' // effects date inputs primarily
+      (element as HTMLInputElement).defaultValue = "";
 
       if (element instanceof HTMLInputElement) {
         switch (element.type.toLowerCase()) {

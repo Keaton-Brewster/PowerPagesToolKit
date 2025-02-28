@@ -13,13 +13,13 @@ export default class PowerPagesElement extends DOMNodeReference {
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare yesRadio: Radio | undefined;
+  public yesRadio: Radio | undefined;
   /**
    * Represents the 'no' option of a boolean radio field.
    * This property is only available when the parent node
    * is a main field for a boolean radio input.
    */
-  public declare noRadio: Radio | undefined;
+  public noRadio: Radio | undefined;
 
   /**
    * Creates an instance of PowerPagesElement.

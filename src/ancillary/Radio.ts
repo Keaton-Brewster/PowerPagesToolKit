@@ -7,7 +7,7 @@ export default class Radio extends DOMNodeReference {
   // allow for indexing methods with symbols
   [key: symbol]: (...arg: any[]) => any;
 
-  protected radioType: RadioType | null = null;
+  public radioType: RadioType | undefined;
   public declare radioParent: DOMNodeReference | undefined;
 
   constructor(
@@ -68,5 +68,6 @@ export default class Radio extends DOMNodeReference {
   override [destroy](): void {
     super[destroy]();
     this.radioParent = undefined;
+    this.radioType = undefined;
   }
 }
