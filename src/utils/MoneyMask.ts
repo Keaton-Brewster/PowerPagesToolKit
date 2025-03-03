@@ -14,6 +14,7 @@ interface MoneyInputMaskOptions extends InputMaskOptions {
   private buffer: string = "";
   private charAtSelection: string | undefined = "";
   private charBeforeSelection: string | undefined = "";
+  private lengthOf0FormattedValue: number;
 
   /********/ constructor(
     inputElement: HTMLInputElement,
@@ -36,6 +37,12 @@ interface MoneyInputMaskOptions extends InputMaskOptions {
     this.onInput = this.onInput.bind(this);
     this.onBlur = this.onBlur.bind(this);
     this.onSelectionChange = this.onSelectionChange.bind(this);
+
+    let decimals = "";
+    for (let i = 0; i < this.options.decimalPlaces; ++i) {
+      decimals += "0";
+    }
+    this.lengthOf0FormattedValue = `0.${decimals}`.length;
 
     this.setupEventListeners();
 
@@ -218,11 +225,7 @@ interface MoneyInputMaskOptions extends InputMaskOptions {
       ["deleteWordBackward", "deleteWordForward"].includes(inputEvent.inputType)
     ) {
       this.buffer = "";
-      let decimals = "";
-      for (let i = 0; i < this.options.decimalPlaces; ++i) {
-        decimals += "0";
-      }
-      newRawIndex = `0.${decimals}`.length; // position at end
+      newRawIndex = this.lengthOf0FormattedValue;
     } else {
       // For other inputTypes (like "deleteByCut" etc.), you might need to implement a diff
       // algorithm comparing this.previousValue and formattedValue.
