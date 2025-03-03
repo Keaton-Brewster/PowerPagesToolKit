@@ -173,3 +173,23 @@ declare type FormElement =
   | HTMLSpanElement
   | HTMLButtonElement
   | HTMLFieldSetElement;
+
+declare type PhoneNumberFormats =
+  | "xxx-xxx-xxxx"
+  | "(xxx) xxx-xxxx"
+  | "xxx xxx-xxxx"
+  | "xxx.xxx.xxxx";
+
+declare type CountryCodeFormats = "+" | "()";
+
+declare type CurrencySymbol = "$" | "€" | "£" | "¥" | "¢";
+
+declare interface InputMaskOptions {
+  format?: PhoneNumberFormats;
+  countryCode?: CountryCodeFormats;
+  prefix?: CurrencySymbol; // Currency symbol (e.g., "$")
+  decimalPlaces?: number; // Number of decimal places (default: 2)
+  thousandsSeparator?: string; // Character for separating thousands (e.g., ",")
+  decimalSeparator?: string; // Character for decimal point (e.g., ".")
+  allowNegative?: boolean; // Whether to allow negative values
+}

@@ -1,12 +1,16 @@
 import DOMNodeReference from "../ancillary/DOMNodeReference.ts";
+import PhoneNumberMask from "../utils/PhoneNumberMask.ts";
 import ValueManager from "../ancillary/ValueManager.ts";
-import Errors from "../errors/errors.ts";
-import Radio from "../ancillary/Radio.ts";
 import { init, destroy } from "../constants/symbols.ts";
+import type InputMask from "../utils/InputMask.ts";
+import MoneyInputMask from "../utils/MoneyMask.ts";
+import Radio from "../ancillary/Radio.ts";
+import Errors from "../errors/errors.ts";
 
-export default class PowerPagesElement extends DOMNodeReference {
+/********/ /********/ export default class PowerPagesElement extends DOMNodeReference {
   // allow for indexing methods with symbols
   [key: symbol]: (...arg: any[]) => any;
+  private isMasked: boolean = false;
 
   /**
    * Represents the 'yes' option of a boolean radio field.
@@ -27,7 +31,7 @@ export default class PowerPagesElement extends DOMNodeReference {
    * @param root - Optionally specify the element within to search for the element targeted by 'target'
    * Defaults to 'document.body'
    */
-  /******/ /******/ constructor(
+  /******/ constructor(
     target: Element | string,
     root: Element = document.body,
     timeoutMs: number
@@ -129,7 +133,7 @@ export default class PowerPagesElement extends DOMNodeReference {
    * Unchecks both the yes and no radio buttons if they exist.
    * @returns - Instance of this [provides option to method chain]
    */
-  public uncheckRadios(): DOMNodeReference {
+  public uncheckRadios(): PowerPagesElement {
     if (
       this.yesRadio instanceof DOMNodeReference &&
       this.noRadio instanceof DOMNodeReference
@@ -141,6 +145,62 @@ export default class PowerPagesElement extends DOMNodeReference {
         "[SYNACT] Attempted to uncheck radios for an element that has no radios"
       );
     }
+    return this;
+  }
+
+  /**
+   * Apply an input mask to this element
+   * @param type The type of input mask to apply to this element
+   * @param options The options to specify the behavior of the mask
+   */
+  public inputMask(type: "phone" | "money", options: InputMaskOptions): void;
+  public inputMask(
+    type: "phone",
+    options?: {
+      format?: PhoneNumberFormats;
+      countryCode?: CountryCodeFormats;
+    }
+  ): void;
+  public inputMask(
+    type: "money",
+    options?: {
+      prefix?: CurrencySymbol; // Currency symbol (e.g., "$")
+      decimalPlaces?: number; // Number of decimal places (default: 2)
+      thousandsSeparator?: string; // Character for separating thousands (e.g., ",")
+      decimalSeparator?: string; // Character for decimal point (e.g., ".")
+      allowNegative?: boolean; // Whether to allow negative values
+    }
+  ): void;
+  public inputMask(
+    type: "money" | "phone",
+    options: InputMaskOptions
+  ): PowerPagesElement {
+    if (this.isMasked) {
+      throw new Error(
+        `You cannot apply multiple input masks to the same element. @${this.target}`
+      );
+    }
+
+    let newMask: InputMask;
+    switch (type) {
+      case "money":
+        newMask = new MoneyInputMask(this.element as HTMLInputElement, options);
+        break;
+      case "phone":
+        newMask = new PhoneNumberMask(
+          this.element as HTMLInputElement,
+          options
+        );
+        break;
+      default:
+        throw new Error(
+          `No type provided for 'inputMask()' at: ${this.target}`
+        );
+    }
+
+    this.valueManager!.element = newMask.input;
+    this.isMasked = true;
+
     return this;
   }
 
