@@ -295,7 +295,7 @@ export default class MoneyMask extends InputMask {
     this.input.value = this.formatNumber(scaledValue);
   }
 
-  public override destroy(): void {
+  public destroy(): void {
     this.input.removeEventListener("focus", this.onFocus);
     this.input.removeEventListener("input", this.onInput);
     this.input.removeEventListener("selectionchange", this.onSelectionChange);

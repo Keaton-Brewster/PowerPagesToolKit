@@ -23,8 +23,5 @@
   }
 
   // Destroy the mask and remove event listeners
-  public destroy(): void {
-    this.input.removeEventListener("blur", this.onBlur);
-    this.input.removeEventListener("focus", this.onFocus);
-  }
+  public abstract destroy(): void;
 }

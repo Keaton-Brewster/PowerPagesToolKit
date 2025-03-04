@@ -211,7 +211,7 @@ export default class PhoneNumberMask extends InputMask {
     return isCountryCodeValid && phoneDigits.length >= 10;
   }
 
-  public override destroy(): void {
+  public destroy(): void {
     this.input.removeEventListener("focus", this.onFocus);
     this.input.removeEventListener("input", this.formatInput);
     this.input.removeEventListener("blur", this.onBlur);
