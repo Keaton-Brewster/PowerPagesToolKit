@@ -27,10 +27,10 @@ A powerful class for managing DOM elements with automatic value synchronization 
 
 #### Basic Usage
 
-PowerPagesElements are instantiated with the help of the following factory function: `createRef`
+PowerPagesElements are instantiated with the help of the following factory function: `get`
 
 ```typescript
-createRef(
+get(
   target: HTMLElement | string,
   options: {
     multiple: (() => boolean) | boolean = false,
@@ -40,7 +40,7 @@ createRef(
 ): Promise<PowerPagesElement | PowerPagesElement[]>;
 ```
 
-createRef takes two main arguments:
+get takes two main arguments:
 
 <table style="width: 100%; border-collapse: collapse;">
   <thead>
@@ -79,17 +79,17 @@ createRef takes two main arguments:
 Import the utility function for creating PowerPagesElement(s)
 
 ```typescript
-import { createRef } from "powerpagestoolkit";
+import { get } from "powerpagestoolkit";
 ```
 
 Instantiate one, or multiple instances of a PowerPagesElement, and optionally configure advanced options
 
 ```javascript
 // Create a single reference (i.e. 'querySelector')
-const node = await createRef("#myElement");
+const node = await get("#myElement");
 
 // Create multiple references (i.e. 'querySelectorAll')
-const nodes = await createRef(".my-class", { multiple: true });
+const nodes = await get(".my-class", { multiple: true });
 
 /******************/
 // ADVANCED OPTIONS
@@ -98,31 +98,31 @@ const nodes = await createRef(".my-class", { multiple: true });
 
 // If the node you are targeting is not available at the initial execution
 // of the script, set a timeout for 2 seconds
-const node2 = await createRef("#target", { timeoutMs:2000 });
+const node2 = await get("#target", { timeoutMs: 2000 });
 
 // need to target a node within a specific node? use that node as the root
 const otherElement = document.getElementById("id");
-const node3 = await createRef("#target", { root: otherElement });
+const node3 = await get("#target", { root: otherElement });
 
 // implement all options:
-const nodes2 = await createRef("#target", {
+const nodes2 = await get("#target", {
   multiple: true,
-  timeoutMs:4000,
+  timeoutMs: 4000,
   root: otherElement,
 });
 ```
 
 #### Properties
 
-| Property | Type                     | Description                                   |
-| -------- | ------------------------ | --------------------------------------------- |
-| element  | HTMLElement              | The referenced DOM element                    |
-| value    | any                      | Current synchronized value of the element     |
-| isLoaded | boolean                  | Element load status                           |
-| target   | HTMLElement \| string    | Original target selector or element           |
-| yesRadio | PowerPagesElement \| null | Reference to 'yes' radio (for boolean fields) |
-| noRadio  | PowerPagesElement \| null | Reference to 'no' radio (for boolean fields)  |
-| checked  | boolean                  | Checkbox/radio checked state                  |
+| Property | Type                  | Description                                  |
+| -------- | --------------------- | -------------------------------------------- |
+| element  | HTMLElement           | The referenced DOM element                   |
+| value    | any                   | Current synchronized value of the element    |
+| isLoaded | boolean               | Element load status                          |
+| target   | HTMLElement \| string | Original target selector or element          |
+| yesRadio | Radio \| null         | Reference to 'yes' radio (for yes/no fields) |
+| noRadio  | Radio \| null         | Reference to 'no' radio (for yes/no fields)  |
+| checked  | boolean               | Checkbox/radio checked state                 |
 
 #### Key Methods
 
@@ -161,14 +161,14 @@ applyBusinessRule(
 ```typescript
 interface BusinessRule {
   setVisibility?: () => boolean;
-  setRequirements?: () => ({
-    isRequired: () => boolean,
-    isValid: () => boolean
-  });
-  setValue?: () => ({
-    condition: () => boolean,
-    value: () => any | any
-  });
+  setRequirements?: () => {
+    isRequired: () => boolean;
+    isValid: () => boolean;
+  };
+  setValue?: () => {
+    condition: () => boolean;
+    value: () => any | any;
+  };
   setDisabled?: () => boolean;
 }
 ```
@@ -180,10 +180,9 @@ interface BusinessRule {
 // 'businessTypeField' is set to 'Corporation' or 'LLC'
 taxIdField.applyBusinessRule(
   {
-    setVisibility: 
-      () =>
-        businessTypeField.value === "Corporation" ||
-        businessTypeField.value === "LLC"
+    setVisibility: () =>
+      businessTypeField.value === "Corporation" ||
+      businessTypeField.value === "LLC",
   },
   [businessTypeField] // Re-evaluate when businessTypeField changes
 );
@@ -205,7 +204,7 @@ taxIdField.applyBusinessRule(
       isValid: function () {
         return this.value != null && this.value !== "";
       },
-    })
+    }),
   },
   [businessTypeField] // Revalidate when businessTypeField changes
 );
@@ -219,8 +218,8 @@ industryField.applyBusinessRule(
   {
     setValue: () => ({
       condition: () => businessTypeField.value === "Corporation",
-      value: "Corporate"
-    })
+      value: "Corporate",
+    }),
   },
   [businessTypeField] // Apply value when businessTypeField changes
 );
@@ -308,9 +307,9 @@ node.addTooltip(
 _Example:_
 
 ```typescript
-import { createRef } from "powerpagestoolkit";
+import { get } from "powerpagestoolkit";
 
-const title = await createRef("#myTitle");
+const title = await get("#myTitle");
 
 title.addTooltip("This is an Example of a tooltip!", { color: "red" });
 ```
@@ -450,7 +449,7 @@ await API.updateRecord("contacts", "record-guid", {
 1. Always await PowerPagesElement creation:
 
 ```typescript
-const node = await createRef("#element");
+const node = await get("#element");
 ```
 
 2. Include all referenced nodes in dependency arrays:
