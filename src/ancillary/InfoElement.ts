@@ -49,6 +49,7 @@
     this.handleTouchStart = this.handleTouchStart.bind(this);
     this.handleMouseEnter = this.handleMouseEnter.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.handleScroll = this.handleScroll.bind(this);
 
     this.flyoutContent.style.minWidth = this.getDesiredWidth();
 
@@ -64,6 +65,7 @@
     this.icon.addEventListener("touchstart", this.handleTouchStart);
     this.addEventListener("mouseenter", this.handleMouseEnter);
     this.addEventListener("mouseleave", this.handleMouseLeave);
+    self.addEventListener("scroll", this.handleScroll);
   }
 
   /********/ private setupObservers(): void {
@@ -98,59 +100,32 @@
     this.observers.push(_destroy_observer, _position_observer);
   }
 
-  /********/ private getFartherSideOfScreen(): number {
-    const { left, right } = this.getDistanceToWindowEdges();
-    let minNum = 200;
-    if (right > left) {
-      minNum = right;
-    } else if (left > right) {
-      minNum = left;
-    }
-    return minNum;
-  }
-
   /********/ private getDesiredWidth(): string {
-    const smaller = this.getFartherSideOfScreen();
-    return `${smaller}px`;
+    // Get a reasonable width that works for center positioning
+    const viewportWidth = self.innerWidth;
+    const maxWidth = Math.min(viewportWidth - 40, 600); // Max 600px wide with 20px padding on each side
+    return `${maxWidth}px`;
   }
 
   /********/ private positionFlyout(): void {
+    // Always position the flyout in the center of the screen
     this.flyoutContent.style.display = "block";
-
+    // Get the icon's position relative to the viewport
+    const iconRect = this.icon.getBoundingClientRect();
     const flyoutRect = this.flyoutContent.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-
-    if (flyoutRect.right > viewportWidth) {
-      const overflowAmount = flyoutRect.right - viewportWidth;
-      this.flyoutContent.style.left = `calc(50% - ${overflowAmount}px)`;
+    const viewportHeight = self.innerHeight;
+    const margin = 5; // Space between icon and flyout
+    let topPosition = iconRect.bottom - margin; // Default below the icon
+    // If the flyout would go beyond the viewport, position it above
+    if (topPosition + flyoutRect.height > viewportHeight) {
+      topPosition = iconRect.top - flyoutRect.height; // Move above the icon
     }
-
-    if (flyoutRect.left < 0) {
-      const overflowAmount = Math.abs(flyoutRect.left);
-      this.flyoutContent.style.left = `calc(50% + ${overflowAmount}px)`;
-    }
+    // Apply positions
+    this.flyoutContent.style.top = `${topPosition}px`;
   }
 
   /********/ private updateFlyoutWidth(): void {
     this.flyoutContent.style.minWidth = this.getDesiredWidth();
-  }
-
-  /********/ private getDistanceToWindowEdges() {
-    // Get the element's position relative to the viewport
-    const rect = this.getBoundingClientRect();
-
-    // Calculate distances to each edge
-    const distanceToTop = rect.top;
-    const distanceToRight = window.innerWidth - rect.right;
-    const distanceToBottom = window.innerHeight - rect.bottom;
-    const distanceToLeft = rect.left;
-
-    return {
-      top: distanceToTop,
-      right: distanceToRight,
-      bottom: distanceToBottom,
-      left: distanceToLeft,
-    };
   }
 
   /********/ private handleClick(e: Event): void {
@@ -163,8 +138,7 @@
     this.flyoutContent.style.minWidth = this.getDesiredWidth();
   }
 
-  /********/ private handleTouchStart(event: Event): void {
-    event.preventDefault();
+  /********/ private handleTouchStart(): void {
     this.flyoutContent.style.display =
       this.flyoutContent.style.display === "block" ? "none" : "block";
     if (this.flyoutContent.style.display === "block") {
@@ -184,12 +158,22 @@
     }
   }
 
+  /********/ private handleScroll(): void {
+    const previousFlyoutDisplay = this.flyoutContent.style.display;
+    if (previousFlyoutDisplay === "none") return;
+
+    this.positionFlyout();
+
+    this.flyoutContent.style.display = previousFlyoutDisplay;
+  }
+
   /********/ private destroy(): void {
     document.body.removeEventListener("click", this.handleClick);
-    window.removeEventListener("resize", this.handleResize);
+    self.removeEventListener("resize", this.handleResize);
     this.icon.removeEventListener("touchstart", this.handleTouchStart);
     this.removeEventListener("mouseenter", this.handleMouseEnter);
     this.removeEventListener("mouseleave", this.handleMouseLeave);
+    self.removeEventListener("scroll", this.handleScroll);
 
     this.observers.forEach((obv) => obv.disconnect());
   }

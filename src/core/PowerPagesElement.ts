@@ -1,5 +1,7 @@
+import VisibilityManager from "../ancillary/VisibilityManager.ts";
 import DOMNodeReference from "../ancillary/DOMNodeReference.ts";
 import PhoneNumberMask from "../utils/PhoneNumberMask.ts";
+import EventManager from "../ancillary/EventManager.ts";
 import ValueManager from "../ancillary/ValueManager.ts";
 import { init, destroy } from "../constants/symbols.ts";
 import type InputMask from "../utils/InputMask.ts";
@@ -58,9 +60,9 @@ import Errors from "../errors/errors.ts";
         await this._attachRadioButtons();
       }
 
-      this.valueManager = new ValueManager(this);
-
-      this._valueSync();
+      this.initEventManager();
+      this.initVisibilityManager();
+      this.initValueManager();
 
       // we want to ensure that all method calls from the consumer have access to 'this'
       this._bindMethods();
@@ -89,6 +91,18 @@ import Errors from "../errors/errors.ts";
         error instanceof Error ? error.message : String(error);
       throw new Errors.InitializationError(this, errorMessage);
     }
+  }
+
+  protected override initValueManager(): void {
+    this.valueManager = new ValueManager(this);
+
+    this._valueSync();
+  }
+  protected override initVisibilityManager(): void {
+    this.visibilityManager = new VisibilityManager(this.element);
+  }
+  protected override initEventManager(): void {
+    this.eventManager = new EventManager();
   }
 
   protected async _attachRadioButtons(): Promise<void> {

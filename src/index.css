@@ -9,29 +9,31 @@
 }
 
 .flyout-content {
-  max-width: calc(100vw - 20px); /* 20px margin on both sides */
+  max-width: 600px; /* Reasonable default max width */
+  width: calc(
+    100vw - 40px
+  ); /* Responsive width with 20px padding on each side */
   display: none; /* Initially hidden */
-  position: absolute;
-  left: 50vw; /* Center horizontally */
-  transform: translate(-50%, 0); /* Adjust positioning */
+  position: fixed;
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Center adjustment */
+  margin-top: 8px; /* Small gap from the icon */
   color: #000;
   background-color: #f9f9f9;
   padding: 10px;
   border: 1px solid #ddd;
-  z-index: 1;
+  z-index: 1000; /* Ensure it appears above other content */
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 4px; /* Rounded corners */
+  border-radius: 8px; /* Rounded corners */
 }
 
 @media (max-width: 600px) {
   .flyout-content {
-    max-width: 95vw;
     padding: 12px;
     font-size: 0.9em;
-    display: block;
-    right: auto;
   }
 }
+
 
 .required-field::after {
   content: " *" !important;

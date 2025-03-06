@@ -23,9 +23,11 @@ import { init } from "../constants/symbols.ts";
 export default async function createPowerPagesElement(
   target: string | Element
 ): Promise<PowerPagesElement>;
-
 export default async function createPowerPagesElement(
-  target: Element,
+  target: Element
+): Promise<PowerPagesElement>;
+export default async function createPowerPagesElement(
+  target: string,
   options?: {
     /**
      * Optionally specify the element within which to search for the element targeted by 'target'.

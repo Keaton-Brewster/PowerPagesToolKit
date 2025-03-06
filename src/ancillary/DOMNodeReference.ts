@@ -1,13 +1,13 @@
+import type EventManager from "../ancillary/EventManager.ts";
 import type ValueManager from "../ancillary/ValueManager.ts";
-import EventManager from "../ancillary/EventManager.ts";
-import VisibilityManager from "./VisibilityManager.ts";
-import createInfoEl from "../utils/createInfoElement.ts";
+import type VisibilityManager from "./VisibilityManager.ts";
+import { EventTypes } from "../constants/EventTypes.ts";
+import { init, destroy } from "../constants/symbols.ts";
+import InfoElement from "./InfoElement.ts";
 import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
-import { init, destroy } from "../constants/symbols.ts";
-import { EventTypes } from "../constants/EventTypes.ts";
 
-export default class DOMNodeReference {
+export default abstract class DOMNodeReference {
   // declare static properties
   static instances: DOMNodeReference[] = [];
 
@@ -18,10 +18,8 @@ export default class DOMNodeReference {
   public target: Element | string;
   public logicalName?: string;
   public root: Element;
-  //   public isRadio: boolean = false;
   protected timeoutMs: number;
   protected isLoaded: boolean;
-  //   protected radioType: RadioType | null = null;
 
   /**
    * The value of the element that this node represents
@@ -43,8 +41,6 @@ export default class DOMNodeReference {
     this.visibilityManager!.defaultDisplay = newValue;
   }
 
-  // other properties made available after async s.init
-
   /**
    * The element targeted when instantiating DOMNodeReference.
    * Made available in order to perform normal DOM traversal,
@@ -54,20 +50,6 @@ export default class DOMNodeReference {
   public visibilityManager!: VisibilityManager | null;
   public valueManager!: ValueManager | null;
   public eventManager!: EventManager | null;
-
-  //   public declare radioParent: DOMNodeReference | undefined;
-  /**
-   * Represents the 'yes' option of a boolean radio field.
-   * This property is only available when the parent node
-   * is a main field for a boolean radio input.
-   */
-  //   public declare yesRadio: DOMNodeReference | undefined;
-  /**
-   * Represents the 'no' option of a boolean radio field.
-   * This property is only available when the parent node
-   * is a main field for a boolean radio input.
-   */
-  //   public declare noRadio: DOMNodeReference | undefined;
 
   /**
    * Creates an instance of DOMNodeReference.
@@ -104,10 +86,12 @@ export default class DOMNodeReference {
     if (!this.element) {
       throw new Errors.NodeNotFoundError(this);
     }
-
-    this.eventManager = new EventManager();
-    this.visibilityManager = new VisibilityManager(this.element);
   }
+
+  // force extensions of this class to implement these methods
+  protected abstract initValueManager(): void;
+  protected abstract initVisibilityManager(): void;
+  protected abstract initEventManager(): void;
 
   protected _extractLogicalName(target: Element | string): string {
     if (typeof target !== "string") return "";
@@ -120,10 +104,6 @@ export default class DOMNodeReference {
     return (quoteMatch?.[1] || content).replace(/[#\[\]]/g, "");
   }
 
-  /**
-   * Initializes value synchronization with appropriate event listeners
-   * based on element type.
-   */
   protected _valueSync(): void {
     if (!this._isValidFormElement(this.element)) return;
 
@@ -441,7 +421,7 @@ export default class DOMNodeReference {
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
     this.getLabel()?.append(
-      createInfoEl(innerHTML, containerStyle || undefined)
+      new InfoElement(innerHTML, containerStyle || undefined)
     );
     return this;
   }
@@ -456,7 +436,7 @@ export default class DOMNodeReference {
     innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
-    this.append(createInfoEl(innerHTML, containerStyle || undefined));
+    this.append(new InfoElement(innerHTML, containerStyle || undefined));
     return this;
   }
 
@@ -465,7 +445,7 @@ export default class DOMNodeReference {
    * @param string - The text to set as the inner HTML of the element.
    * @returns - Instance of this [provides option to method chain]
    */
-  public setInnerHTML(string: string) {
+  public setInnerHTML(string: string): DOMNodeReference {
     this.element.innerHTML = string;
     return this;
   }
@@ -484,7 +464,7 @@ export default class DOMNodeReference {
    * @param options - An object containing CSS property-value pairs, e.g., { display: 'block' }.
    * @returns The instance, enabling method chaining.
    */
-  public setStyle(options: Partial<CSSStyleDeclaration>): this {
+  public setStyle(options: Partial<CSSStyleDeclaration>): DOMNodeReference {
     if (options === null || typeof options !== "object") {
       throw new Errors.IncorrectParameterError(
         this,
@@ -541,7 +521,6 @@ export default class DOMNodeReference {
     }
   }
 
-  // Create a validator based on requirements
   private _setupRequirementsValidator(requirements: {
     isRequired?: Function;
     isValid?: Function;
@@ -578,7 +557,6 @@ export default class DOMNodeReference {
     this._createValidator(evaluationFunction);
   }
 
-  // Create a handler function that can be reused for applying the rules
   private _createBusinessRuleHandler(rule: BusinessRule): BusinessRuleHandler {
     return (): void => {
       let clearValues: boolean = false;
@@ -621,7 +599,7 @@ export default class DOMNodeReference {
     };
   }
 
-  protected _createValidator(evaluationFunction: () => boolean): void {
+  private _createValidator(evaluationFunction: () => boolean): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -652,14 +630,7 @@ export default class DOMNodeReference {
     Page_Validators.push(newValidator);
   }
 
-  /**
-   * Sets up tracking for dependencies using both event listeners and mutation observers.
-   * @protected
-   * @param handler The function to execute when dependencies change
-   * @param dependencies Array of dependent DOM nodes to track
-   * all other options defaults to true
-   */
-  protected _configureDependencyTracking(
+  private _configureDependencyTracking(
     handler: DependencyHandler,
     dependencies: DOMNodeReference[]
   ): void {
@@ -719,7 +690,7 @@ export default class DOMNodeReference {
    * @param callback A callback function to execute once the element is loaded.
    * Receives instance of 'this' as an argument
    */
-  public onceLoaded(callback: (instance: DOMNodeReference) => any): any {
+  public onceLoaded(callback: (instance: DOMNodeReference) => any): void {
     if (this.isLoaded) {
       callback(this);
       return;

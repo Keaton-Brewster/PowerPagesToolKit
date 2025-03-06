@@ -1,7 +1,9 @@
+import { init, destroy } from "../constants/symbols.ts";
+import VisibilityManager from "./VisibilityManager.ts";
 import DOMNodeReference from "./DOMNodeReference.ts";
+import EventManager from "./EventManager.ts";
 import ValueManager from "./ValueManager.ts";
 import Errors from "../errors/errors.ts";
-import { init, destroy } from "../constants/symbols.ts";
 
 export default class Radio extends DOMNodeReference {
   // allow for indexing methods with symbols
@@ -31,10 +33,9 @@ export default class Radio extends DOMNodeReference {
      */
     try {
       await super[init]();
-
-      this.valueManager = new ValueManager(this);
-
-      this._valueSync();
+      this.initEventManager();
+      this.initVisibilityManager();
+      this.initValueManager();
 
       // we want to ensure that all method calls from the consumer have access to 'this'
       this._bindMethods();
@@ -63,6 +64,20 @@ export default class Radio extends DOMNodeReference {
         error instanceof Error ? error.message : String(error);
       throw new Errors.InitializationError(this, errorMessage);
     }
+  }
+
+  protected override initEventManager(): void {
+    this.eventManager = new EventManager();
+  }
+
+  protected override initValueManager(): void {
+    this.valueManager = new ValueManager(this);
+
+    this._valueSync();
+  }
+
+  protected override initVisibilityManager(): void {
+    this.visibilityManager = new VisibilityManager(this.element);
   }
 
   override [destroy](): void {

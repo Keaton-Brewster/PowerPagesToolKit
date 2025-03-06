@@ -14,50 +14,55 @@ declare type Listeners = Set<DOMNodeReference>;
 
   constructor() {}
 
-  public dispatchDependencyHandlers(): void {
+  /********/ public dispatchDependencyHandlers(): void {
     for (const [dependency, handler] of this.dependencyHandlers) {
       handler.call(dependency);
     }
   }
 
-  public registerDependent(
+  /********/ public registerDependent(
     dependency: DOMNodeReference,
     handler: Handler
-  ): true | false {
+  ): "success" | Error {
     try {
       this.dependencyHandlers.add([dependency, handler]);
-      return true;
+      return "success";
     } catch {
-      return false;
+      return new Error(`Failed register dependant: ${dependency.target}`);
     }
   }
 
-  public registerEvent(event: EventType, handler: Handler): true | false {
+  /********/ public registerEvent(
+    event: EventType,
+    handler: Handler
+  ): "success" | Error {
     if (this.events.has(event)) {
       console.error("Event registration has already been defined for: ", event);
-      return false;
+      return new Error(
+        `Event registration has already been defined for: ${event}`
+      );
     }
     this.listeners.set(event, new Set());
     this.events.set(event, handler);
-    return true;
+    return "success";
   }
 
-  public registerListener(
+  /********/ public registerListener(
     event: EventType,
     listener: DOMNodeReference
-  ): true | false {
+  ): "success" | Error {
     if (this.events.has(event)) {
       const listeners: Listeners = this.listeners.get(event) ?? new Set();
       listeners.add(listener);
       this.listeners.set(event, listeners);
-      return true;
+      return "success";
     } else {
       console.error("No event registration found for: ", event);
-      return false;
+      return new Error(`No event registration found for: ${event}`);
     }
   }
 
-  public emit(eventType: EventType, ...args: any[]): void {
+  /********/ public emit(eventType: EventType, ...args: any[]): void {
     if (this.events.has(eventType)) {
       //
       const event: Handler = this.events.get(eventType) as Handler;
@@ -75,13 +80,13 @@ declare type Listeners = Set<DOMNodeReference>;
     return;
   }
 
-  public stopListening(listener: DOMNodeReference): void {
+  /********/ public stopListening(listener: DOMNodeReference): void {
     for (const [_event, listeners] of this.listeners) {
       if (listeners.has(listener)) listeners.delete(listener);
     }
   }
 
-  public registerObserver(
+  /********/ public registerObserver(
     observer: MutationObserver | ResizeObserver,
     observerOptions: {
       nodeToObserve: Element;
@@ -93,7 +98,7 @@ declare type Listeners = Set<DOMNodeReference>;
     this.observers.push(observer);
   }
 
-  public registerDOMEventListener(
+  /********/ public registerDOMEventListener(
     element: Element,
     eventType: keyof HTMLElementEventMap,
     handler: (e: Event) => unknown
@@ -107,7 +112,7 @@ declare type Listeners = Set<DOMNodeReference>;
     });
   }
 
-  public destroy(): void {
+  /********/ public destroy(): void {
     // Remove all bound event listeners
     this.boundListeners?.forEach((binding) => {
       binding.element?.removeEventListener(binding.event, binding.handler);
