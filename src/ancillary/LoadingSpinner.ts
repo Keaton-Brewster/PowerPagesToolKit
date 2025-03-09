@@ -40,4 +40,4 @@
   }
 }
 
-customElements.define("loading-spinner", LoadingSpinner);
+customElements.define("pptk-loading-spinner", LoadingSpinner);

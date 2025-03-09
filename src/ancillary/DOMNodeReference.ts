@@ -6,6 +6,7 @@ import { init, destroy } from "../constants/symbols.ts";
 import InfoElement from "./InfoElement.ts";
 import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
+import DOMPurify from "DOMPurify";
 
 export default abstract class DOMNodeReference {
   // declare static properties
@@ -420,8 +421,9 @@ export default abstract class DOMNodeReference {
     innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
+    const safeHTML = DOMPurify.sanitize(innerHTML);
     this.getLabel()?.append(
-      new InfoElement(innerHTML, containerStyle || undefined)
+      new InfoElement(safeHTML, containerStyle || undefined)
     );
     return this;
   }
@@ -436,7 +438,8 @@ export default abstract class DOMNodeReference {
     innerHTML: string,
     containerStyle?: Partial<CSSStyleDeclaration>
   ): DOMNodeReference {
-    this.append(new InfoElement(innerHTML, containerStyle || undefined));
+    const safeHTML = DOMPurify.sanitize(innerHTML);
+    this.append(new InfoElement(safeHTML, containerStyle || undefined));
     return this;
   }
 
@@ -445,9 +448,9 @@ export default abstract class DOMNodeReference {
    * @param string - The text to set as the inner HTML of the element.
    * @returns - Instance of this [provides option to method chain]
    */
-  public setInnerHTML(string: string): DOMNodeReference {
-    this.element.innerHTML = string;
-    return this;
+  set innerHTML(innerHTML: string) {
+    const safeHTML = DOMPurify.sanitize(innerHTML);
+    this.element.innerHTML = safeHTML;
   }
 
   /**
@@ -522,8 +525,8 @@ export default abstract class DOMNodeReference {
   }
 
   private _setupRequirementsValidator(requirements: {
-    isRequired?: Function;
-    isValid?: Function;
+    isRequired?: Evaluator<DOMNodeReference>;
+    isValid?: Evaluator<DOMNodeReference, boolean>;
   }): void {
     const { isRequired, isValid } = requirements;
 
@@ -531,7 +534,7 @@ export default abstract class DOMNodeReference {
       throw new Errors.Page_ValidatorsNotFoundError(this);
     }
 
-    let evaluationFunction: () => boolean = () => true;
+    let evaluationFunction: Evaluator = () => true;
 
     if (isRequired && isValid) {
       evaluationFunction = () => {
@@ -599,7 +602,7 @@ export default abstract class DOMNodeReference {
     };
   }
 
-  private _createValidator(evaluationFunction: () => boolean): void {
+  private _createValidator(evaluationFunction: Evaluator): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -667,9 +670,7 @@ export default abstract class DOMNodeReference {
    * If true, the "required-field" class is added to the label; if false, it is removed.
    * @returns Instance of this [provides option to method chain]
    */
-  public setRequiredLevel(
-    isRequired: (() => boolean) | boolean
-  ): DOMNodeReference {
+  public setRequiredLevel(isRequired: Evaluator | boolean): DOMNodeReference {
     if (isRequired instanceof Function) {
       isRequired()
         ? this.getLabel()?.classList.add("required-field")

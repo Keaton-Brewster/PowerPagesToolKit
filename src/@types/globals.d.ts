@@ -87,8 +87,8 @@ declare interface BusinessRule {
    * @param isValid.isRequiredResult - Only available if 'isRequired' is also returned from the configuration function
    */
   setRequirements?: () => {
-    isRequired?: (this: PowerPagesElement) => boolean;
-    isValid?: (this: PowerPagesElement, isRequiredResult?: boolean) => boolean;
+    isRequired?: Evaluator<DOMNodeReference>;
+    isValid?: Evaluator<DOMNodeReference, boolean>;
   };
 
   /**
@@ -117,27 +117,6 @@ type NonEmptyArray<T extends unknown[]> = T extends []
 // Now, define DependencyArray so that it is essentially [T, ...T[]]
 // but if someone passes an empty array (i.e. []), the type becomes a custom error.
 declare type DependencyArray<T> = NonEmptyArray<[T, ...T[]]>;
-
-declare interface CreationOptions {
-  /**
-   * Should this call return an array of instantiated references, or just a single?
-   * Defaults to false, returning a single instance.
-   */
-  multiple?: (() => boolean) | boolean;
-
-  /**
-   * Optionally specify the element within which to search for the element targeted by 'target'.
-   * Defaults to 'document.body'.
-   */
-  root?: HTMLElement;
-
-  /**
-   * Optionally specify the amount of time that should be waited to find the targeted element before throwing an error.
-   * Useful for async DOM loading. Relies on MutationObserver.
-   * WARNING: Implementing multiple references with timeout can result in infinite loading.
-   */
-  timeoutMs?: number;
-}
 
 declare type DependencyHandler = () => void;
 
@@ -193,3 +172,8 @@ declare interface InputMaskOptions {
   decimalSeparator?: string; // Character for decimal point (e.g., ".")
   allowNegative?: boolean; // Whether to allow negative values
 }
+
+declare type Evaluator<T = any, A = unknown> = (
+  this: T,
+  ...args: A[]
+) => boolean;

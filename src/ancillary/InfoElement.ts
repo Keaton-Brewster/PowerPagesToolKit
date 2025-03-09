@@ -179,4 +179,4 @@
   }
 }
 
-customElements.define("info-element", InfoElement);
+customElements.define("pptk-info-element", InfoElement);

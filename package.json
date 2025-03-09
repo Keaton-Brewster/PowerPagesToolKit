@@ -1,6 +1,6 @@
 {
   "name": "powerpagestoolkit",
-  "version": "3.0.402",
+  "version": "3.0.404",
   "description": "Reference, manipulate, and engage with Power Pages sites through the nodes in the DOM; use a variety of custom methods that allow customizing your power pages site quicker and easier.  ",
   "main": "./dist/src/index.js",
   "module": "./dist/src/index.js",
@@ -41,7 +41,6 @@
     "dev": "tsc --watch"
   },
   "devDependencies": {
-    "esbuild-plugin-copy": "^2.1.1",
     "@babel/preset-env": "^7.25.8",
     "@types/node": "^22.8.6",
     "@typescript-eslint/parser": "^8.20.0",
@@ -49,6 +48,7 @@
     "css-loader": "^7.1.2",
     "esbuild": "^0.24.2",
     "esbuild-css-modules-plugin": "^3.1.2",
+    "esbuild-plugin-copy": "^2.1.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "globals": "^15.14.0",
@@ -79,5 +79,8 @@
     "form-management",
     "frontend",
     "web-development"
-  ]
+  ],
+  "dependencies": {
+    "dompurify": "^3.2.4"
+  }
 }
