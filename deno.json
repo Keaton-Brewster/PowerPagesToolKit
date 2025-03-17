@@ -24,9 +24,9 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["DOM", "ES2016"],
-    "types": ["./dist/src/globals.d.ts"]
+    "types": ["./src/@types/globals.d.ts"]
   },
-  "exclude": ["./dist/src/globals.d.ts"],
+  "exclude": ["./dist/**/*"],
   "unstable": ["sloppy-imports"],
   "jsr": {
     "name": "@keatonbrewster/powerpagestoolkit",

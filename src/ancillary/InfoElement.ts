@@ -122,6 +122,8 @@
     }
     // Apply positions
     this.flyoutContent.style.top = `${topPosition}px`;
+
+    // then, adjust centeredness based on layout of page
   }
 
   /********/ private updateFlyoutWidth(): void {
@@ -178,5 +180,5 @@
     this.observers.forEach((obv) => obv.disconnect());
   }
 }
-
-customElements.define("pptk-info-element", InfoElement);
+const uid: string = `info-icon-${crypto.randomUUID()}`;
+customElements.define(uid, InfoElement);

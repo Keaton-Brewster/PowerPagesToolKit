@@ -40,4 +40,5 @@
   }
 }
 
-customElements.define("pptk-loading-spinner", LoadingSpinner);
+const uid: string = `loading-${crypto.randomUUID()}`;
+customElements.define(uid, LoadingSpinner);

@@ -273,7 +273,7 @@ export default abstract class DOMNodeReference {
    * @returns - Instance of this [provides option to method chain]
    */
   public toggleVisibility(
-    shouldShow: ((this: DOMNodeReference) => boolean) | boolean
+    shouldShow: EvaluationFunction | boolean
   ): DOMNodeReference {
     const bool: boolean =
       shouldShow instanceof Function ? shouldShow.call(this) : shouldShow;
@@ -524,17 +524,16 @@ export default abstract class DOMNodeReference {
     }
   }
 
-  private _setupRequirementsValidator(requirements: {
-    isRequired?: Evaluator<DOMNodeReference>;
-    isValid?: Evaluator<DOMNodeReference, boolean>;
-  }): void {
+  private _setupRequirementsValidator(
+    requirements: FieldValidationRules
+  ): void {
     const { isRequired, isValid } = requirements;
 
     if (typeof Page_Validators === "undefined") {
       throw new Errors.Page_ValidatorsNotFoundError(this);
     }
 
-    let evaluationFunction: Evaluator = () => true;
+    let evaluationFunction = () => true;
 
     if (isRequired && isValid) {
       evaluationFunction = () => {
@@ -548,7 +547,7 @@ export default abstract class DOMNodeReference {
     } else if (isValid) {
       evaluationFunction = () => {
         const isFieldVisible = this.visibilityManager!.getVisibility();
-        return isFieldVisible && isValid.call(this);
+        return isFieldVisible && isValid.call(this, false);
       };
     } else if (isRequired) {
       evaluationFunction = () => {
@@ -602,7 +601,7 @@ export default abstract class DOMNodeReference {
     };
   }
 
-  private _createValidator(evaluationFunction: Evaluator): void {
+  private _createValidator(evaluationFunction: EvaluationFunction): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -624,7 +623,7 @@ export default abstract class DOMNodeReference {
     Object.assign(newValidator, {
       controltovalidate: this.element.id,
       errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
-      evaluationfunction: evaluationFunction,
+      evaluationfunction: evaluationFunction.bind(this),
     });
 
     if (Page_Validators == undefined)
@@ -670,9 +669,11 @@ export default abstract class DOMNodeReference {
    * If true, the "required-field" class is added to the label; if false, it is removed.
    * @returns Instance of this [provides option to method chain]
    */
-  public setRequiredLevel(isRequired: Evaluator | boolean): DOMNodeReference {
+  public setRequiredLevel(
+    isRequired: EvaluationFunction | boolean
+  ): DOMNodeReference {
     if (isRequired instanceof Function) {
-      isRequired()
+      isRequired.call(this)
         ? this.getLabel()?.classList.add("required-field")
         : this.getLabel()?.classList.remove("required-field");
       return this;

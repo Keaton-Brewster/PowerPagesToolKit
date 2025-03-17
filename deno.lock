@@ -3377,6 +3377,7 @@
         "npm:@typescript-eslint/parser@^8.20.0",
         "npm:buffer@^6.0.3",
         "npm:css-loader@^7.1.2",
+        "npm:dompurify@^3.2.4",
         "npm:esbuild-css-modules-plugin@^3.1.2",
         "npm:esbuild-plugin-copy@^2.1.1",
         "npm:esbuild@~0.24.2",
