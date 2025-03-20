@@ -14,7 +14,7 @@ interface ODataJSON extends Object {
  */
 abstract class API {
   /**
-   * @param tableSetName The dataverse set name for the table that you are updating a record in
+   * @param tableSetName The dataverse set name for the table that you are updati a record in
    * @param data The JSON of the fields and data that are to be updated on the targeted record
    * @returns a Promise resolving the successful results *[record id]* of the POST request, or rejecting the failed results *[error]* of the POST request.
    */
@@ -46,7 +46,7 @@ abstract class API {
     tableSetName: string,
     recordID: string,
     ODataQueryString?: string
-  ): Promise<T | Error> {
+  ): Promise<T> {
     let cleanedQuery: string = "";
     if (ODataQueryString) {
       cleanedQuery = ODataQueryString.startsWith("?")
@@ -69,10 +69,7 @@ abstract class API {
   /**
    * More flexible method for building completely custom queries
    */
-  static request<T>(
-    query: string,
-    options?: JQuery.AjaxSettings
-  ): Promise<T | Error> {
+  static request<T>(query: string, options?: JQuery.AjaxSettings): Promise<T> {
     return new Promise((success, error) => {
       const url = `/_api/${query}`;
       safeAjax({
@@ -93,7 +90,7 @@ abstract class API {
   static getMultiple<T>(
     tableSetName: string,
     queryParameters?: string
-  ): Promise<Array<T> | Error> {
+  ): Promise<T[]> {
     let cleanedQuery: string = "";
     if (queryParameters) {
       cleanedQuery = queryParameters.startsWith("?")
@@ -122,11 +119,11 @@ abstract class API {
    * @param data The JSON of the fields and data that are to be updated on the targeted record
    * @returns A Promise with the results of the API execution
    */
-  static updateRecord(
+  static updateRecord<T>(
     tableSetName: string,
     recordId: string,
     data: ODataJSON
-  ): Promise<any | Error> {
+  ): Promise<T> {
     return new Promise((success, error) => {
       const url = `/_api/${tableSetName}(${recordId})`;
 
