@@ -187,3 +187,5 @@ declare global {
     allowNegative?: boolean; // Whether to allow negative values
   }
 }
+
+export {};

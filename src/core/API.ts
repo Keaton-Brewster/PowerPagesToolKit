@@ -1,7 +1,6 @@
-//@ts-nocheck
 import safeAjax from "../utils/safeAjax.ts";
 
-interface ODataJSON extends object {
+interface ODataJSON extends Object {
   [key: `${string}@odata.bind` | string]: any;
 }
 
@@ -9,8 +8,9 @@ interface ODataJSON extends object {
  * Provides abstract class `API` that allows basic create, read, and update operations in DataVerse via the PowerPages API
  * @method `createRecord` - Create a record in DataVerse
  * @method `getRecord<T>` - Get a record by ID from DataVerse
- * @method `getMultiple` - Get multiple records from DataVerse; with optional OData filtering
+ * @method `getMultiple<T>` - Get multiple records from DataVerse; with optional OData filtering
  * @method `updateRecord` - Update a record by ID in DataVerse
+ * @method `request<T>` - Build a custom request for advanced customizations
  */
 abstract class API {
   /**
@@ -25,31 +25,37 @@ abstract class API {
         url: `/_api/${tableSetName}`,
         data: JSON.stringify(data),
         contentType: "application/json",
-        success: function (_response, _status, xhr) {
+        success: function (_response: any, _status: any, xhr: any) {
           resolve(xhr.getResponseHeader("entityid"));
         },
-        error: (error) => {
+        error: (error: unknown) => {
           reject(error);
         },
       });
     });
   }
+
   /**
    *
    * @param tableSetName The DataVerse SET name of the table being queried
    * @param recordID the GUID of the records to be retrieved
-   * @param ODataQueryString *OPTIONAL* if desired, enter your own custom OData query for advanced GET results. e.g.: ?$select=column1,column2,column3
+   * @param ODataQueryString *OPTIONAL* if desired, enter your own custom OData query for advanced GET results. e.g.: $select=column1,column2,column3
    * @returns a Promise resolving the successful results of the GET request, or rejecting the failed results of the GET request
    */
   static getRecord<T>(
     tableSetName: string,
     recordID: string,
     ODataQueryString?: string
-  ): Promise<T> {
+  ): Promise<T | Error> {
+    let cleanedQuery: string = "";
+    if (ODataQueryString) {
+      cleanedQuery = ODataQueryString.startsWith("?")
+        ? ODataQueryString.slice(1, ODataQueryString.length)
+        : "?" + ODataQueryString;
+    }
+
     return new Promise((resolve, reject) => {
-      const url = `/_api/${tableSetName}(${recordID})${
-        ODataQueryString ? `${ODataQueryString}` : ""
-      }`;
+      const url = `/_api/${tableSetName}(${recordID})${cleanedQuery}`;
 
       safeAjax({
         type: "GET",
@@ -59,29 +65,52 @@ abstract class API {
       });
     });
   }
+
+  /**
+   * More flexible method for building completely custom queries
+   */
+  static request<T>(
+    query: string,
+    options?: JQuery.AjaxSettings
+  ): Promise<T | Error> {
+    return new Promise((success, error) => {
+      const url = `/_api/${query}`;
+      safeAjax({
+        url,
+        success,
+        error,
+        ...options,
+      });
+    });
+  }
+
   /**
    *
    * @param tableSetName The dataverse set name of the table being queried
-   * @param queryParameters *OPTIONAL* the OData query parameters for refining search results: *format = $filter=filters&$select=columns*
+   * @param queryParameters *OPTIONAL* the OData query parameters for refining search results: *format = $filter=statecode eq 0&$select=column1,column2...
    * @returns a Promise resolving the successful results of the GET request, or rejecting the failed results of the GET request
    */
-  static getMultiple<T = object>(
+  static getMultiple<T>(
     tableSetName: string,
     queryParameters?: string
-  ): Promise<Array<T>> {
-    return new Promise((resolve, reject) => {
+  ): Promise<Array<T> | Error> {
+    let cleanedQuery: string = "";
+    if (queryParameters) {
+      cleanedQuery = queryParameters.startsWith("?")
+        ? queryParameters.slice(1, queryParameters.length)
+        : "?" + queryParameters;
+    }
+    return new Promise((resolve, error) => {
       // Construct the URL based on the presence of query parameters
-      const url = `/_api/${tableSetName}${
-        queryParameters ? `?${queryParameters}` : ""
-      }`;
+      const url = `/_api/${tableSetName}${cleanedQuery}`;
 
       safeAjax({
         type: "GET",
         url: url,
-        success: function (response) {
+        success: function (response: any) {
           resolve(response.value);
         },
-        error: reject,
+        error,
       });
     });
   }
@@ -97,16 +126,16 @@ abstract class API {
     tableSetName: string,
     recordId: string,
     data: ODataJSON
-  ): Promise<any> {
-    return new Promise((resolve, reject) => {
+  ): Promise<any | Error> {
+    return new Promise((success, error) => {
       const url = `/_api/${tableSetName}(${recordId})`;
 
       safeAjax({
         type: "PATCH",
         url: url,
         data: JSON.stringify(data),
-        success: resolve,
-        error: reject,
+        success,
+        error,
       });
     });
   }

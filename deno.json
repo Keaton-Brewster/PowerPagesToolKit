@@ -24,7 +24,11 @@
   "compilerOptions": {
     "strict": true,
     "lib": ["DOM", "ES2016"],
-    "types": ["./src/@types/globals.d.ts"]
+    "types": [
+      "./src/@types/globals.d.ts",
+      "npm:@types/node",
+      "npm:@types/jquery"
+    ]
   },
   "exclude": ["./dist/**/*"],
   "unstable": ["sloppy-imports"],

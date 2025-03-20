@@ -33,6 +33,8 @@ export default async function bindForm(
 ): Promise<PowerPagesElementArray & Record<string, PowerPagesElement>> {
   try {
     const form = await API.getRecord<Form>("systemforms", formId);
+    if (form instanceof Error)
+      throw new Error(`Could not get the form with ID: ${formId}`);
     const { formxml } = form;
 
     /**

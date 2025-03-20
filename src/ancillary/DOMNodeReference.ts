@@ -491,6 +491,7 @@ export default abstract class DOMNodeReference {
     return this;
   }
 
+  // #region Apply Business Rule
   /**
    * Applies a business rule to manage visibility, required state, value, and disabled state dynamically.
    * @see {@link BusinessRule}
@@ -523,6 +524,7 @@ export default abstract class DOMNodeReference {
       else throw new Errors.BusinessRuleError(this);
     }
   }
+  // #region =========
 
   private _setupRequirementsValidator(
     requirements: FieldValidationRules

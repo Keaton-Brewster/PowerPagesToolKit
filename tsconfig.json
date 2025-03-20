@@ -3,7 +3,7 @@
     "allowImportingTsExtensions": true,
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -14,6 +14,10 @@
     "rootDir": "./src",
     "sourceMap": true,
     "baseUrl": ".",
+    "types": [
+      "jquery",
+      "node"
+    ],
     "paths": {
       "@/*": [
         "./src/*",
@@ -25,7 +29,7 @@
     ],
     "lib": [
       "DOM",
-      "ES2016"
+      "ES2017"
     ],
   },
   "include": [
