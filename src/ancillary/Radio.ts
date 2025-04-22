@@ -80,7 +80,7 @@ export default class Radio extends DOMNodeReference {
     this.visibilityManager = new VisibilityManager(this.element);
   }
 
-  override [destroy](): void {
+  [destroy](): void {
     super[destroy]();
     this.radioParent = undefined;
     this.radioType = undefined;

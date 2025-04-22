@@ -29,14 +29,30 @@ export default class ValueManager {
   }
 
   public setValue(value: any): void {
+    console.log('setting value for ', this.element)
     const validatedValue = this._validateValue(value);
 
+    console.log(typeof value, value);
     if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
-      (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
-      (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
-      this.value = value;
-      (this.element as HTMLInputElement).checked = Boolean(value);
-      (this.element as HTMLInputElement).value = value;
+      console.log("yesRadio and noRadio are Radios");
+      if (typeof value === "string") {
+        const lowercaseValue = value.toLowerCase()
+        if (["true", "yes", "truthy"].includes(lowercaseValue)) {
+          (this.yesRadio.element as HTMLInputElement).checked = Boolean(true);
+          (this.noRadio.element as HTMLInputElement).checked = Boolean(false);
+          this.value = true;
+        } else if (["false", "no", "falsy"].includes(lowercaseValue)) {
+          (this.yesRadio.element as HTMLInputElement).checked = Boolean(false);
+          (this.noRadio.element as HTMLInputElement).checked = Boolean(true);
+          this.value = false
+        }
+      } else if (typeof value === "boolean") {
+        (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
+        (this.noRadio.element as HTMLInputElement).checked = Boolean(!value);
+        this.value = value;
+      }
+      // (this.element as HTMLInputElement).checked = Boolean(value);
+      // (this.element as HTMLInputElement).value = value;
     } else if (
       this.isRadio ||
       (this.element as HTMLInputElement).type === "radio"
@@ -223,9 +239,8 @@ export default class ValueManager {
         this.value = null;
       }
     } catch (error) {
-      const errorMessage = `Failed to clear values for element with target "${this}": ${
-        error instanceof Error ? error.message : String(error)
-      }`;
+      const errorMessage = `Failed to clear values for element with target "${this}": ${error instanceof Error ? error.message : String(error)
+        }`;
       throw new Error(errorMessage);
     }
   }
