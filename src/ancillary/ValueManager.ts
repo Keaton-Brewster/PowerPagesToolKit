@@ -29,12 +29,9 @@ export default class ValueManager {
   }
 
   public setValue(value: any): void {
-    console.log('setting value for ', this.element)
     const validatedValue = this._validateValue(value);
 
-    console.log(typeof value, value);
     if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
-      console.log("yesRadio and noRadio are Radios");
       if (typeof value === "string") {
         const lowercaseValue = value.toLowerCase()
         if (["true", "yes", "truthy"].includes(lowercaseValue)) {
