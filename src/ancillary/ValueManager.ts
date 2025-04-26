@@ -194,12 +194,10 @@ export default class ValueManager {
   }
 
   public clearValue(): void {
+    // This method does not work as intended, and leads to bugs wherein if a user updates a field AFTER clearValue has been called, the value is not being tracked in Microsoft's form value management 
+    
     try {
       const element = this.element;
-
-      // set 'default value' // effects date inputs primarily
-      (element as HTMLInputElement).defaultValue = "";
-
       if (element instanceof HTMLInputElement) {
         switch (element.type.toLowerCase()) {
           case "checkbox":
