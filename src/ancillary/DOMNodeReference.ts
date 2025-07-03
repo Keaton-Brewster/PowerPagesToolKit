@@ -8,8 +8,10 @@ import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
 import DOMPurify from "DOMPurify";
 
+// #region Class Declaration
 export default abstract class DOMNodeReference {
   // declare static properties
+  //#region properties
   static instances: DOMNodeReference[] = [];
 
   // allow for indexing methods with symbols
@@ -21,6 +23,7 @@ export default abstract class DOMNodeReference {
   public root: Element;
   protected timeoutMs: number;
   protected isLoaded: boolean;
+  protected changeEmitter!: HTMLDivElement | HTMLElement;
 
   /**
    * The value of the element that this node represents
@@ -52,6 +55,8 @@ export default abstract class DOMNodeReference {
   public valueManager!: ValueManager | null;
   public eventManager!: EventManager | null;
 
+  // #region Constructor
+
   /**
    * Creates an instance of DOMNodeReference.
    * @param target - The CSS selector to find the desired DOM element.
@@ -71,6 +76,8 @@ export default abstract class DOMNodeReference {
 
     // The rest of initialization.
   }
+
+  // #region Init()
 
   protected async [init](): Promise<void> {
     if (this.target instanceof HTMLElement) {
@@ -105,13 +112,14 @@ export default abstract class DOMNodeReference {
     return (quoteMatch?.[1] || content).replace(/[#\[\]]/g, "");
   }
 
+  //#region _valueSync()
   protected _valueSync(): void {
     if (!this._isValidFormElement(this.element)) return;
 
     this.updateValue();
     const eventType = this._determineEventType();
     this.eventManager!.registerDOMEventListener(
-      this.element,
+      this.changeEmitter,
       eventType,
       this.updateValue.bind(this)
     );
@@ -121,7 +129,36 @@ export default abstract class DOMNodeReference {
     }
   }
 
+  /* Utility helpers */
+  private containsMultiSelectClass(): boolean {
+    return Array.from(this.element!.parentElement!.querySelectorAll("*")).some(
+      (node) =>
+        Array.from(node.classList).some((cls) =>
+          cls.toLowerCase().includes("multiselect")
+        )
+    );
+  }
+
+  //#region _initChangeEmitter()
+  // in the case that a control might be using a PCF, we have to be able to track the change events of that PCF control, rather than the element itself.
+  protected _initChangeEmitter(): void {
+    const parent = this.element.parentElement;
+
+    if (parent) {
+      // Look for the first child whose ID starts with "pcf" (case-insensitive)
+      const pcfElement = Array.from(parent.children).find((child) =>
+        child.id?.toLowerCase().startsWith("pcfcontrol")
+      ) as HTMLDivElement | undefined;
+
+      this.changeEmitter = pcfElement ?? this.element;
+    } else {
+      this.changeEmitter = this.element;
+    }
+  }
+
+  //#region _determineEventType()
   protected _determineEventType(): keyof GlobalEventHandlersEventMap {
+    if (this.containsMultiSelectClass()) return "change";
     if (this.element instanceof HTMLSelectElement) return "change";
     if (this.element instanceof HTMLTextAreaElement) return "keyup";
     if (!(this.element instanceof HTMLInputElement)) return EventTypes.DEFAULT;
@@ -187,6 +224,8 @@ export default abstract class DOMNodeReference {
     }
   }
 
+  // #region Destroy()
+
   protected [destroy](): void {
     // Clear other references
     this.isLoaded = false;
@@ -210,10 +249,12 @@ export default abstract class DOMNodeReference {
     this.triggerDependentsHandlers();
   }
 
+  // #region Trigger Dependents Handlers
   protected triggerDependentsHandlers(): void {
     this.eventManager!.dispatchDependencyHandlers();
   }
 
+  // #region Add Event Listener
   /**
    * Sets up an event listener based on the specified event type, executing the specified
    * event handler
@@ -241,7 +282,7 @@ export default abstract class DOMNodeReference {
 
     const handler = eventHandler as (this: DOMNodeReference, e: Event) => void;
     this.eventManager!.registerDOMEventListener(
-      this.element,
+      this.changeEmitter,
       eventType,
       handler.bind(this)
     );
@@ -524,7 +565,7 @@ export default abstract class DOMNodeReference {
       else throw new Errors.BusinessRuleError(this);
     }
   }
-  // #region =========
+  // #region Requirements Validator
 
   private _setupRequirementsValidator(
     requirements: FieldValidationRules
@@ -560,6 +601,8 @@ export default abstract class DOMNodeReference {
 
     this._createValidator(evaluationFunction);
   }
+
+  // #region Create Business Rule Handler
 
   private _createBusinessRuleHandler(rule: BusinessRule): BusinessRuleHandler {
     return (): void => {
@@ -603,6 +646,8 @@ export default abstract class DOMNodeReference {
     };
   }
 
+  // #region Create Validator
+
   private _createValidator(evaluationFunction: EvaluationFunction): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
@@ -633,6 +678,8 @@ export default abstract class DOMNodeReference {
 
     Page_Validators.push(newValidator);
   }
+
+  // #region Configure Dependency Tracking
 
   private _configureDependencyTracking(
     handler: DependencyHandler,

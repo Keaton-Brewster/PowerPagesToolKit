@@ -60,6 +60,7 @@ import Errors from "../errors/errors.ts";
         await this._attachRadioButtons();
       }
 
+      super._initChangeEmitter();
       this.initEventManager();
       this.initVisibilityManager();
       this.initValueManager();

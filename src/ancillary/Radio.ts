@@ -33,6 +33,8 @@ export default class Radio extends DOMNodeReference {
      */
     try {
       await super[init]();
+
+      super._initChangeEmitter();
       this.initEventManager();
       this.initVisibilityManager();
       this.initValueManager();

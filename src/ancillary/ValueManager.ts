@@ -1,4 +1,6 @@
+import { parse } from "node:path";
 import PowerPagesElement from "../core/PowerPagesElement.ts";
+import parseOptionSetJson from "../utils/parseOptionSetJSON.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
 import Radio from "./Radio.ts";
 
@@ -33,7 +35,7 @@ export default class ValueManager {
 
     if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
       if (typeof value === "string") {
-        const lowercaseValue = value.toLowerCase()
+        const lowercaseValue = value.toLowerCase();
         if (["true", "yes", "truthy"].includes(lowercaseValue)) {
           (this.yesRadio.element as HTMLInputElement).checked = Boolean(true);
           (this.noRadio.element as HTMLInputElement).checked = Boolean(false);
@@ -41,7 +43,7 @@ export default class ValueManager {
         } else if (["false", "no", "falsy"].includes(lowercaseValue)) {
           (this.yesRadio.element as HTMLInputElement).checked = Boolean(false);
           (this.noRadio.element as HTMLInputElement).checked = Boolean(true);
-          this.value = false
+          this.value = false;
         }
       } else if (typeof value === "boolean") {
         (this.yesRadio.element as HTMLInputElement).checked = Boolean(value);
@@ -103,68 +105,87 @@ export default class ValueManager {
     }
   }
 
-  public getElementValue(): Promise<ElementValue> {
-    return new Promise((resolve) => {
-      const input = this.element as HTMLInputElement;
-      const select = this.element as HTMLSelectElement;
+  /* Utility helpers */
+  private containsMultiSelectClass(): boolean {
+    return Array.from(this.element!.parentElement!.querySelectorAll("*")).some(
+      (node) =>
+        Array.from(node.classList).some((cls) =>
+          cls.toLowerCase().includes("multiselect")
+        )
+    );
+  }
 
-      if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
-        resolve({
-          value: this.yesRadio.checked,
-          checked: this.yesRadio.checked,
-        });
-      }
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 
-      let returnValue: ElementValue = {
-        value: null,
+  public async getElementValue(): Promise<ElementValue> {
+    const input = this.element as HTMLInputElement;
+    const select = this.element as HTMLSelectElement;
+
+    if (this.yesRadio instanceof Radio && this.noRadio instanceof Radio) {
+      return {
+        value: this.yesRadio.checked,
+        checked: this.yesRadio.checked,
       };
-      switch (input.type) {
-        case "checkbox":
-        case "radio":
-          resolve({
-            value: input.checked,
-            checked: input.checked,
-          });
-          break;
-        case "select-multiple":
-          resolve({
-            value: Array.from(select.selectedOptions).map(
-              (option) => option.value
-            ),
-          });
-          break;
+    }
 
-        case "select-one":
-          resolve({
-            value: select.value,
-          });
-          break;
+    // in the case that an element is a multi-select, we need to parse the option value differently.
+    // need code that searches the parent element for any child element that contains a class name with 'multiselect', and if so, return a custom parse of the element value
+    if (this.containsMultiSelectClass()) {
+      // we have to timeout, because the PCF control that is used by the multiselect fields does not immediately update the value of the input element
+      await this.delay(500);
+      return {
+        value: parseOptionSetJson(input.value),
+      };
+    }
 
-        case "number":
-          resolve({
-            value: input.value !== "" ? Number(input.value) : null,
-          });
-          break;
+    let returnValue: ElementValue = {
+      value: null,
+    };
+    switch (input.type) {
+      case "checkbox":
+      case "radio":
+        return {
+          value: input.checked,
+          checked: input.checked,
+        };
+      case "select-multiple":
+        return {
+          value: Array.from(select.selectedOptions).map(
+            (option) => option.value
+          ),
+        };
 
-        default: {
-          let cleanValue: string | number = input.value;
-          if (this.element!.classList.contains("decimal")) {
-            cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
-          }
+      case "select-one":
+        return {
+          value: select.value,
+        };
 
-          returnValue = {
-            value: cleanValue,
-          };
+      case "number":
+        return {
+          value: input.value !== "" ? Number(input.value) : null,
+        };
+
+      // currency fields can sometimes create a headache when trying to send the values to the API endpoint, so performing extra validation on those cases here
+      default: {
+        let cleanValue: string | number = input.value;
+        if (this.element!.classList.contains("decimal")) {
+          cleanValue = parseFloat(input.value.replace(/[$,]/g, "").trim());
         }
+
+        returnValue = {
+          value: cleanValue,
+        };
       }
+    }
 
-      returnValue = {
-        ...returnValue,
-        value: this._validateValue(returnValue.value),
-      };
+    returnValue = {
+      ...returnValue,
+      value: this._validateValue(returnValue.value),
+    };
 
-      resolve(returnValue);
-    });
+    return returnValue;
   }
 
   protected _validateValue(value: any): any {
@@ -194,8 +215,8 @@ export default class ValueManager {
   }
 
   public clearValue(): void {
-    // This method does not work as intended, and leads to bugs wherein if a user updates a field AFTER clearValue has been called, the value is not being tracked in Microsoft's form value management 
-    
+    // This method does not work as intended, and leads to bugs wherein if a user updates a field AFTER clearValue has been called, the value is not being tracked in Microsoft's form value management
+
     try {
       const element = this.element;
       if (element instanceof HTMLInputElement) {
@@ -234,8 +255,9 @@ export default class ValueManager {
         this.value = null;
       }
     } catch (error) {
-      const errorMessage = `Failed to clear values for element with target "${this}": ${error instanceof Error ? error.message : String(error)
-        }`;
+      const errorMessage = `Failed to clear values for element with target "${this}": ${
+        error instanceof Error ? error.message : String(error)
+      }`;
       throw new Error(errorMessage);
     }
   }
