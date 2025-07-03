@@ -114,15 +114,15 @@ const nodes2 = await get("#target", {
 
 #### Properties
 
-| Property | Type                  | Description                                  |
-| -------- | --------------------- | -------------------------------------------- |
-| element  | HTMLElement           | The referenced DOM element                   |
-| value    | any                   | Current synchronized value of the element    |
-| isLoaded | boolean               | Element load status                          |
-| target   | HTMLElement \| string | Original target selector or element          |
-| yesRadio | Radio \| null         | Reference to 'yes' radio (for yes/no fields) |
-| noRadio  | Radio \| null         | Reference to 'no' radio (for yes/no fields)  |
-| checked  | boolean               | Checkbox/radio checked state                 |
+| Property | Type                 | Description                                  |
+| -------- | -------------------- | -------------------------------------------- |
+| element  | HTMLElement          | The referenced DOM element                   |
+| value    | any                  | Current synchronized value of the element    |
+| isLoaded | boolean              | Element load status                          |
+| target   | HTMLElement\| string | Original target selector or element          |
+| yesRadio | Radio\| null         | Reference to 'yes' radio (for yes/no fields) |
+| noRadio  | Radio\| null         | Reference to 'no' radio (for yes/no fields)  |
+| checked  | boolean              | Checkbox/radio checked state                 |
 
 #### Key Methods
 
@@ -316,8 +316,6 @@ title.addTooltip("This is an Example of a tooltip!", { color: "red" });
 
 ![Example](./assets//infoIconExample.gif)
 
-Here's an improved markdown documentation with more comprehensive details:
-
 ### BindForm Method
 
 The `bindForm` method simplifies form element management in DataVerse by providing a semantic and efficient way to access form controls, sections, and tabs.
@@ -334,9 +332,9 @@ The `bindForm` method simplifies form element management in DataVerse by providi
 
 | Element Type | Description                                 | Accessibility             |
 | ------------ | ------------------------------------------- | ------------------------- |
-| `control`    | Includes all form fields and sub-grids      | Accessed via logical name |
-| `section`    | Standard PowerApps form sections            | Accessed via logical name |
-| `tab`        | Form tabs corresponding to PowerApps layout | Accessed via logical name |
+| `control`  | Includes all form fields and sub-grids      | Accessed via logical name |
+| `section`  | Standard PowerApps form sections            | Accessed via logical name |
+| `tab`      | Form tabs corresponding to PowerApps layout | Accessed via logical name |
 
 ##### Usage Example
 
@@ -462,7 +460,6 @@ node.configureConditionalRendering(
 ```
 
 3. Use TypeScript for better type safety and IntelliSense support.
-
 4. Use proper error handling with API operations:
 
 ```typescript
