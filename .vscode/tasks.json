@@ -2,17 +2,17 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "deno: build:all",
+            "label": "build",
             "type": "shell",
             "command": "deno",
             "args": [
                 "run",
                 "clean",
-                "&&",
+                ";",
                 "deno",
                 "run",
                 "build:types",
-                "&&",
+                ";",
                 "deno",
                 "run",
                 "bundle"

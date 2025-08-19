@@ -103,7 +103,7 @@
   /********/ private getDesiredWidth(): string {
     // Get a reasonable width that works for center positioning
     const viewportWidth = self.innerWidth;
-    const maxWidth = Math.min(viewportWidth - 40, 600); // Max 600px wide with 20px padding on each side
+    const maxWidth = Math.min(viewportWidth - 40, 200); // Max 600px wide with 20px padding on each side
     return `${maxWidth}px`;
   }
 
@@ -113,8 +113,10 @@
     // Get the icon's position relative to the viewport
     const iconRect = this.icon.getBoundingClientRect();
     const flyoutRect = this.flyoutContent.getBoundingClientRect();
+    const viewportWidth = self.innerWidth;
     const viewportHeight = self.innerHeight;
     const margin = 5; // Space between icon and flyout
+
     let topPosition = iconRect.bottom - margin; // Default below the icon
     // If the flyout would go beyond the viewport, position it above
     if (topPosition + flyoutRect.height > viewportHeight) {
@@ -123,7 +125,17 @@
     // Apply positions
     this.flyoutContent.style.top = `${topPosition}px`;
 
-    // then, adjust centeredness based on layout of page
+    // Horizontal positioning
+    if (viewportWidth <= 500) {
+      // Centered for small screens
+      this.flyoutContent.style.left = "50%";
+      this.flyoutContent.style.transform = "translateX(-50%)";
+    } else {
+      // Align with the icon for wide screens
+      const leftPosition = iconRect.left; // or tweak for padding/margin
+      this.flyoutContent.style.left = `${leftPosition}px`;
+      this.flyoutContent.style.transform = "none"; // remove centering
+    }
   }
 
   /********/ private updateFlyoutWidth(): void {

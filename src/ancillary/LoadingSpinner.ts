@@ -3,11 +3,13 @@
  */
 /********/ /********/ export default class LoadingSpinner extends HTMLElement {
   private element!: HTMLDivElement;
+
   constructor() {
     if (!document) {
       throw new Error(`Cannot instantiate 'LoadingSpinner': No DOM Found`);
     }
     super();
+
     this.id = "loader";
     this.classList.add("loader-overlay", "hidden");
 
