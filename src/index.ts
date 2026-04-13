@@ -6,4 +6,5 @@ import get from "./core/getPowerPagesElement.ts";
 import waitFor from "./core/waitFor.ts";
 import bindForm from "./core/bindForm.ts";
 import LoadingSpinner from "./ancillary/LoadingSpinner.ts";
+export { Selectors, Detect } from "./constants/PowerPagesPlatform.ts";
 export { API, bindForm, get, waitFor, LoadingSpinner };

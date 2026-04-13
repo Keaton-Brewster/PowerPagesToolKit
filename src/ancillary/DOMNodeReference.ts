@@ -3,6 +3,7 @@ import type ValueManager from "../ancillary/ValueManager.ts";
 import type VisibilityManager from "./VisibilityManager.ts";
 import { EventTypes } from "../constants/EventTypes.ts";
 import { init, destroy } from "../constants/symbols.ts";
+import { Selectors, Detect } from "../constants/PowerPagesPlatform.ts";
 import InfoElement from "./InfoElement.ts";
 import waitFor from "../core/waitFor.ts";
 import Errors from "../errors/errors.ts";
@@ -131,12 +132,7 @@ export default abstract class DOMNodeReference {
 
   /* Utility helpers */
   private containsMultiSelectClass(): boolean {
-    return Array.from(this.element!.parentElement!.querySelectorAll("*")).some(
-      (node) =>
-        Array.from(node.classList).some((cls) =>
-          cls.toLowerCase().includes("multiselect")
-        )
-    );
+    return Detect.isMultiSelect(this.element!);
   }
 
   //#region _initChangeEmitter()
@@ -147,7 +143,7 @@ export default abstract class DOMNodeReference {
     if (parent) {
       // Look for the first child whose ID starts with "pcf" (case-insensitive)
       const pcfElement = Array.from(parent.children).find((child) =>
-        child.id?.toLowerCase().startsWith("pcfcontrol")
+        Detect.isPCFControl(child.id)
       ) as HTMLDivElement | undefined;
 
       this.changeEmitter = pcfElement ?? this.element;
@@ -171,8 +167,7 @@ export default abstract class DOMNodeReference {
 
   protected _isDateInput(): boolean {
     return (
-      this.element instanceof HTMLInputElement &&
-      this.element.dataset.type === "date"
+      this.element instanceof HTMLInputElement && Detect.isDateInput(this.element)
     );
   }
 
@@ -194,7 +189,7 @@ export default abstract class DOMNodeReference {
     }
 
     const dateNode = (await waitFor(
-      "[data-date-format]",
+      Selectors.dateFormatNode,
       parentElement,
       false,
       1500
@@ -446,7 +441,7 @@ export default abstract class DOMNodeReference {
    */
   public getLabel(): HTMLElement | null {
     const label =
-      (document.querySelector(`#${this.element.id}_label`) as HTMLElement) ||
+      (document.querySelector(Selectors.label(this.element.id)) as HTMLElement) ||
       null;
     if (!label) throw new Errors.LabelNotFoundError(this);
     return label;

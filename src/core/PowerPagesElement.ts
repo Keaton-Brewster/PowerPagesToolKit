@@ -4,6 +4,7 @@ import PhoneNumberMask from "../utils/PhoneNumberMask.ts";
 import EventManager from "../ancillary/EventManager.ts";
 import ValueManager from "../ancillary/ValueManager.ts";
 import { init, destroy } from "../constants/symbols.ts";
+import { Selectors } from "../constants/PowerPagesPlatform.ts";
 import type InputMask from "../utils/InputMask.ts";
 import MoneyInputMask from "../utils/MoneyMask.ts";
 import Radio from "../ancillary/Radio.ts";
@@ -54,7 +55,7 @@ import Errors from "../errors/errors.ts";
       if (
         this.element.id &&
         this.element.querySelectorAll(
-          `#${this.element.id} > input[type="radio"]`
+          Selectors.booleanRadioChildren(this.element.id)
         ).length > 0
       ) {
         await this._attachRadioButtons();
@@ -117,7 +118,7 @@ import Errors from "../errors/errors.ts";
 
     this.yesRadio = new Radio(
       this,
-      'input[type="radio"][value="1"]',
+      Selectors.truthyRadio,
       this.element,
       0,
       "truthy"
@@ -125,7 +126,7 @@ import Errors from "../errors/errors.ts";
 
     this.noRadio = new Radio(
       this,
-      'input[type="radio"][value="0"]',
+      Selectors.falsyRadio,
       this.element,
       0,
       "falsy"
@@ -168,14 +169,14 @@ import Errors from "../errors/errors.ts";
    * @param type The type of input mask to apply to this element
    * @param options The options to specify the behavior of the mask
    */
-  public inputMask(type: "phone" | "money", options: InputMaskOptions): void;
+  public inputMask(type: "phone" | "money", options: InputMaskOptions): PowerPagesElement;
   public inputMask(
     type: "phone",
     options?: {
       format?: PhoneNumberFormats;
       countryCode?: CountryCodeFormats;
     }
-  ): void;
+  ): PowerPagesElement;
   public inputMask(
     type: "money",
     options?: {
@@ -185,7 +186,7 @@ import Errors from "../errors/errors.ts";
       decimalSeparator?: string; // Character for decimal point (e.g., ".")
       allowNegative?: boolean; // Whether to allow negative values
     }
-  ): void;
+  ): PowerPagesElement;
   public inputMask(
     type: "money" | "phone",
     options: InputMaskOptions

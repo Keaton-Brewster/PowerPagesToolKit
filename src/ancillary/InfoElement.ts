@@ -52,6 +52,7 @@
     this.handleScroll = this.handleScroll.bind(this);
 
     this.flyoutContent.style.minWidth = this.getDesiredWidth().min;
+    this.flyoutContent.style.maxWidth = this.getDesiredWidth().max;
 
     this.flyoutContent.style.display = "none";
 
@@ -88,7 +89,7 @@
 
     // observe for changes in the DOM, and trigger position
     const _position_observer = new MutationObserver(
-      () => this.updateFlyoutWidth
+      () => this.updateFlyoutWidth()
     );
     _position_observer.observe(document, {
       childList: true,
@@ -103,8 +104,8 @@
   /********/ private getDesiredWidth(): { min: string; max: string } {
     // Get a reasonable width that works for center positioning
     const viewportWidth = self.innerWidth;
-    const maxWidth = Math.min(viewportWidth - 40, 200); // Max 600px wide with 20px padding on each side
-    const minWidth = Math.min(viewportWidth - 40, 600); // Min 200px wide with 20px padding on each side
+    const maxWidth = Math.min(viewportWidth - 40, 600); // Max 600px wide with 20px padding on each side
+    const minWidth = Math.min(viewportWidth - 40, 200); // Min 200px wide with 20px padding on each side
     return {
       min: `${minWidth}px`,
       max: `${maxWidth}px`,
@@ -144,7 +145,7 @@
 
   /********/ private updateFlyoutWidth(): void {
     this.flyoutContent.style.minWidth = this.getDesiredWidth().min;
-    this.flyoutContent.style.minWidth = this.getDesiredWidth().max;
+    this.flyoutContent.style.maxWidth = this.getDesiredWidth().max;
   }
 
   /********/ private handleClick(e: Event): void {
@@ -155,7 +156,7 @@
 
   /********/ private handleResize(_e: Event): void {
     this.flyoutContent.style.minWidth = this.getDesiredWidth().min;
-    this.flyoutContent.style.minWidth = this.getDesiredWidth().max;
+    this.flyoutContent.style.maxWidth = this.getDesiredWidth().max;
   }
 
   /********/ private handleTouchStart(): void {

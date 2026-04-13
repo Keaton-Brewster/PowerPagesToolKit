@@ -3,6 +3,7 @@ import type PowerPagesElement from "./PowerPagesElement.ts";
 import enhanceArray from "../utils/enhanceArray.ts";
 import get from "./getPowerPagesElement.ts";
 import API from "./API.ts";
+import { Selectors } from "../constants/PowerPagesPlatform.ts";
 
 /**
  * When loading into a page in PowerPages that has a form,
@@ -109,9 +110,9 @@ function createReferenceString(
   tagName: string,
   datafieldname: string
 ): string | null {
-  if (tagName === "control") return `#${datafieldname}`;
+  if (tagName === "control") return Selectors.controlById(datafieldname);
   if (tagName === "tab" || tagName === "section") {
-    return `[data-name="${datafieldname}"]`;
+    return Selectors.sectionOrTab(datafieldname);
   }
   return null; // Explicitly return null instead of undefined
 }

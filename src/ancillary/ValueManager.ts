@@ -1,6 +1,6 @@
-import { parse } from "node:path";
 import PowerPagesElement from "../core/PowerPagesElement.ts";
 import parseOptionSetJson from "../utils/parseOptionSetJSON.ts";
+import { Detect } from "../constants/PowerPagesPlatform.ts";
 import type DOMNodeReference from "./DOMNodeReference.ts";
 import Radio from "./Radio.ts";
 
@@ -107,12 +107,7 @@ export default class ValueManager {
 
   /* Utility helpers */
   private containsMultiSelectClass(): boolean {
-    return Array.from(this.element!.parentElement!.querySelectorAll("*")).some(
-      (node) =>
-        Array.from(node.classList).some((cls) =>
-          cls.toLowerCase().includes("multiselect")
-        )
-    );
+    return Detect.isMultiSelect(this.element!);
   }
 
   private delay(ms: number): Promise<void> {

@@ -5,6 +5,30 @@ interface ODataJSON extends Object {
 }
 
 /**
+ * Options for a custom API request. Structurally compatible with `JQuery.AjaxSettings`.
+ */
+/**
+ * Options for a custom API request. Structurally compatible with `JQuery.AjaxSettings`.
+ * Note: `url`, `success`, and `error` are managed internally and cannot be overridden.
+ */
+export interface RequestOptions {
+  type?: string;
+  method?: string;
+  data?: any;
+  contentType?: string | false;
+  headers?: Record<string, string>;
+  dataType?: string;
+  timeout?: number;
+  async?: boolean;
+  cache?: boolean;
+  crossDomain?: boolean;
+  processData?: boolean;
+  beforeSend?: (jqXHR: any, settings: any) => false | void;
+  complete?: (jqXHR: any, textStatus: string) => void;
+  [key: string]: any;
+}
+
+/**
  * Provides abstract class `API` that allows basic create, read, and update operations in DataVerse via the PowerPages API
  * @method `createRecord` - Create a record in DataVerse
  * @method `getRecord<T>` - Get a record by ID from DataVerse
@@ -69,14 +93,14 @@ abstract class API {
   /**
    * More flexible method for building completely custom queries
    */
-  static request<T>(query: string, options?: JQuery.AjaxSettings): Promise<T> {
+  static request<T>(query: string, options?: RequestOptions): Promise<T> {
     return new Promise((success, error) => {
       const url = `/_api/${query}`;
       safeAjax({
+        ...options,
         url,
         success,
         error,
-        ...options,
       });
     });
   }

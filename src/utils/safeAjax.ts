@@ -1,4 +1,5 @@
 // @ts-nocheck
+/// <reference types="jquery" />
 // Assume these globals are available in the PowerPages runtime:
 declare const shell: {
   getTokenDeferred(): JQuery.Promise<string>;
