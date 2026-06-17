@@ -88,10 +88,12 @@ declare global {
    * @param isValid - Function validating field input.
    * @param isValid.this - Reference to this PowerPagesElement
    * @param isValid.isRequiredResult - Only available if 'isRequired' is also returned from the configuration function
+   * @param validationMessage - Optional custom message shown in the validation summary when the field fails. Defaults to "{field label} is a required field".
    */
   interface FieldValidationRules {
     isRequired?: EvaluationFunction;
     isValid?: EvaluationFunction<IsRequired>;
+    validationMessage?: string;
   }
 
   interface BusinessRule {

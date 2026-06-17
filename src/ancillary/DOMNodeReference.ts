@@ -537,7 +537,7 @@ export default abstract class DOMNodeReference {
    */
   public applyBusinessRule(
     rule: BusinessRule,
-    dependencies: DependencyArray<DOMNodeReference>
+    dependencies?: DependencyArray<DOMNodeReference>
   ): DOMNodeReference {
     try {
       // Create validator if needed (this is only needed once during setup)
@@ -550,7 +550,7 @@ export default abstract class DOMNodeReference {
       handler();
 
       // Setup dependency tracking
-      if (dependencies.length) {
+      if (dependencies && dependencies.length) {
         this._configureDependencyTracking(handler, dependencies);
       }
 
@@ -565,7 +565,7 @@ export default abstract class DOMNodeReference {
   private _setupRequirementsValidator(
     requirements: FieldValidationRules
   ): void {
-    const { isRequired, isValid } = requirements;
+    const { isRequired, isValid, validationMessage } = requirements;
 
     if (typeof Page_Validators === "undefined") {
       throw new Errors.Page_ValidatorsNotFoundError(this);
@@ -585,7 +585,8 @@ export default abstract class DOMNodeReference {
     } else if (isValid) {
       evaluationFunction = () => {
         const isFieldVisible = this.visibilityManager!.getVisibility();
-        return isFieldVisible && isValid.call(this, false);
+        if (!isFieldVisible) return true;
+        return isValid.call(this, false);
       };
     } else if (isRequired) {
       evaluationFunction = () => {
@@ -594,7 +595,7 @@ export default abstract class DOMNodeReference {
       };
     }
 
-    this._createValidator(evaluationFunction);
+    this._createValidator(evaluationFunction, validationMessage);
   }
 
   // #region Create Business Rule Handler
@@ -643,7 +644,7 @@ export default abstract class DOMNodeReference {
 
   // #region Create Validator
 
-  private _createValidator(evaluationFunction: EvaluationFunction): void {
+  private _createValidator(evaluationFunction: EvaluationFunction, validationMessage?: string): void {
     const fieldDisplayName = (() => {
       let label: any = this.getLabel();
       if (!label) {
@@ -664,7 +665,7 @@ export default abstract class DOMNodeReference {
 
     Object.assign(newValidator, {
       controltovalidate: this.element.id,
-      errormessage: `<a href='#${this.element.id}_label'>${fieldDisplayName} is a required field</a>`,
+      errormessage: `<a href='#${this.element.id}_label'>${validationMessage ?? `${fieldDisplayName} is a required field`}</a>`,
       evaluationfunction: evaluationFunction.bind(this),
     });
 
